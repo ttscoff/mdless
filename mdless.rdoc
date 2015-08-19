@@ -1,0 +1,5 @@
+= mdless
+
+Generate this with
+    mdless rdoc
+After you have described your command line interface

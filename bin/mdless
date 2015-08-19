@@ -1,0 +1,29 @@
+#!/usr/bin/env ruby
+# coding: utf-8
+require 'mdless'
+
+def class_exists?(class_name)
+  klass = Module.const_get(class_name)
+  return klass.is_a?(Class)
+rescue NameError
+  return false
+end
+
+if class_exists? 'Encoding'
+  Encoding.default_external = Encoding::UTF_8 if Encoding.respond_to?('default_external')
+  Encoding.default_internal = Encoding::UTF_8 if Encoding.respond_to?('default_internal')
+end
+
+CLIMarkdown::Converter.new(ARGV)
+
+# at_exit {
+#   if cli.helpers.size
+#     cli.log.info("Cleaning up")
+#     cli.helpers.each do |helper|
+#       if !helper[:file].nil? && File.exists?(helper[:file])
+#         cli.log.info("-> #{helper[:file]}")
+#         FileUtils.rm_f(helper[:file])
+#       end
+#     end
+#   end
+# }
