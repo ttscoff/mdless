@@ -10,7 +10,7 @@ module CLIMarkdown
 
       @options = {}
       optparse = OptionParser.new do |opts|
-        opts.banner = "Usage: #{File.basename(__FILE__)} [options] path"
+        opts.banner = "#{CLIMarkdown::EXECUTABLE_NAME} #{CLIMarkdown::VERSION}\n\n> Usage: #{CLIMarkdown::EXECUTABLE_NAME} [options] path\n\n"
 
         @options[:section] = nil
         opts.on( '-s', '--section=TITLE', 'Output only a headline-based section of the input' ) do |section|
@@ -39,15 +39,26 @@ module CLIMarkdown
           @options[:list] = true
         end
 
+        @options[:local_images] = false
         @options[:remote_images] = false
+
         if exec_available('imgcat') && ENV['TERM_PROGRAM'] == 'iTerm.app'
-          opts.on('--remote', 'Fetch remote images for display (requires imgcat and iTerm2)' ) do
+          opts.on('-i', '--images=TYPE', 'Include [local|remote (both)] images in output (requires imgcat and iTerm2, default NONE)' ) do |type|
+            if type =~ /^(r|b|a)/i
+              @options[:local_images] = true
+              @options[:remote_images] = true
+            elsif type =~ /^l/i
+              @options[:local_images] = true
+            end
+          end
+          opts.on('-I', '--all-images', 'Include local and remote images in output (requires imgcat and iTerm2)' ) do
+            @options[:local_images] = true
             @options[:remote_images] = true
           end
         end
 
 
-        opts.on( '-v', '--verbose LEVEL', 'Level of debug messages to output' ) do |level|
+        opts.on( '-d', '--debug LEVEL', 'Level of debug messages to output' ) do |level|
           if level.to_i > 0 && level.to_i < 5
             @log.level = 5 - level.to_i
           else
@@ -60,6 +71,11 @@ module CLIMarkdown
           puts opts
           exit
         end
+
+        opts.on( '-v', '--version', 'Display version number' ) do
+          puts CLIMarkdown::VERSION
+          exit
+        end
       end
 
       optparse.parse!
@@ -68,8 +84,6 @@ module CLIMarkdown
       @output = ''
 
       input = ''
-
-      install_helpers
 
       if args.length > 0
         files = args.delete_if { |f| !File.exists?(f) }
@@ -167,7 +181,7 @@ module CLIMarkdown
           line.gsub!(/\|/, "#{c([:d,:black])}|#{c([:x,:yellow])}")
         elsif line.strip =~ /^[|:\- ]+$/
           line.gsub!(/^(.*)$/, "#{c([:d,:black])}\\1#{c([:x,:white])}")
-          line.gsub!(/([:-]+)/,"#{c([:b,:black])}\\1#{c([:d,:black])}")
+          line.gsub!(/([:\-]+)/,"#{c([:b,:black])}\\1#{c([:d,:black])}")
         else
           line.gsub!(/\|/, "#{c([:d,:black])}|#{c([:x,:white])}")
         end
@@ -219,11 +233,9 @@ module CLIMarkdown
     end
 
     def clean_table(input)
-      script = File.join('helpers', 'formattables.py')
-
-      unless File.exists?(script)
-        install_helpers
-      end
+      dir = File.dirname(__FILE__)
+      lib = File.expand_path(dir + '/../../lib')
+      script = File.join(lib, 'helpers/formattables.py')
 
       if File.exists?(script) and File.executable?(script)
         begin
@@ -245,6 +257,7 @@ module CLIMarkdown
     end
 
     def find_color(line,nullable=false)
+      return line if line.nil?
       colors = line.scan(/\e\[[\d;]+m/)
       if colors && colors.size > 0
         colors[-1]
@@ -273,6 +286,46 @@ module CLIMarkdown
     end
 
     def convert_markdown(input)
+      # yaml/MMD headers
+
+      in_yaml = false
+      if input.split("\n")[0] =~ /(?i-m)^---[ \t]*?(\n|$)/
+        @log.info("Found YAML")
+        # YAML
+        in_yaml = true
+        input.sub!(/(?i-m)^---[ \t]*\n([\s\S]*?)\n[\-.]{3}[ \t]*\n/) do |yaml|
+          m = Regexp.last_match
+
+          @log.warn("Processing YAML Header")
+          m[0].split(/\n/).map {|line|
+            if line =~ /^[\-.]{3}\s*$/
+              line = c([:d,:black,:on_black]) + "% " + c([:d,:black,:on_black]) + line
+            else
+              line.sub!(/^(.*?:)[ \t]+(\S)/, '\1 \2')
+              line = c([:d,:black,:on_black]) + "% " + c([:d,:white]) + line
+            end
+            if @cols - line.uncolor.size > 0
+              line += " "*(@cols-line.uncolor.size)
+            end
+          }.join("\n") + "#{xc}\n"
+        end
+      end
+
+      if !in_yaml && input =~ /(?i-m)^\S.+:\s+.+\n/
+        @log.info("Found MMD Headers")
+        input.sub!(/(?i-m)^([\S ]+:[\s\S]*?)+(?=\n\n)/) do |mmd|
+          mmd.split(/\n/).map {|line|
+            line.sub!(/^(.*?:)[ \t]+(\S)/, '\1 \2')
+            line = c([:d,:black,:on_black]) + "% " + c([:d,:white,:on_black]) + line
+            if @cols - line.uncolor.size > 0
+              line += " "*(@cols - line.uncolor.size)
+            end
+          }.join("\n") + " "*@cols + "#{xc}\n"
+        end
+
+      end
+
+
       # Gather reference links
       ref_links = {}
       input.gsub!(/^\s{,3}(?<![\e*])\[\b(.+)\b\]: +(.+)/) do |m|
@@ -326,189 +379,8 @@ module CLIMarkdown
         "#" * (match[1].length - h_adjust)
       end
 
-      # remove empty links
-      input.gsub!(/\[(.*?)\]\(\s*?\)/, '\1')
-      input.gsub!(/\[(.*?)\]\[\]/, '[\1][\1]')
-
-      lines = input.split(/\n/)
-
-      lines.map!.with_index do |aLine, i|
-        line = aLine.dup
-
-        # Headlines
-        line.gsub!(/^(#+) *(.*?)(\s*#+)?\s*$/) do |match|
-          m = Regexp.last_match
-          pad = ""
-          ansi = ''
-          case m[1].length
-          when 1
-            ansi = c([:b, :green, :on_black])
-            pad = m[2].length + 2 > @cols ? "="*m[2].length : "="*(@cols - (m[2].length + 2))
-          when 2
-            ansi = c([:b, :green, :on_black])
-            pad = m[2].length + 2 > @cols ? "-"*m[2].length : "-"*(@cols - (m[2].length + 2))
-          when 3
-            ansi = c([:u, :yellow])
-          when 4
-            ansi = c([:u, :red])
-          else
-            ansi = c([:b, :white])
-          end
-
-          "\n#{xc}#{ansi}#{m[2]} #{pad}#{xc}"
-        end
-
-        # place footnotes under paragraphs that reference them
-        if line =~ /\[\^(\S+)\]/
-          key = $1
-          if footnotes.key? key
-            line += "\n\n#{c([:b,:black])}[#{c([:b,:yellow])}^#{c([:x,:yellow])}#{key}#{c([:b,:black])}]: #{c([:x,:white,:on_black])}#{footnotes[key]}#{xc}"
-          end
-        end
-
-        # color footnote references
-        line.gsub!(/\[\^(\S+)\]/) do |m|
-          match = Regexp.last_match
-          last = find_color(match.pre_match, true)
-          counter = i
-          while last.nil? && counter > 0
-            counter -= 1
-            find_color(lines[counter])
-          end
-          "#{c([:b,:black])}[#{c([:b,:yellow])}^#{c([:x,:yellow])}#{match[1]}#{c([:b,:black])}]" + (last ? last : xc)
-        end
-
-        # blockquotes
-        line.gsub!(/^(\s*>)+ (.*?)$/) do |m|
-          match = Regexp.last_match
-          last = find_color(match.pre_match, true)
-          counter = i
-          while last.nil? && counter > 0
-            counter -= 1
-            find_color(lines[counter])
-          end
-          "#{c([:b,:black])}#{match[1]}#{c([:x,:magenta])} #{match[2]}" + (last ? last : xc)
-        end
-
-        # make reference links inline
-        line.gsub!(/(?<![\e*])\[(\b.*?\b)?\]\[(\b.+?\b)?\]/) do |m|
-          match = Regexp.last_match
-          title = match[2] || ''
-          text = match[1] || ''
-          if match[2] && ref_links.key?(title.downcase)
-            "[#{text}](#{ref_links[title]})"
-          elsif match[1] && ref_links.key?(text.downcase)
-            "[#{text}](#{ref_links[text]})"
-          else
-            if input.match(/^#+\s*#{Regexp.escape(text)}/i)
-              "[#{text}](##{text})"
-            else
-              match[1]
-            end
-          end
-        end
-
-        # color inline links
-        line.gsub!(/(?<![\e*!])\[(\S.*?\S)\]\((\S.+?\S)\)/) do |m|
-          match = Regexp.last_match
-          color_link(match.pre_match, match[1], match[2])
-        end
-
-
-        line.gsub!(/^([-*] ?){3,}$/) do |m|
-          c([:x,:black]) + '_'*@cols + xc
-        end
-
-        # bold, bold/italic
-        line.gsub!(/(^|\s)[\*_]{2,3}([^\*_\s][^\*_]+?[^\*_\s])[\*_]{2,3}/) do |m|
-          match = Regexp.last_match
-          last = find_color(match.pre_match, true)
-          counter = i
-          while last.nil? && counter > 0
-            counter -= 1
-            find_color(lines[counter])
-          end
-          "#{match[1]}#{c([:b])}#{match[2]}" + (last ? last : xc)
-        end
-
-        # italic
-        line.gsub!(/(^|\s)[\*_]([^\*_\s][^\*_]+?[^\*_\s])[\*_]/) do |m|
-          match = Regexp.last_match
-          last = find_color(match.pre_match, true)
-          counter = i
-          while last.nil? && counter > 0
-            counter -= 1
-            find_color(lines[counter])
-          end
-          "#{match[1]}#{c([:u])}#{match[2]}" + (last ? last : xc)
-        end
-
-        # equations
-        line.gsub!(/((\\\\\[)(.*?)(\\\\\])|(\\\\\()(.*?)(\\\\\)))/) do |m|
-          match = Regexp.last_match
-          last = find_color(match.pre_match)
-          if match[2]
-            brackets = [match[2], match[4]]
-            equat = match[3]
-          else
-            brackets = [match[5], match[7]]
-            equat = match[6]
-          end
-          "#{c([:b, :black])}#{brackets[0]}#{xc}#{c([:b,:blue])}#{equat}#{c([:b, :black])}#{brackets[1]}" + (last ? last : xc)
-        end
-
-        # list items
-        line.gsub!(/^(\s*)([*-+]|\d\.) /) do |m|
-          match = Regexp.last_match
-          last = find_color(match.pre_match)
-          indent = match[1] || ''
-          "#{indent}#{c([:d, :red])}#{match[2]} " + (last ? last : xc)
-        end
-
-        # misc html
-        line.gsub!(/<br\/?>/, "\n")
-        line.gsub!(/<\/?\w+.*?>/, "")
-
-        line
-      end
-
-      in_headers = false
-      in_yaml = false
-      lines.map! {|line|
-        # YAML
-        if line =~ /^[-~]{3}\s*$/
-          if in_yaml
-            break
-          else
-            in_yaml = true
-            line = c([:b,:black]) + line
-          end
-        elsif in_yaml
-          line = c([:b,:black]) + line
-        end
-
-        line
-      }
-
-      unless in_yaml
-        lines.map! {|line|
-
-          if line =~ /^.+:\s+.+/ || (in_headers && line !~ /^\s*$/)
-            # MMD headers
-            in_headers = true
-            line = c([:b,:black]) + line
-          elsif in_headers
-            in_headers = false
-            break
-          end
-
-          line
-        }
-      end
-
-      input = lines.join("\n")
-
-      input.gsub!( /(?i-m)([`~]{3,})([\s\S]*?)\n([\s\S]*?)\1/ ) do |cb|
+      # TODO: Probably easiest to just collect these with line indexes, remove until other highlighting is finished
+      input.gsub!(/(?i-m)([`~]{3,})([\s\S]*?)\n([\s\S]*?)\1/ ) do |cb|
         m = Regexp.last_match
         leader = m[2] ? m[2].upcase + ":" : 'CODE:'
         leader += xc
@@ -519,13 +391,12 @@ module CLIMarkdown
             hilite, s = Open3.capture2(%Q{pygmentize #{lexer} 2> /dev/null}, :stdin_data=>m[3])
 
             if s.success?
-              hilite = hilite.split(/\n/).map{|l| '~ ' + l}.join("\n")
+              hilite = hilite.split(/\n/).map{|l| "#{c([:x,:black])}~ #{xc}" + l}.join("\n")
             end
           rescue => e
             @log.error(e)
             hilite = m[0]
           end
-          # hilite = %x{echo '#{m[3]}'|pygmentize #{lexer}}
 
         else
 
@@ -533,59 +404,242 @@ module CLIMarkdown
             new_code_line = l.gsub(/\t/,'    ')
             orig_length = new_code_line.size + 3
             new_code_line.gsub!(/ /,"#{c([:x,:white,:on_black])} ")
-            "~ #{c([:x,:white,:on_black])} " + new_code_line + c([:x,:white,:on_black]) + " "*(@cols - orig_length) + xc
+            "#{c([:x,:black])}~ #{c([:x,:white,:on_black])} " + new_code_line + c([:x,:white,:on_black]) + " "*(@cols - orig_length) + xc
           }.join("\n")
         end
         "#{c([:x,:magenta])}#{leader}\n#{hilite}#{xc}"
       end
 
-      # inline code
-      input.gsub!(/`(.*?)`/) do |m|
-        match = Regexp.last_match
-        last = find_color(match.pre_match, true)
-        "#{c([:b,:black])}`#{c([:x,:white])}#{match[1]}#{c([:b,:black])}`" + (last ? last : xc)
-      end
+      # remove empty links
+      input.gsub!(/\[(.*?)\]\(\s*?\)/, '\1')
+      input.gsub!(/\[(.*?)\]\[\]/, '[\1][\1]')
+
+      lines = input.split(/\n/)
+
+      # previous_indent = 0
+
+      lines.map!.with_index do |aLine, i|
+        line = aLine.dup
+        clean_line = line.dup.uncolor
 
 
-      input.gsub!(/!\[(.*)?\]\((.*?\.(?:png|gif|jpg))( +.*)?\)/) do |m|
-        match = Regexp.last_match
-        tail = match[3].nil? ? '' : " "+match[3].strip
-        result = nil
-        if exec_available('imgcat')
-          if match[2]
-            img_path = match[2]
-            if img_path =~ /^http/ && @options[:remote_images]
-              begin
-                res, s = Open3.capture2(%Q{curl -sS "#{img_path}" 2> /dev/null | imgcat})
-
-                if s.success?
-                  pre = match[1].size > 0 ? "    #{c([:d,:blue])}[#{match[1].strip}]\n" : ''
-                  post = tail.size > 0 ? "\n    #{c([:b,:blue])}-- #{tail} --" : ''
-                  result = pre + res + post
-                end
-              rescue => e
-                @log.error(e)
-              end
+        if clean_line.uncolor =~ /(^[%~])/ # || clean_line.uncolor =~ /^( {4,}|\t+)/
+          ## TODO: find indented code blocks and prevent highlighting
+          ## Needs to miss block indented 1 level in lists
+          ## Needs to catch lists in code
+          ## Needs to avoid within fenced code blocks
+          # if line =~ /^([ \t]+)([^*-+]+)/
+          #   indent = $1.gsub(/\t/, "    ").size
+          #   if indent >= previous_indent
+          #     line = "~" + line
+          #   end
+          #   p [indent, previous_indent]
+          #   previous_indent = indent
+          # end
+        else
+          # Headlines
+          line.gsub!(/^(#+) *(.*?)(\s*#+)?\s*$/) do |match|
+            m = Regexp.last_match
+            pad = ""
+            ansi = ''
+            case m[1].length
+            when 1
+              ansi = c([:b, :green, :on_black])
+              pad = m[2].length + 2 > @cols ? "="*m[2].length : "="*(@cols - (m[2].length + 2))
+            when 2
+              ansi = c([:b, :green, :on_black])
+              pad = m[2].length + 2 > @cols ? "-"*m[2].length : "-"*(@cols - (m[2].length + 2))
+            when 3
+              ansi = c([:u, :b, :yellow])
+            when 4
+              ansi = c([:x, :u, :yellow])
             else
-              if img_path =~ /^[~\/]/
-                img_path = File.expand_path(img_path)
-              elsif @file
-                base = File.expand_path(File.dirname(@file))
-                img_path = File.join(base,img_path)
-              end
-              if File.exists?(img_path)
-                pre = match[1].size > 0 ? "    #{c([:d,:blue])}[#{match[1].strip}]\n" : ''
-                post = tail.size > 0 ? "\n    #{c([:b,:blue])}-- #{tail} --" : ''
-                img = %x{imgcat "#{img_path}"}
-                result = pre + img + post
+              ansi = c([:b, :white])
+            end
+
+            "\n#{xc}#{ansi}#{m[2]} #{pad}#{xc}\n"
+          end
+
+          # place footnotes under paragraphs that reference them
+          if line =~ /\[\^(\S+)\]/
+            key = $1
+            if footnotes.key? key
+              line += "\n\n#{c([:b,:black,:on_black])}[#{c([:b,:yellow,:on_black])}^#{c([:x,:yellow,:on_black])}#{key}#{c([:b,:black,:on_black])}]: #{c([:u,:white,:on_black])}#{footnotes[key]}#{xc}"
+            end
+          end
+
+          # color footnote references
+          line.gsub!(/\[\^(\S+)\]/) do |m|
+            match = Regexp.last_match
+            last = find_color(match.pre_match, true)
+            counter = i
+            while last.nil? && counter > 0
+              counter -= 1
+              find_color(lines[counter])
+            end
+            "#{c([:b,:black])}[#{c([:b,:yellow])}^#{c([:x,:yellow])}#{match[1]}#{c([:b,:black])}]" + (last ? last : xc)
+          end
+
+          # blockquotes
+          line.gsub!(/^(\s*>)+( .*?)?$/) do |m|
+            match = Regexp.last_match
+            last = find_color(match.pre_match, true)
+            counter = i
+            while last.nil? && counter > 0
+              counter -= 1
+              find_color(lines[counter])
+            end
+            "#{c([:b,:black])}#{match[1]}#{c([:x,:magenta])} #{match[2]}" + (last ? last : xc)
+          end
+
+          # make reference links inline
+          line.gsub!(/(?<![\e*])\[(\b.*?\b)?\]\[(\b.+?\b)?\]/) do |m|
+            match = Regexp.last_match
+            title = match[2] || ''
+            text = match[1] || ''
+            if match[2] && ref_links.key?(title.downcase)
+              "[#{text}](#{ref_links[title]})"
+            elsif match[1] && ref_links.key?(text.downcase)
+              "[#{text}](#{ref_links[text]})"
+            else
+              if input.match(/^#+\s*#{Regexp.escape(text)}/i)
+                "[#{text}](##{text})"
+              else
+                match[1]
               end
             end
           end
+
+          # color inline links
+          line.gsub!(/(?<![\e*!])\[(\S.*?\S)\]\((\S.+?\S)\)/) do |m|
+            match = Regexp.last_match
+            color_link(match.pre_match, match[1], match[2])
+          end
+
+
+
+          # inline code
+          line.gsub!(/`(.*?)`/) do |m|
+            match = Regexp.last_match
+            last = find_color(match.pre_match, true)
+            "#{c([:b,:black])}`#{c([:x,:white])}#{match[1]}#{c([:b,:black])}`" + (last ? last : xc)
+          end
+
+          # horizontal rules
+          line.gsub!(/^ {,3}([\-*] ?){3,}$/) do |m|
+            c([:x,:black]) + '_'*@cols + xc
+          end
+
+          # bold, bold/italic
+          line.gsub!(/(^|\s)[\*_]{2,3}([^\*_\s][^\*_]+?[^\*_\s])[\*_]{2,3}/) do |m|
+            match = Regexp.last_match
+            last = find_color(match.pre_match, true)
+            counter = i
+            while last.nil? && counter > 0
+              counter -= 1
+              find_color(lines[counter])
+            end
+            "#{match[1]}#{c([:b])}#{match[2]}" + (last ? last : xc)
+          end
+
+          # italic
+          line.gsub!(/(^|\s)[\*_]([^\*_\s][^\*_]+?[^\*_\s])[\*_]/) do |m|
+            match = Regexp.last_match
+            last = find_color(match.pre_match, true)
+            counter = i
+            while last.nil? && counter > 0
+              counter -= 1
+              find_color(lines[counter])
+            end
+            "#{match[1]}#{c([:u])}#{match[2]}" + (last ? last : xc)
+          end
+
+          # equations
+          line.gsub!(/((\\\\\[)(.*?)(\\\\\])|(\\\\\()(.*?)(\\\\\)))/) do |m|
+            match = Regexp.last_match
+            last = find_color(match.pre_match)
+            if match[2]
+              brackets = [match[2], match[4]]
+              equat = match[3]
+            else
+              brackets = [match[5], match[7]]
+              equat = match[6]
+            end
+            "#{c([:b, :black])}#{brackets[0]}#{xc}#{c([:b,:blue])}#{equat}#{c([:b, :black])}#{brackets[1]}" + (last ? last : xc)
+          end
+
+          # list items
+          line.gsub!(/^(\s*)([*\-+]|\d\.) /) do |m|
+            match = Regexp.last_match
+            last = find_color(match.pre_match)
+            indent = match[1] || ''
+            "#{indent}#{c([:d, :red])}#{match[2]} " + (last ? last : xc)
+          end
+
+          # definition lists
+          line.gsub!(/^(:\s+)(.*?)/) do |m|
+            match = Regexp.last_match
+            "#{c([:d, :red])}#{match[1]} #{c([:b, :white])}#{match[2]}#{xc}"
+          end
+
+          # misc html
+          line.gsub!(/<br\/?>/, "\n")
+          line.gsub!(/(?i-m)((<\/?)(\w+[\s\S]*?)(>))/) do |tag|
+            match = Regexp.last_match
+            last = find_color(match.pre_match)
+            "#{c([:d,:black])}#{match[2]}#{c([:b,:black])}#{match[3]}#{c([:d,:black])}#{match[4]}" + (last ? last : xc)
+          end
         end
-        if result.nil?
-          color_image(match.pre_match, match[1], match[2] + tail)
+
+        line
+      end
+
+      input = lines.join("\n")
+
+      # images
+      input.gsub!(/^(.*?)!\[(.*)?\]\((.*?\.(?:png|gif|jpg))( +.*)?\)/) do |m|
+        match = Regexp.last_match
+        if match[1].uncolor =~ /^( {4,}|\t)+/
+          match[0]
         else
-          result
+          tail = match[4].nil? ? '' : " "+match[4].strip
+          result = nil
+          if exec_available('imgcat') && @options[:local_images]
+            if match[3]
+              img_path = match[3]
+              if img_path =~ /^http/ && @options[:remote_images]
+                begin
+                  res, s = Open3.capture2(%Q{curl -sS "#{img_path}" 2> /dev/null | imgcat})
+
+                  if s.success?
+                    pre = match[2].size > 0 ? "    #{c([:d,:blue])}[#{match[2].strip}]\n" : ''
+                    post = tail.size > 0 ? "\n    #{c([:b,:blue])}-- #{tail} --" : ''
+                    result = pre + res + post
+                  end
+                rescue => e
+                  @log.error(e)
+                end
+              else
+                if img_path =~ /^[~\/]/
+                  img_path = File.expand_path(img_path)
+                elsif @file
+                  base = File.expand_path(File.dirname(@file))
+                  img_path = File.join(base,img_path)
+                end
+                if File.exists?(img_path)
+                  pre = match[2].size > 0 ? "    #{c([:d,:blue])}[#{match[2].strip}]\n" : ''
+                  post = tail.size > 0 ? "\n    #{c([:b,:blue])}-- #{tail} --" : ''
+                  img = %x{imgcat "#{img_path}"}
+                  result = pre + img + post
+                end
+              end
+            end
+          end
+          if result.nil?
+            match[1] + color_image(match.pre_match, match[2], match[3] + tail) + xc
+          else
+            match[1] + result + xc
+          end
         end
       end
 
@@ -636,23 +690,24 @@ module CLIMarkdown
         p.wrap(@cols)
       }.join("\n")
 
+
       unless out && out.size > 0
         $stderr.puts "No results"
         Process.exit
       end
 
       if @options[:pager]
-        page(table_cleanup(out).gsub(/\n{2,}/m,"\n\n"))
+        page("\n\n" + table_cleanup(out).gsub(/\n{2,}/m,"\n\n") + "\n\n")
       else
-        $stdout.puts ("\n" + table_cleanup(out).gsub(/\n{2,}/m,"\n\n") + "\n#{xc}")
+        $stdout.puts ("\n\n" + table_cleanup(out).gsub(/\n{2,}/m,"\n\n") + "\n#{xc}" + "\n\n")
       end
       # $stdout.puts output
     end
 
     def which_pager
       pagers = [ENV['GIT_PAGER'], ENV['PAGER'],
-               `git config --get-all core.pager`.split.first,
-               'less', 'more', 'cat', 'pager']
+                `git config --get-all core.pager`.split.first,
+                'less', 'more', 'cat', 'pager']
       pagers.select! do |f|
         if f
           system "which #{f} &> /dev/null"

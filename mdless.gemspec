@@ -3,20 +3,27 @@ require File.join([File.dirname(__FILE__),'lib','mdless','version.rb'])
 spec = Gem::Specification.new do |s|
   s.name = 'mdless'
   s.version = CLIMarkdown::VERSION
-  s.author = 'Your Name Here'
-  s.email = 'your@email.address.com'
-  s.homepage = 'http://your.website.com'
+  s.author = 'Brett Terpstra'
+  s.email = 'me@brettterpstra.com'
+  s.homepage = 'http://brettterpstra.com/project/mdless/'
   s.platform = Gem::Platform::RUBY
-  s.summary = 'A description of your project'
-  s.files = `git ls-files`.split("
-")
+  s.summary = 'A description of...'
+  s.description = 'A tool for...'
+  s.files = %w(
+bin/mdless
+lib/helpers/formattables.py
+lib/mdless.rb
+lib/mdless/colors.rb
+lib/mdless/converter.rb
+lib/mdless/version.rb
+  )
   s.require_paths << 'lib'
   s.has_rdoc = true
-  s.extra_rdoc_files = ['README.rdoc','mdless.rdoc']
-  s.rdoc_options << '--title' << 'mdless' << '--main' << 'README.rdoc' << '-ri'
+  s.extra_rdoc_files = ['README.md']
+  s.rdoc_options << '--title' << 'mdless' << '--main' << 'README.md' << '--markup' << 'markdown' << '-ri'
   s.bindir = 'bin'
   s.executables << 'mdless'
-  s.add_development_dependency('rake')
-  s.add_development_dependency('rdoc')
-  s.add_development_dependency('aruba')
+  s.add_development_dependency 'rake', '~> 0'
+  s.add_development_dependency 'rdoc', '~> 4.1', '>= 4.1.1'
+  s.add_development_dependency 'aruba', '~> 0'
 end

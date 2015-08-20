@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    mdless (0.0.1)
+    mdless (0.0.4)
 
 GEM
   remote: https://rubygems.org/
@@ -29,7 +29,7 @@ GEM
     json (1.8.2)
     multi_json (1.11.0)
     multi_test (0.1.2)
-    rake (10.4.2)
+    rake (0.9.6)
     rdoc (4.1.1)
       json (~> 1.4)
     rspec-expectations (3.2.1)
@@ -41,7 +41,7 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
-  aruba
+  aruba (~> 0)
   mdless!
-  rake
-  rdoc
+  rake (~> 0)
+  rdoc (~> 4.1, >= 4.1.1)

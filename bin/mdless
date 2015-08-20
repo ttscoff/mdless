@@ -15,15 +15,3 @@ if class_exists? 'Encoding'
 end
 
 CLIMarkdown::Converter.new(ARGV)
-
-# at_exit {
-#   if cli.helpers.size
-#     cli.log.info("Cleaning up")
-#     cli.helpers.each do |helper|
-#       if !helper[:file].nil? && File.exists?(helper[:file])
-#         cli.log.info("-> #{helper[:file]}")
-#         FileUtils.rm_f(helper[:file])
-#       end
-#     end
-#   end
-# }

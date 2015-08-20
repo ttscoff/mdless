@@ -10,13 +10,12 @@ module CLIMarkdown
     end
 
     def size_clean
-      clean = self.gsub(/\e\[[\d;]+m/, '')
-      clean.size
+      self.uncolor.size
     end
 
     def wrap(width=78)
 
-      if self =~ /(^(~ |\s*>)| +[=\-]{5,})/
+      if self.uncolor =~ /(^([%~] |\s*>)| +[=\-]{5,})/
         return self
       end
 
