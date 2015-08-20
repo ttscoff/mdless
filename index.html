@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset='utf-8'>
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+
+    <link rel="stylesheet" type="text/css" href="stylesheets/stylesheet.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="stylesheets/github-dark.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="stylesheets/print.css" media="print">
+
+    <title>mdless by ttscoff</title>
+  </head>
+
+  <body>
+
+    <header>
+      <div class="container">
+        <h1>mdless</h1>
+        <h2>More Markdown, less less</h2>
+
+        <section id="downloads">
+          <a href="https://github.com/ttscoff/mdless/zipball/master" class="btn">Download as .zip</a>
+          <a href="https://github.com/ttscoff/mdless/tarball/master" class="btn">Download as .tar.gz</a>
+          <a href="https://github.com/ttscoff/mdless" class="btn btn-github"><span class="icon"></span>View on GitHub</a>
+        </section>
+      </div>
+    </header>
+
+    <div class="container">
+      <section id="main_content">
+        <p><code>mdless</code> is a utility that provides a formatted and highlighted view of Markdown files in Terminal.</p>
+
+<p>I often use iTerm2 in visor mode, so <code>qlmanage -p</code> is annoying. I still wanted a way to view Markdown files quickly and without cruft.</p>
+
+<p><img src="http://ckyp.us/172eu+" alt="mdless screenshot"></p>
+
+<h2>
+<a id="features" class="anchor" href="#features" aria-hidden="true"><span class="octicon octicon-link"></span></a>Features</h2>
+
+<ul>
+<li>Built in pager functionality with pipe capability, <code>less</code> replacement for Markdown files</li>
+<li>Format tables</li>
+<li>Colorize Markdown syntax for most elements</li>
+<li>Normalize spacing and link formatting</li>
+<li>Display footnotes after each paragraph</li>
+<li>Inline image display (local, optionally remote) if using iTerm2 2.9+</li>
+<li>Syntax highlighting when <code>pygmentize</code> is available</li>
+<li>List headlines in document</li>
+<li>Display section of the document via headline search</li>
+</ul>
+
+<h2>
+<a id="installation" class="anchor" href="#installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation</h2>
+
+<pre><code>gem install mdless
+</code></pre>
+
+<h2>
+<a id="usage" class="anchor" href="#usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Usage</h2>
+
+<p><code>mdless [options] path</code> or <code>cat [path] | mdless</code></p>
+
+<p>The pager used is determined by system configuration in this order of preference:</p>
+
+<ul>
+<li><code>$GIT_PAGER</code></li>
+<li><code>$PAGER</code></li>
+<li><code>git config --get-all core.pager</code></li>
+<li><code>less</code></li>
+<li><code>more</code></li>
+<li><code>cat</code></li>
+<li><code>pager</code></li>
+</ul>
+
+<h3>
+<a id="options" class="anchor" href="#options" aria-hidden="true"><span class="octicon octicon-link"></span></a>Options</h3>
+
+<pre><code>-s, --section=TITLE              Output only a headline-based section of 
+                                 the input
+-w, --width=COLUMNS              Column width to format for (default 80)
+-p, --[no-]pager                 Formatted output to pager (default on)
+-P                               Disable pager (same as --no-pager)
+-c, --[no-]color                 Colorize output (default on)
+-l, --list                       List headers in document and exit
+-i, --images=TYPE                Include [local|remote (both)] images in 
+                                 output (requires imgcat and iTerm2, 
+                                 default NONE)
+-I, --all-images                 Include local and remote images in output 
+-h, --help                       Display this screen
+-v, --version                    Display version number
+</code></pre>
+      </section>
+    </div>
+
+              <script type="text/javascript">
+            var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+            document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+          </script>
+          <script type="text/javascript">
+            try {
+              var pageTracker = _gat._getTracker("UA-34296025-1");
+            pageTracker._trackPageview();
+            } catch(err) {}
+          </script>
+
+  </body>
+</html>
