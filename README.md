@@ -6,6 +6,8 @@
 
 I often use iTerm2 in visor mode, so `qlmanage -p` is annoying. I still wanted a way to view Markdown files quickly and without cruft.
 
+![mdless screenshot](screenshots/mdless.png)
+
 ## Features
 
 - Built in pager functionality with pipe capability, `less` replacement for Markdown files
