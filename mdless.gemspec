@@ -9,6 +9,7 @@ spec = Gem::Specification.new do |s|
   s.platform = Gem::Platform::RUBY
   s.summary = 'A description of...'
   s.description = 'A tool for...'
+  s.license = 'MIT'
   s.files = %w(
 bin/mdless
 lib/helpers/formattables.py

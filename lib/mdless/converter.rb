@@ -34,6 +34,18 @@ module CLIMarkdown
           @options[:pager] = false
         end
 
+        @options[:color] = true
+        opts.on( '-c', '--[no-]color', 'Colorize output (default on)' ) do |c|
+          @options[:color] = c
+        end
+
+        @options[:links] = :inline
+        opts.on( '--links=FORMAT', 'Link style ([inline, reference], default inline)' ) do |format|
+          if format =~ /^r/i
+            @options[:links] = :reference
+          end
+        end
+
         @options[:list] = false
         opts.on( '-l', '--list', 'List headers in document and exit' ) do
           @options[:list] = true
@@ -84,6 +96,8 @@ module CLIMarkdown
       @output = ''
 
       input = ''
+      @ref_links = {}
+      @footnotes = {}
 
       if args.length > 0
         files = args.delete_if { |f| !File.exists?(f) }
@@ -205,22 +219,26 @@ module CLIMarkdown
           this_table.push(table_line)
           orig_table.push(line)
         else
-          if in_table && this_table.length > 3
-            # if there's no header row, add one, cleanup requires it
-            unless header_row
-              cells = this_table[0].sub(/^\|/,'').scan(/.*?\|/).length
-              cell_row = '|' + ':-----|'*cells
-              this_table.insert(1, cell_row)
-            end
+          if in_table
+            if this_table.length > 3
+              # if there's no header row, add one, cleanup requires it
+              unless header_row
+                cells = this_table[0].sub(/^\|/,'').scan(/.*?\|/).length
+                cell_row = '|' + ':-----|'*cells
+                this_table.insert(1, cell_row)
+              end
 
-            table = this_table.join("\n")
-            begin
-              res = clean_table(table)
-              res = color_table(res)
-            rescue
-              res = orig_table.join("\n")
+              table = this_table.join("\n")
+              begin
+                res = clean_table(table)
+                res = color_table(res)
+              rescue
+                res = orig_table.join("\n")
+              end
+              all_content.push("\n" + res)
+            else
+              all_content.push(orig_table.join("\n"))
             end
-            all_content.push("\n" + res)
             this_table = []
             orig_table = []
           end
@@ -256,6 +274,20 @@ module CLIMarkdown
       end
     end
 
+    def clean_markers(input)
+      input.gsub!(/^(\e\[[\d;]+m)?[%~] ?/,'\1')
+      input
+    end
+
+    def update_inline_links(input)
+      links = {}
+      counter = 1
+      input.gsub!(/(?<=\])\((.*?)\)/) do |m|
+        links[counter] = $1.uncolor
+        "[#{counter}]"
+      end
+    end
+
     def find_color(line,nullable=false)
       return line if line.nil?
       colors = line.scan(/\e\[[\d;]+m/)
@@ -286,8 +318,8 @@ module CLIMarkdown
     end
 
     def convert_markdown(input)
-      # yaml/MMD headers
 
+      # yaml/MMD headers
       in_yaml = false
       if input.split("\n")[0] =~ /(?i-m)^---[ \t]*?(\n|$)/
         @log.info("Found YAML")
@@ -311,9 +343,10 @@ module CLIMarkdown
         end
       end
 
-      if !in_yaml && input =~ /(?i-m)^\S.+:\s+.+\n/
+      if !in_yaml && input.gsub(/\n/,' ') =~ /(?i-m)^\w.+:\s+\S+ /
         @log.info("Found MMD Headers")
         input.sub!(/(?i-m)^([\S ]+:[\s\S]*?)+(?=\n\n)/) do |mmd|
+          puts mmd
           mmd.split(/\n/).map {|line|
             line.sub!(/^(.*?:)[ \t]+(\S)/, '\1 \2')
             line = c([:d,:black,:on_black]) + "% " + c([:d,:white,:on_black]) + line
@@ -327,18 +360,16 @@ module CLIMarkdown
 
 
       # Gather reference links
-      ref_links = {}
       input.gsub!(/^\s{,3}(?<![\e*])\[\b(.+)\b\]: +(.+)/) do |m|
         match = Regexp.last_match
-        ref_links[match[1]] = match[2]
+        @ref_links[match[1]] = match[2]
         ''
       end
 
       # Gather footnotes (non-inline)
-      footnotes = {}
-      input.gsub!(/^\s{,3}(?<![\e*])\[\^\b(.+)\b\]: +(.*?)\n/) do |m|
+      input.gsub!(/^ {,3}(?<!\*)(?:\e\[[\d;]+m)*\[(?:\e\[[\d;]+m)*\^(?:\e\[[\d;]+m)*\b(.+)\b(?:\e\[[\d;]+m)*\]: *(.*?)\n/) do |m|
         match = Regexp.last_match
-        footnotes[match[1]] = match[2]
+        @footnotes[match[1].uncolor] = match[2].uncolor
         ''
       end
 
@@ -444,11 +475,13 @@ module CLIMarkdown
             ansi = ''
             case m[1].length
             when 1
-              ansi = c([:b, :green, :on_black])
-              pad = m[2].length + 2 > @cols ? "="*m[2].length : "="*(@cols - (m[2].length + 2))
+              ansi = c([:b, :black, :on_intense_white])
+              pad = c([:b,:white])
+              pad += m[2].length + 2 > @cols ? "*"*m[2].length : "*"*(@cols - (m[2].length + 2))
             when 2
               ansi = c([:b, :green, :on_black])
-              pad = m[2].length + 2 > @cols ? "-"*m[2].length : "-"*(@cols - (m[2].length + 2))
+              pad = c([:b,:black])
+              pad += m[2].length + 2 > @cols ? "-"*m[2].length : "-"*(@cols - (m[2].length + 2))
             when 3
               ansi = c([:u, :b, :yellow])
             when 4
@@ -461,10 +494,11 @@ module CLIMarkdown
           end
 
           # place footnotes under paragraphs that reference them
-          if line =~ /\[\^(\S+)\]/
-            key = $1
-            if footnotes.key? key
-              line += "\n\n#{c([:b,:black,:on_black])}[#{c([:b,:yellow,:on_black])}^#{c([:x,:yellow,:on_black])}#{key}#{c([:b,:black,:on_black])}]: #{c([:u,:white,:on_black])}#{footnotes[key]}#{xc}"
+          if line =~ /\[(?:\e\[[\d;]+m)*\^(?:\e\[[\d;]+m)*(\S+)(?:\e\[[\d;]+m)*\]/
+            key = $1.uncolor
+            if @footnotes.key? key
+              line += "\n\n#{c([:b,:black,:on_black])}[#{c([:b,:cyan,:on_black])}^#{c([:x,:yellow,:on_black])}#{key}#{c([:b,:black,:on_black])}]: #{c([:u,:white,:on_black])}#{@footnotes[key]}#{xc}"
+              @footnotes.delete(key)
             end
           end
 
@@ -497,10 +531,10 @@ module CLIMarkdown
             match = Regexp.last_match
             title = match[2] || ''
             text = match[1] || ''
-            if match[2] && ref_links.key?(title.downcase)
-              "[#{text}](#{ref_links[title]})"
-            elsif match[1] && ref_links.key?(text.downcase)
-              "[#{text}](#{ref_links[text]})"
+            if match[2] && @ref_links.key?(title.downcase)
+              "[#{text}](#{@ref_links[title]})"
+            elsif match[1] && @ref_links.key?(text.downcase)
+              "[#{text}](#{@ref_links[text]})"
             else
               if input.match(/^#+\s*#{Regexp.escape(text)}/i)
                 "[#{text}](##{text})"
@@ -522,7 +556,7 @@ module CLIMarkdown
           line.gsub!(/`(.*?)`/) do |m|
             match = Regexp.last_match
             last = find_color(match.pre_match, true)
-            "#{c([:b,:black])}`#{c([:x,:white])}#{match[1]}#{c([:b,:black])}`" + (last ? last : xc)
+            "#{c([:b,:black])}`#{c([:b,:white])}#{match[1]}#{c([:b,:black])}`" + (last ? last : xc)
           end
 
           # horizontal rules
@@ -577,7 +611,7 @@ module CLIMarkdown
           end
 
           # definition lists
-          line.gsub!(/^(:\s+)(.*?)/) do |m|
+          line.gsub!(/^(:\s*)(.*?)/) do |m|
             match = Regexp.last_match
             "#{c([:d, :red])}#{match[1]} #{c([:b, :white])}#{match[2]}#{xc}"
           end
@@ -643,6 +677,10 @@ module CLIMarkdown
         end
       end
 
+      @footnotes.each {|t, v|
+        input += "\n\n#{c([:b,:black,:on_black])}[#{c([:b,:yellow,:on_black])}^#{c([:x,:yellow,:on_black])}#{t}#{c([:b,:black,:on_black])}]: #{c([:u,:white,:on_black])}#{v}#{xc}"
+      }
+
       @output += input
 
     end
@@ -696,12 +734,19 @@ module CLIMarkdown
         Process.exit
       end
 
-      if @options[:pager]
-        page("\n\n" + table_cleanup(out).gsub(/\n{2,}/m,"\n\n") + "\n\n")
-      else
-        $stdout.puts ("\n\n" + table_cleanup(out).gsub(/\n{2,}/m,"\n\n") + "\n#{xc}" + "\n\n")
+      out = table_cleanup(out)
+      out = clean_markers(out)
+      out = out.gsub(/\n+{2,}/m,"\n\n") + "\n#{xc}\n\n"
+
+      unless @options[:color]
+        out.uncolor!
       end
-      # $stdout.puts output
+
+      if @options[:pager]
+        page("\n\n" + out)
+      else
+        $stdout.puts ("\n\n" + out)
+      end
     end
 
     def which_pager

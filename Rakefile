@@ -10,7 +10,7 @@ require 'cucumber/rake/task'
 Rake::RDocTask.new do |rd|
   rd.main = "README.md"
   rd.rdoc_files.include("README.md","lib/**/*.rb","bin/**/*")
-  rd.title = 'less'
+  rd.title = 'mdless'
   rd.markup = 'markdown'
 end
 
