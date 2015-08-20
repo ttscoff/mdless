@@ -4,13 +4,17 @@ module CLIMarkdown
 
     attr_reader :helpers, :log
 
+    def version
+      "#{CLIMarkdown::EXECUTABLE_NAME} #{CLIMarkdown::VERSION}"
+    end
+
     def initialize(args)
       @log = Logger.new(STDERR)
       @log.level = Logger::FATAL
 
       @options = {}
       optparse = OptionParser.new do |opts|
-        opts.banner = "#{CLIMarkdown::EXECUTABLE_NAME} #{CLIMarkdown::VERSION}\n\n> Usage: #{CLIMarkdown::EXECUTABLE_NAME} [options] path\n\n"
+        opts.banner = "#{version} by Brett Terpstra\n\n> Usage: #{CLIMarkdown::EXECUTABLE_NAME} [options] path\n\n"
 
         @options[:section] = nil
         opts.on( '-s', '--section=TITLE', 'Output only a headline-based section of the input' ) do |section|
@@ -85,7 +89,7 @@ module CLIMarkdown
         end
 
         opts.on( '-v', '--version', 'Display version number' ) do
-          puts CLIMarkdown::VERSION
+          puts version
           exit
         end
       end
