@@ -7,8 +7,8 @@ spec = Gem::Specification.new do |s|
   s.email = 'me@brettterpstra.com'
   s.homepage = 'http://brettterpstra.com/project/mdless/'
   s.platform = Gem::Platform::RUBY
-  s.summary = 'A description of...'
-  s.description = 'A tool for...'
+  s.summary = 'A pager like less, but for Markdown files'
+  s.description = 'A CLI that provides a formatted and highlighted view of Markdown files in a terminal'
   s.license = 'MIT'
   s.files = %w(
 bin/mdless
