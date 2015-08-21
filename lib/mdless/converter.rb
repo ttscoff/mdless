@@ -236,7 +236,7 @@ module CLIMarkdown
 
               table = this_table.join("\n").strip
               begin
-                formatted = MDTableFormatter.new(table)
+                formatted = MDTableCleanup.new(table)
                 res = formatted.to_md
                 res = color_table(res)
               rescue
@@ -255,10 +255,6 @@ module CLIMarkdown
         end
       }
       all_content.join("\n")
-    end
-
-    def clean_table(input)
-
     end
 
     def clean_markers(input)
@@ -590,7 +586,8 @@ module CLIMarkdown
           end
 
           # list items
-          line.gsub!(/^(\s*)([*\-+]|\d\.) /) do |m|
+          # TODO: Fix ordered list numbering, pad numbers based on total number of list items
+          line.gsub!(/^(\s*)([*\-+]|\d+\.) /) do |m|
             match = Regexp.last_match
             last = find_color(match.pre_match)
             indent = match[1] || ''

@@ -1,17 +1,16 @@
 module CLIMarkdown
-  class MDTableFormatter
+  class MDTableCleanup
 
-    def initialize(string)
-      @doc = string
+    def initialize(input)
+      @string = input
       @format_row = []
-      parse
     end
 
     def parse
       @table = []
       format = []
       cols = 0
-      rows = @doc.split(/\r?\n/)
+      rows = @string.split(/\r?\n/)
       rows.each do |row|
         row.strip!
         row.sub!(/^\s*\|?/,'').sub!(/\|?\s*$/,'')
