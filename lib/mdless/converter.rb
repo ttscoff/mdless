@@ -393,7 +393,6 @@ module CLIMarkdown
         "#" * (match[1].length - h_adjust)
       end
 
-      # TODO: Probably easiest to just collect these with line indexes, remove until other highlighting is finished
       input.gsub!(/(?i-m)([`~]{3,})([\s\S]*?)\n([\s\S]*?)\1/ ) do |cb|
         m = Regexp.last_match
         leader = m[2] ? m[2].upcase + ":" : 'CODE:'
