@@ -113,6 +113,7 @@ module CLIMarkdown
           rescue
             input = IO.read(file)
           end
+          input.gsub!(/\r?\n/,"\n")
           if @options[:list]
             list_headers(input)
           else
@@ -127,6 +128,7 @@ module CLIMarkdown
         rescue
           input = STDIN.read
         end
+        input.gsub!(/\r?\n/,"\n")
         if @options[:list]
           list_headers(input)
         else
@@ -206,7 +208,7 @@ module CLIMarkdown
       }.join("\n")
     end
 
-    def table_cleanup(input)
+    def cleanup_tables(input)
       in_table = false
       header_row = false
       all_content = []
@@ -224,7 +226,7 @@ module CLIMarkdown
           orig_table.push(line)
         else
           if in_table
-            if this_table.length > 3
+            if this_table.length > 2
               # if there's no header row, add one, cleanup requires it
               unless header_row
                 cells = this_table[0].sub(/^\|/,'').scan(/.*?\|/).length
@@ -232,14 +234,15 @@ module CLIMarkdown
                 this_table.insert(1, cell_row)
               end
 
-              table = this_table.join("\n")
+              table = this_table.join("\n").strip
               begin
-                res = clean_table(table)
+                formatted = MDTableFormatter.new(table)
+                res = formatted.to_md
                 res = color_table(res)
               rescue
                 res = orig_table.join("\n")
               end
-              all_content.push("\n" + res)
+              all_content.push(res)
             else
               all_content.push(orig_table.join("\n"))
             end
@@ -255,27 +258,7 @@ module CLIMarkdown
     end
 
     def clean_table(input)
-      dir = File.dirname(__FILE__)
-      lib = File.expand_path(dir + '/../../lib')
-      script = File.join(lib, 'helpers/formattables.py')
 
-      if File.exists?(script) and File.executable?(script)
-        begin
-
-          res, s = Open3.capture2(script, :stdin_data=>input.strip)
-
-          if s.success?
-            res
-          else
-            input
-          end
-        rescue => e
-          @log.error(e)
-          input
-        end
-      else
-        input
-      end
     end
 
     def clean_markers(input)
@@ -738,7 +721,7 @@ module CLIMarkdown
         Process.exit
       end
 
-      out = table_cleanup(out)
+      out = cleanup_tables(out)
       out = clean_markers(out)
       out = out.gsub(/\n+{2,}/m,"\n\n") + "\n#{xc}\n\n"
 

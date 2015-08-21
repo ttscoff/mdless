@@ -12,9 +12,9 @@ spec = Gem::Specification.new do |s|
   s.license = 'MIT'
   s.files = %w(
 bin/mdless
-lib/helpers/formattables.py
 lib/mdless.rb
 lib/mdless/colors.rb
+lib/mdless/tables.rb
 lib/mdless/converter.rb
 lib/mdless/version.rb
   )
