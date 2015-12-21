@@ -417,7 +417,8 @@ module CLIMarkdown
             new_code_line = l.gsub(/\t/,'    ')
             orig_length = new_code_line.size + 3
             new_code_line.gsub!(/ /,"#{c([:x,:white,:on_black])} ")
-            "#{c([:x,:black])}~ #{c([:x,:white,:on_black])} " + new_code_line + c([:x,:white,:on_black]) + " "*(@cols - orig_length) + xc
+            pad_count = [@cols - orig_length, 0].max
+            "#{c([:x,:black])}~ #{c([:x,:white,:on_black])} " + new_code_line + c([:x,:white,:on_black]) + " "*pad_count + xc
           }.join("\n")
         end
         "#{c([:x,:magenta])}#{leader}\n#{hilite}#{xc}"
