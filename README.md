@@ -42,7 +42,7 @@ The pager used is determined by system configuration in this order of preference
 
     -s, --section=TITLE              Output only a headline-based section of 
                                      the input
-    -w, --width=COLUMNS              Column width to format for (default 80)
+    -w, --width=COLUMNS              Column width to format for (default terminal width)
     -p, --[no-]pager                 Formatted output to pager (default on)
     -P                               Disable pager (same as --no-pager)
     -c, --[no-]color                 Colorize output (default on)
