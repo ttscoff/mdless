@@ -1,2 +1,4 @@
 html
 pkg
+mdless.sublime-*
+*.taskpaper

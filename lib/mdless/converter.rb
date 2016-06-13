@@ -21,12 +21,9 @@ module CLIMarkdown
           @options[:section] = section
         end
 
-        @options[:width] = 80
-        opts.on( '-w', '--width=COLUMNS', 'Column width to format for (default 80)' ) do |columns|
+        @options[:width] = %x{tput cols}.strip.to_i
+        opts.on( '-w', '--width=COLUMNS', 'Column width to format for (default terminal width)' ) do |columns|
           @options[:width] = columns.to_i
-          if @options[:width] = 0
-            @options[:width] = %x{tput cols}.strip.to_i
-          end
         end
 
         @options[:pager] = true
@@ -96,7 +93,7 @@ module CLIMarkdown
 
       optparse.parse!
 
-      @cols = @options[:width] || %x{tput cols}.strip.to_i * 0.9
+      @cols = @options[:width]
       @output = ''
 
       input = ''
@@ -393,7 +390,6 @@ module CLIMarkdown
         "#" * (match[1].length - h_adjust)
       end
 
-      # TODO: Probably easiest to just collect these with line indexes, remove until other highlighting is finished
       input.gsub!(/(?i-m)([`~]{3,})([\s\S]*?)\n([\s\S]*?)\1/ ) do |cb|
         m = Regexp.last_match
         leader = m[2] ? m[2].upcase + ":" : 'CODE:'
