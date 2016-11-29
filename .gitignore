@@ -2,3 +2,4 @@ html
 pkg
 mdless.sublime-*
 *.taskpaper
+Gemfile.lock
