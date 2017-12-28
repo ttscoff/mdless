@@ -669,7 +669,7 @@ module CLIMarkdown
       if File.exists?(File.expand_path(cli))
         File.executable?(File.expand_path(cli))
       else
-        system "which #{cli} &> /dev/null"
+        system "which #{cli}", :out => File::NULL
       end
     end
 
@@ -735,7 +735,7 @@ module CLIMarkdown
                 'less', 'more', 'cat', 'pager']
       pagers.select! do |f|
         if f
-          system "which #{f} &> /dev/null"
+          system "which #{f}", :out => File::NULL
         else
           false
         end
