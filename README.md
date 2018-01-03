@@ -30,8 +30,8 @@ I often use iTerm2 in visor mode, so `qlmanage -p` is annoying. I still wanted a
 
 The pager used is determined by system configuration in this order of preference:
 
-* `$GIT_PAGER`
 * `$PAGER`
+* `$GIT_PAGER`
 * `git config --get-all core.pager`
 * `less`
 * `more`

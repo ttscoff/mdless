@@ -730,12 +730,16 @@ module CLIMarkdown
     end
 
     def which_pager
-      pagers = [ENV['GIT_PAGER'], ENV['PAGER'],
+      pagers = [ENV['GIT_PAGER'],ENV['PAGER'],
                 `git config --get-all core.pager`.split.first,
                 'less', 'more', 'cat', 'pager']
       pagers.select! do |f|
         if f
-          system "which #{f} &> /dev/null"
+          if f.strip =~ /[ |]/
+            f
+          else
+            system "which #{f} &> /dev/null"
+          end
         else
           false
         end
