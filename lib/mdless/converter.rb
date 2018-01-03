@@ -17,8 +17,8 @@ module CLIMarkdown
         opts.banner = "#{version} by Brett Terpstra\n\n> Usage: #{CLIMarkdown::EXECUTABLE_NAME} [options] path\n\n"
 
         @options[:section] = nil
-        opts.on( '-s', '--section=TITLE', 'Output only a headline-based section of the input' ) do |section|
-          @options[:section] = section
+        opts.on( '-s', '--section=TITLE', 'Output only a headline-based section of the input (numeric from -l)' ) do |section|
+          @options[:section] = section.to_i
         end
 
         @options[:width] = %x{tput cols}.strip.to_i
@@ -95,6 +95,7 @@ module CLIMarkdown
 
       @cols = @options[:width]
       @output = ''
+      @header_arr = []
 
       input = ''
       @ref_links = {}
@@ -138,6 +139,14 @@ module CLIMarkdown
       end
     end
 
+    def get_headers(input)
+      unless @headers && @headers.length > 0
+        @headers = input.scan(/^(#+)\s*(.*?)( #+)?\s*$/)
+      end
+      @headers
+    end
+
+
     def list_headers(input)
       h_adjust = highest_header(input) - 1
       input.gsub!(/^(#+)/) do |m|
@@ -150,35 +159,36 @@ module CLIMarkdown
         end
       end
 
-      headers = []
+      @headers = get_headers(input)
       last_level = 0
-      input.split(/\n/).each do |line|
-        if line =~ /^(#+)\s*(.*?)( #+)?\s*$/
-          level = $1.size - 1
-          title = $2
+      headers_out = []
+      @headers.each_with_index do |h,idx|
 
-          if level - 1 > last_level
-            level = last_level + 1
-          end
-          last_level = level
+        level = h[0].length - 1
+        title = h[1]
 
-          subdoc = case level
-          when 0
-            '  '
-          when 1
-            '- '
-          when 2
-            '+ '
-          when 3
-            '* '
-          else
-            '  '
-          end
-          headers.push(("  "*level) + (c([:x, :yellow]) + subdoc + title.strip + xc))
+        if level - 1 > last_level
+          level = last_level + 1
         end
+        last_level = level
+
+        subdoc = case level
+        when 0
+          ''
+        when 1
+          '- '
+        when 2
+          '+ '
+        when 3
+          '* '
+        else
+          '  '
+        end
+        line_no = '%2d: ' % (idx + 1)
+        headers_out.push(%Q{#{line_no}#{c([:x, :black])}#{".."*level}#{c([:x, :yellow])}#{subdoc}#{title.strip}#{xc}}.strip)
       end
 
-      @output += headers.join("\n")
+      @output += headers_out.join("\n")
     end
 
     def highest_header(input)
@@ -298,7 +308,7 @@ module CLIMarkdown
     end
 
     def convert_markdown(input)
-
+      @headers = get_headers(input)
       # yaml/MMD headers
       in_yaml = false
       if input.split("\n")[0] =~ /(?i-m)^---[ \t]*?(\n|$)/
@@ -364,14 +374,15 @@ module CLIMarkdown
             title = $2
 
             if in_section
-              if level > top_level
+              if level >= top_level
                 new_content.push(graf)
               else
+                in_section = false
                 break
               end
-            elsif title.downcase =~ /#{@options[:section]}/i
+            elsif title.downcase == "#{@headers[@options[:section] - 1][1].downcase}"
               in_section = true
-              top_level = level
+              top_level = level + 1
               new_content.push(graf)
             else
               next
