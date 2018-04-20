@@ -307,6 +307,30 @@ module CLIMarkdown
       "#{c([:x,:red])}!#{c([:b,:black])}[#{c([:x,:cyan])}#{text}#{c([:b,:black])}](#{c([:u,:yellow])}#{url}#{c([:b,:black])})" + find_color(line)
     end
 
+    def hiliteCode(language, codeBlock, leader, block)
+        if exec_available('pygmentize')
+          lexer = language.nil? ? '-g' : "-l #{language}"
+          begin
+            hilite, s = Open3.capture2(%Q{pygmentize #{lexer} 2> /dev/null}, :stdin_data=>codeBlock)
+
+            if s.success?
+              hilite = hilite.split(/\n/).map{|l| "#{c([:x,:black])}~ #{xc}" + l}.join("\n")
+            end
+          rescue => e
+            @log.error(e)
+            hilite = block
+          end
+        else
+          hilite = codeBlock.split(/\n/).map{|l|
+            new_code_line = l.gsub(/\t/,'    ')
+            orig_length = new_code_line.size + 3
+            new_code_line.gsub!(/ /,"#{c([:x,:white,:on_black])} ")
+            "#{c([:x,:black])}~ #{c([:x,:white,:on_black])} " + new_code_line + c([:x,:white,:on_black]) + " "*(@cols - orig_length) + xc
+          }.join("\n")
+        end
+        "#{c([:x,:magenta])}#{leader}\n#{hilite}#{xc}"
+    end
+
     def convert_markdown(input)
       @headers = get_headers(input)
       # yaml/MMD headers
@@ -401,34 +425,22 @@ module CLIMarkdown
         "#" * (match[1].length - h_adjust)
       end
 
+      # code block parsing
       input.gsub!(/(?i-m)([`~]{3,})([\s\S]*?)\n([\s\S]*?)\1/ ) do |cb|
         m = Regexp.last_match
-        leader = m[2] ? m[2].upcase + ":" : 'CODE:'
-        leader += xc
-
-        if exec_available('pygmentize')
-          lexer = m[2].nil? ? '-g' : "-l #{m[2]}"
-          begin
-            hilite, s = Open3.capture2(%Q{pygmentize #{lexer} 2> /dev/null}, :stdin_data=>m[3])
-
-            if s.success?
-              hilite = hilite.split(/\n/).map{|l| "#{c([:x,:black])}~ #{xc}" + l}.join("\n")
-            end
-          rescue => e
-            @log.error(e)
-            hilite = m[0]
-          end
-
+        if m.to_s.include? '#!'
+            @log.warn('Code block contains Shebang')
+            shebang = m.to_s.match(/(#!(?:\/)?)([a-z]\w*)/)
+            language = shebang[2]
+            codeBlock = m[3].to_s.gsub(shebang[1]+shebang[2], '').strip
+            leader = shebang[2] ? shebang[2].upcase + ':' : 'CODE:'
         else
-
-          hilite = m[3].split(/\n/).map{|l|
-            new_code_line = l.gsub(/\t/,'    ')
-            orig_length = new_code_line.size + 3
-            new_code_line.gsub!(/ /,"#{c([:x,:white,:on_black])} ")
-            "#{c([:x,:black])}~ #{c([:x,:white,:on_black])} " + new_code_line + c([:x,:white,:on_black]) + " "*(@cols - orig_length) + xc
-          }.join("\n")
+            language = m[2]
+            codeBlock = m[3]
+            leader = m[2] ? m[2].upcase + ":" : 'CODE:'
         end
-        "#{c([:x,:magenta])}#{leader}\n#{hilite}#{xc}"
+        leader += xc
+        hiliteCode(language, codeBlock, leader, m[0])
       end
 
       # remove empty links
