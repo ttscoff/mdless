@@ -437,7 +437,7 @@ module CLIMarkdown
         else
             # Ignore leading spaces, and use only first word
             # so ("``` js whatever") will result in language == "js"
-            language = m[2] ? m[2].to_s.match(/\s*([\S]*)[\s\S]*?/)[1] : nil
+            language = m[2] != '' ? m[2].to_s.match(/\s*([\S]*)[\s\S]*?/)[1] : nil
             codeBlock = m[3]
             leader = language ? language.upcase + ":" : 'CODE:'
         end
