@@ -14,7 +14,7 @@ module CLIMarkdown
 
       @options = {}
       optparse = OptionParser.new do |opts|
-        opts.banner = "#{version} by Brett Terpstra\n\n> Usage: #{CLIMarkdown::EXECUTABLE_NAME} [options] path\n\n"
+        opts.banner = "#{version} by Brett Terpstra\n\n> Usage: #{CLIMarkdown::EXECUTABLE_NAME} [options] [path]\n\n"
 
         @options[:section] = nil
         opts.on( '-s', '--section=TITLE', 'Output only a headline-based section of the input (numeric from -l)' ) do |section|
@@ -119,7 +119,7 @@ module CLIMarkdown
           end
         }
         printout
-      elsif STDIN.stat.size > 0
+      elsif ! STDIN.tty?
         @file = nil
         begin
           input = STDIN.read.force_encoding('utf-8')
