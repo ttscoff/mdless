@@ -19,7 +19,6 @@ lib/mdless/converter.rb
 lib/mdless/version.rb
   )
   s.require_paths << 'lib'
-  s.has_rdoc = true
   s.extra_rdoc_files = ['README.md']
   s.rdoc_options << '--title' << 'mdless' << '--main' << 'README.md' << '--markup' << 'markdown' << '-ri'
   s.bindir = 'bin'
