@@ -436,9 +436,13 @@ module CLIMarkdown
             leader = shebang[2] ? shebang[2].upcase + ':' : 'CODE:'
         else
             # Ignore leading spaces, and use only first word
-            # so ("``` js whatever") will result in language == "js"
-            language = m[2] != '' ? m[2].to_s.match(/\s*([\S]*)[\s\S]*?/)[1] : nil
-            codeBlock = m[3]
+          hilite = m[3].split(/\n/).map{|l|
+            new_code_line = l.gsub(/\t/,'    ')
+            orig_length = new_code_line.size + 3
+            new_code_line.gsub!(/ /,"#{c([:x,:white,:on_black])} ")
+            pad_count = [@cols - orig_length, 0].max
+            "#{c([:x,:black])}~ #{c([:x,:white,:on_black])} " + new_code_line + c([:x,:white,:on_black]) + " "*pad_count + xc
+          }.join("\n")
             leader = language ? language.upcase + ":" : 'CODE:'
         end
         leader += xc
