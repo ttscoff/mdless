@@ -308,27 +308,35 @@ module CLIMarkdown
     end
 
     def hiliteCode(language, codeBlock, leader, block)
-        if exec_available('pygmentize')
-          lexer = language.nil? ? '-g' : "-l #{language}"
-          begin
-            hilite, s = Open3.capture2(%Q{pygmentize #{lexer} 2> /dev/null}, :stdin_data=>codeBlock)
+      if exec_available('pygmentize')
+        lexer = language.nil? ? '-g' : "-l #{language}"
+        begin
+          hilite, s = Open3.capture2(%Q{pygmentize #{lexer} 2> /dev/null}, :stdin_data=>codeBlock)
 
-            if s.success?
-              hilite = hilite.split(/\n/).map{|l| "#{c([:x,:black])}~ #{xc}" + l}.join("\n")
-            end
-          rescue => e
-            @log.error(e)
-            hilite = block
+          if s.success?
+            hilite = hilite.split(/\n/).map{|l| "#{c([:x,:black])}~ #{xc}" + l}.join("\n")
           end
-        else
-          hilite = codeBlock.split(/\n/).map{|l|
-            new_code_line = l.gsub(/\t/,'    ')
-            orig_length = new_code_line.size + 3
-            new_code_line.gsub!(/ /,"#{c([:x,:white,:on_black])} ")
-            "#{c([:x,:black])}~ #{c([:x,:white,:on_black])} " + new_code_line + c([:x,:white,:on_black]) + " "*(@cols - orig_length) + xc
-          }.join("\n")
+        rescue => e
+          @log.error(e)
+          hilite = block
         end
-        "#{c([:x,:magenta])}#{leader}\n#{hilite}#{xc}"
+      else
+        hilite = codeBlock.split(/\n/).map do |line|
+          new_code_line = line.gsub(/\t/, '    ')
+          orig_length = new_code_line.size + 3
+          new_code_line.gsub!(/ /, "#{c(%i[x white on_black])} ")
+
+          [
+            "#{c(%i[x black])}~ #{c(%i[x white on_black])} ",
+            new_code_line,
+            c(%i[x white on_black]),
+            ' ' * [@cols - orig_length, 0].max,
+            xc
+          ].join
+        end.join("\n")
+      end
+
+      "#{c(%i[x magenta])}#{leader}\n#{hilite}#{xc}"
     end
 
     def convert_markdown(input)
@@ -760,7 +768,7 @@ module CLIMarkdown
 
     def which_pager
       pagers = [ENV['GIT_PAGER'], ENV['PAGER'],
-                `git config --get-all core.pager`.split.first,
+                `git config --get-all core.pager || true`.split.first,
                 'less', 'more', 'cat', 'pager']
       pagers.select! do |f|
         if f
