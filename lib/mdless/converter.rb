@@ -760,7 +760,7 @@ module CLIMarkdown
 
     def which_pager
       pagers = [ENV['GIT_PAGER'], ENV['PAGER'],
-                `git config --get-all core.pager`.split.first,
+                `git config --get-all core.pager || true`.split.first,
                 'less', 'more', 'cat', 'pager']
       pagers.select! do |f|
         if f
