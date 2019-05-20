@@ -14,7 +14,7 @@ module CLIMarkdown
 
       @options = {}
       optparse = OptionParser.new do |opts|
-        opts.banner = "#{version} by Brett Terpstra\n\n> Usage: #{CLIMarkdown::EXECUTABLE_NAME} [options] path\n\n"
+        opts.banner = "#{version} by Brett Terpstra\n\n> Usage: #{CLIMarkdown::EXECUTABLE_NAME} [options] [path]\n\n"
 
         @options[:section] = nil
         opts.on( '-s', '--section=TITLE', 'Output only a headline-based section of the input (numeric from -l)' ) do |section|
@@ -45,11 +45,6 @@ module CLIMarkdown
           if format =~ /^r/i
             @options[:links] = :reference
           end
-        end
-
-        @options[:pygments] = exec_available('pygmentize')
-        opts.on( '--[no-]pygments', 'Highlight fenced code blocks with pygmentize' ) do |pyg|
-          @options[:pygments] = pyg
         end
 
         @options[:list] = false
@@ -103,7 +98,7 @@ module CLIMarkdown
       @header_arr = []
 
       input = ''
-
+      @ref_links = {}
       @footnotes = {}
 
       if args.length > 0
@@ -124,7 +119,7 @@ module CLIMarkdown
           end
         }
         printout
-      elsif STDIN.stat.size > 0
+      elsif ! STDIN.tty?
         @file = nil
         begin
           input = STDIN.read.force_encoding('utf-8')
@@ -283,40 +278,6 @@ module CLIMarkdown
       end
     end
 
-    def links_to_references(input)
-      links = input.scan(/\((https?:\/\/([^\)]+))\)/)
-      refs = input.scan(/^ {0,3}\[[^\^]([^\]]+)\]: (\S+)$/)
-      lines = input.split("\n")
-
-      bottom = lines[0..-1].join("\n").gsub(/^\[[^\^]([^\]]+)\]: (\S+)\n?/,'')
-
-      norepeatlinks = []
-      output = []
-      counter = 0
-
-      refs.each {|ref|
-        name = ref[0]
-        next if norepeatlinks.include? ref[1]
-
-        output << {'orig' => ref[0], 'title' => counter+=1, 'link' => ref[1]}
-        norepeatlinks.push ref[1]
-      }
-
-      links.each {|url|
-        next if norepeatlinks.include? url[0]
-        output << {'orig' => url[0], 'title' => counter+=1, 'link' => url[0] }
-        norepeatlinks.push url[0]
-      }
-      o = []
-
-      output.each_with_index { |x,i|
-        o.push("[#{x['title']}]: #{x['link']}")
-        bottom = bottom.gsub(/\((#{Regexp.escape(x['orig'])}|#{Regexp.escape(x['link'])})\)/,"[#{x['title']}]").gsub(/\[#{Regexp.escape(x['orig'])}\]/,"[#{x['title']}]")
-      }
-      bottom + "\n\n#{o.join("\n")}\n"
-    end
-
-
     def find_color(line,nullable=false)
       return line if line.nil?
       colors = line.scan(/\e\[[\d;]+m/)
@@ -327,16 +288,15 @@ module CLIMarkdown
       end
     end
 
-    def color_link(line, text, url, fmt="inline")
-      inline = fmt =~ /^i/ ? true : false
+    def color_link(line, text, url)
       out = c([:b,:black])
       out += "[#{c([:u,:blue])}#{text}"
       out += c([:b,:black])
-      out += inline ? "](" : "]["
+      out += "]("
       out += c([:x,:cyan])
       out += url
       out += c([:b,:black])
-      out += inline ? ")" : "]"
+      out += ")"
       out += find_color(line)
       out
     end
@@ -345,6 +305,38 @@ module CLIMarkdown
       text.gsub!(/\e\[0m/,c([:x,:cyan]))
 
       "#{c([:x,:red])}!#{c([:b,:black])}[#{c([:x,:cyan])}#{text}#{c([:b,:black])}](#{c([:u,:yellow])}#{url}#{c([:b,:black])})" + find_color(line)
+    end
+
+    def hiliteCode(language, codeBlock, leader, block)
+      if exec_available('pygmentize')
+        lexer = language.nil? ? '-g' : "-l #{language}"
+        begin
+          hilite, s = Open3.capture2(%Q{pygmentize #{lexer} 2> /dev/null}, :stdin_data=>codeBlock)
+
+          if s.success?
+            hilite = hilite.split(/\n/).map{|l| "#{c([:x,:black])}~ #{xc}" + l}.join("\n")
+          end
+        rescue => e
+          @log.error(e)
+          hilite = block
+        end
+      else
+        hilite = codeBlock.split(/\n/).map do |line|
+          new_code_line = line.gsub(/\t/, '    ')
+          orig_length = new_code_line.size + 3
+          new_code_line.gsub!(/ /, "#{c(%i[x white on_black])} ")
+
+          [
+            "#{c(%i[x black])}~ #{c(%i[x white on_black])} ",
+            new_code_line,
+            c(%i[x white on_black]),
+            ' ' * [@cols - orig_length, 0].max,
+            xc
+          ].join
+        end.join("\n")
+      end
+
+      "#{c(%i[x magenta])}#{leader}\n#{hilite}#{xc}"
     end
 
     def convert_markdown(input)
@@ -388,10 +380,13 @@ module CLIMarkdown
 
       end
 
-      if @options[:links] == :reference
-        input = links_to_references(input)
-      end
 
+      # Gather reference links
+      input.gsub!(/^\s{,3}(?<![\e*])\[\b(.+)\b\]: +(.+)/) do |m|
+        match = Regexp.last_match
+        @ref_links[match[1]] = match[2]
+        ''
+      end
 
       # Gather footnotes (non-inline)
       input.gsub!(/^ {,3}(?<!\*)(?:\e\[[\d;]+m)*\[(?:\e\[[\d;]+m)*\^(?:\e\[[\d;]+m)*\b(.+)\b(?:\e\[[\d;]+m)*\]: *(.*?)\n/) do |m|
@@ -438,38 +433,28 @@ module CLIMarkdown
         "#" * (match[1].length - h_adjust)
       end
 
+      # code block parsing
       input.gsub!(/(?i-m)([`~]{3,})([\s\S]*?)\n([\s\S]*?)\1/ ) do |cb|
         m = Regexp.last_match
-        leader = m[2] && m[2].strip.length > 0 ? m[2].upcase + ":" : 'CODE:'
-        leader += xc
-
-        if @options[:pygments] && exec_available('pygmentize')
-          lexer = m[2] && m[2].strip.length > 0 ? "-l #{m[2]}" : '-g'
-
-          begin
-            hilite, s = Open3.capture2(%Q{pygmentize #{lexer} 2> /dev/null}, :stdin_data=>m[3])
-
-            if s.success? && hilite.strip.length > 0
-              hilite = hilite.split(/\n/).map{|l| "#{c([:x,:black])}~ #{xc}" + l}.join("\n")
-            else
-              hilite = m[3]
-            end
-          rescue => e
-            @log.error(e)
-            hilite = m[0]
-          end
-
+        if m.to_s.include? '#!'
+            @log.warn('Code block contains Shebang')
+            shebang = m.to_s.match(/(#!(?:\/)?)([a-z]\w*)/)
+            language = shebang[2]
+            codeBlock = m[3].to_s.gsub(shebang[1]+shebang[2], '').strip
+            leader = shebang[2] ? shebang[2].upcase + ':' : 'CODE:'
         else
-
+            # Ignore leading spaces, and use only first word
           hilite = m[3].split(/\n/).map{|l|
             new_code_line = l.gsub(/\t/,'    ')
             orig_length = new_code_line.size + 3
             new_code_line.gsub!(/ /,"#{c([:x,:white,:on_black])} ")
-            spacer_width = @cols - orig_length > 0 ? @cols - orig_length : 0
-            "#{c([:x,:black])}~ #{c([:x,:white,:on_black])} " + new_code_line + c([:x,:white,:on_black]) + " "*spacer_width + xc
+            pad_count = [@cols - orig_length, 0].max
+            "#{c([:x,:black])}~ #{c([:x,:white,:on_black])} " + new_code_line + c([:x,:white,:on_black]) + " "*pad_count + xc
           }.join("\n")
+            leader = language ? language.upcase + ":" : 'CODE:'
         end
-        "\n#{c([:x,:magenta])}#{leader}\n#{hilite}#{xc}"
+        leader += xc
+        hiliteCode(language, codeBlock, leader, m[0])
       end
 
       # remove empty links
@@ -558,28 +543,19 @@ module CLIMarkdown
           end
 
           # make reference links inline
-          if @options[:links] == :inline
-            # Gather reference links
-            ref_links = {}
-            input.scan(/^\s{,3}(?<![\e*])\[\b(.+)\b\]: +(.+)/) do |m|
-              match = Regexp.last_match
-              ref_links[match[1]] = match[2]
-            end
-
-            line.gsub!(/(?<![\e*])\[(\b.*?\b)?\]\[(\b.+?\b)?\]/) do |m|
-              match = Regexp.last_match
-              title = match[2] || ''
-              text = match[1] || ''
-              if match[2] && ref_links.key?(title.downcase)
-                "[#{text}](#{ref_links[title]})"
-              elsif match[1] && ref_links.key?(text.downcase)
-                "[#{text}](#{ref_links[text]})"
+          line.gsub!(/(?<![\e*])\[(\b.*?\b)?\]\[(\b.+?\b)?\]/) do |m|
+            match = Regexp.last_match
+            title = match[2] || ''
+            text = match[1] || ''
+            if match[2] && @ref_links.key?(title.downcase)
+              "[#{text}](#{@ref_links[title]})"
+            elsif match[1] && @ref_links.key?(text.downcase)
+              "[#{text}](#{@ref_links[text]})"
+            else
+              if input.match(/^#+\s*#{Regexp.escape(text)}/i)
+                "[#{text}](##{text})"
               else
-                if input.match(/^#+\s*#{Regexp.escape(text)}/i)
-                  "[#{text}](##{text})"
-                else
-                  match[1]
-                end
+                match[1]
               end
             end
           end
@@ -590,16 +566,6 @@ module CLIMarkdown
             color_link(match.pre_match, match[1], match[2])
           end
 
-          # color referenced links
-          line.gsub!(/(?mi)(?<![\e*!])\[(\b.*?\b)\]\[(\S+?)\]/) do |m|
-            match = Regexp.last_match
-            color_link(match.pre_match, match[1], match[2],'reference')
-          end
-          # color link references
-          line.gsub!(/(?mi)^ {0,3}\[(.*?)\]: (.*?)$/) do |m|
-            match = Regexp.last_match
-            "#{c([:b,:black])}[#{match[1]}]: #{c([:u,:white])}#{match[2]}#{xc}"
-          end
 
 
           # inline code
@@ -802,7 +768,7 @@ module CLIMarkdown
 
     def which_pager
       pagers = [ENV['GIT_PAGER'], ENV['PAGER'],
-                `git config --get-all core.pager`.split.first,
+                `git config --get-all core.pager || true`.split.first,
                 'less', 'more', 'cat', 'pager']
       pagers.select! do |f|
         if f
