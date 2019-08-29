@@ -434,27 +434,33 @@ module CLIMarkdown
       end
 
       # code block parsing
-      input.gsub!(/(?i-m)([`~]{3,})([\s\S]*?)\n([\s\S]*?)\1/ ) do |cb|
+      input.gsub!(/(?i-m)([`~]{3,})([\s\S]*?)\n([\s\S]*?)\1/) do
         m = Regexp.last_match
         if m.to_s.include? '#!'
-            @log.warn('Code block contains Shebang')
-            shebang = m.to_s.match(/(#!(?:\/)?)([a-z]\w*)/)
-            language = shebang[2]
-            codeBlock = m[3].to_s.gsub(shebang[1]+shebang[2], '').strip
-            leader = shebang[2] ? shebang[2].upcase + ':' : 'CODE:'
+          @log.warn('Code block contains Shebang')
+          shebang = m.to_s.match(/(#!(?:\/)?)([a-z]\w*)/)
+          language = shebang[2]
+          code_block = m[3].to_s.gsub(shebang[1] + shebang[2], '').strip
+          leader = shebang[2] ? shebang[2].upcase + ':' : 'CODE:'
         else
-            # Ignore leading spaces, and use only first word
-          hilite = m[3].split(/\n/).map{|l|
-            new_code_line = l.gsub(/\t/,'    ')
-            orig_length = new_code_line.size + 3
-            new_code_line.gsub!(/ /,"#{c([:x,:white,:on_black])} ")
+          # Ignore leading spaces, and use only first word
+          code_block = m[3].split(/\n/).map do |l|
+            new_code_line = l.gsub(/\t/, '    ')
+            orig_length = new_code_line.size + 4
+            new_code_line.gsub!(/ /, "#{c(%i[x white on_black])} ")
             pad_count = [@cols - orig_length, 0].max
-            "#{c([:x,:black])}~ #{c([:x,:white,:on_black])} " + new_code_line + c([:x,:white,:on_black]) + " "*pad_count + xc
-          }.join("\n")
-            leader = language ? language.upcase + ":" : 'CODE:'
+            [
+              "#{c(%i[x black])}~ #{c(%i[x white on_black])} ",
+              new_code_line,
+              c(%i[x white on_black]),
+              ' ' * pad_count,
+              xc
+            ].join
+          end.join("\n")
+          leader = language ? language.upcase + ':' : 'CODE:'
         end
         leader += xc
-        hiliteCode(language, codeBlock, leader, m[0])
+        hiliteCode(language, code_block, leader, m[0])
       end
 
       # remove empty links
