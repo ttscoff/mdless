@@ -327,7 +327,7 @@ module CLIMarkdown
           new_code_line.gsub!(/ /, "#{c(%i[x white on_black])} ")
 
           [
-            "#{c(%i[x black])}~ #{c(%i[x white on_black])} ",
+            "#{c(%i[x black])} ~#{c(%i[x white on_black])} ",
             new_code_line,
             c(%i[x white on_black]),
             ' ' * [@cols - orig_length, 0].max,
@@ -336,7 +336,7 @@ module CLIMarkdown
         end.join("\n")
       end
 
-      "#{c(%i[x magenta])}#{leader}\n#{hilite}#{xc}"
+      "#{c(%i[x blue]) + '--[ '}#{c(%i[x magenta])}#{leader}#{c(%i[x blue]) + ' ]' + '-'*(@cols-6-leader.size) + xc}\n#{hilite}\n#{c(%i[x blue]) + '--[ '}#{c(%i[x magenta])}END #{leader}#{c(%i[x blue]) + ' ]' + '-'*(@cols-10-leader.size) + xc}"
     end
 
     def convert_markdown(input)
@@ -436,28 +436,35 @@ module CLIMarkdown
       # code block parsing
       input.gsub!(/(?i-m)([`~]{3,})([\s\S]*?)\n([\s\S]*?)\1/) do
         m = Regexp.last_match
-        if m.to_s.include? '#!'
-          @log.warn('Code block contains Shebang')
-          shebang = m.to_s.match(/(#!(?:\/)?)([a-z]\w*)/)
-          language = shebang[2]
-          code_block = m[3].to_s.gsub(shebang[1] + shebang[2], '').strip
-          leader = shebang[2] ? shebang[2].upcase + ':' : 'CODE:'
+        if m[2].strip !~ /^\s*$/
+          language = m[2].split(/ /)[0].downcase
+          code_block = m[3].to_s.strip
+          leader = language ? language.upcase : 'CODE'
         else
-          # Ignore leading spaces, and use only first word
-          code_block = m[3].split(/\n/).map do |l|
-            new_code_line = l.gsub(/\t/, '    ')
-            orig_length = new_code_line.size + 4
-            new_code_line.gsub!(/ /, "#{c(%i[x white on_black])} ")
-            pad_count = [@cols - orig_length, 0].max
-            [
-              "#{c(%i[x black])}~ #{c(%i[x white on_black])} ",
-              new_code_line,
-              c(%i[x white on_black]),
-              ' ' * pad_count,
-              xc
-            ].join
-          end.join("\n")
-          leader = language ? language.upcase + ':' : 'CODE:'
+          first_line = m[3].to_s.split(/\n/)[0]
+
+          if first_line =~ /^#!/
+            @log.warn('Code block contains Shebang')
+            shebang = first_line.match(/^(#!.*\/(?:env )?)([^\/]+)$/)
+            language = shebang[2]
+            code_block = m[3].to_s.strip
+            leader = shebang[2] ? shebang[2].upcase : 'CODE'
+          else
+            code_block = m[3].to_s.split(/\n/).map do |l|
+              new_code_line = l.gsub(/\t/, '    ')
+              orig_length = new_code_line.size + 4
+              new_code_line.gsub!(/ /, "#{c(%i[x white on_black])} ")
+              pad_count = [@cols - orig_length, 0].max
+              [
+                "#{c(%i[x black])}~ #{c(%i[x white on_black])} ",
+                new_code_line,
+                c(%i[x white on_black]),
+                ' ' * pad_count,
+                xc
+              ].join
+            end.join("\n")
+            leader = language ? language.upcase : 'CODE'
+          end
         end
         leader += xc
         hiliteCode(language, code_block, leader, m[0])
@@ -587,15 +594,16 @@ module CLIMarkdown
           end
 
           # bold, bold/italic
-          line.gsub!(/(^|\s)[\*_]{2,3}([^\*_\s][^\*_]+?[^\*_\s])[\*_]{2,3}/) do |m|
+          line.gsub!(/(?<pre>^|\s)(?<open>[\*_]{2,3})(?<content>[^\*_\s][^\*_]+?[^\*_\s])[\*_]{2,3}/) do |m|
             match = Regexp.last_match
             last = find_color(match.pre_match, true)
             counter = i
             while last.nil? && counter > 0
               counter -= 1
-              find_color(lines[counter])
+              last = find_color(lines[counter])
             end
-            "#{match[1]}#{c([:b])}#{match[2]}" + (last ? last : xc)
+            emph = match['open'].length == 2 ? c([:b]) : c(%i[b u i])
+            "#{match['pre']}#{emph}#{match['content']}" + (last ? last : xc)
           end
 
           # italic
@@ -605,9 +613,9 @@ module CLIMarkdown
             counter = i
             while last.nil? && counter > 0
               counter -= 1
-              find_color(lines[counter])
+              last = find_color(lines[counter])
             end
-            "#{match[1]}#{c([:u])}#{match[2]}" + (last ? last : xc)
+            "#{match[1]}#{c(%i[u i])}#{match[2]}" + (last ? last : xc)
           end
 
           # equations
@@ -644,7 +652,7 @@ module CLIMarkdown
           line.gsub!(/(?i-m)((<\/?)(\w+[\s\S]*?)(>))/) do |tag|
             match = Regexp.last_match
             last = find_color(match.pre_match)
-            "#{c([:d,:black])}#{match[2]}#{c([:b,:black])}#{match[3]}#{c([:d,:black])}#{match[4]}" + (last ? last : xc)
+            "#{c([:d,:yellow,:on_black])}#{match[2]}#{match[3]}#{match[4]}" + (last ? last : xc)
           end
         end
 
