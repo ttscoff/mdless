@@ -5,6 +5,10 @@ module CLIMarkdown
       self.gsub(/\e\[[\d;]+m/,'')
     end
 
+    def blackout
+      self.gsub(/(^|$)/,"\e[40m").gsub(/3([89])m/,"40;3\\1m")
+    end
+
     def uncolor!
       self.replace self.uncolor
     end

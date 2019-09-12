@@ -10,7 +10,7 @@ module CLIMarkdown
 
     def initialize(args)
       @log = Logger.new(STDERR)
-      @log.level = Logger::FATAL
+      @log.level = Logger::ERROR
 
       @options = {}
       optparse = OptionParser.new do |opts|
@@ -75,7 +75,7 @@ module CLIMarkdown
           if level.to_i > 0 && level.to_i < 5
             @log.level = 5 - level.to_i
           else
-            $stderr.puts "Log level out of range (1-4)"
+            $stderr.puts "Error: Log level out of range (1-4)"
             Process.exit 1
           end
         end
@@ -185,7 +185,7 @@ module CLIMarkdown
           '  '
         end
         line_no = '%2d: ' % (idx + 1)
-        headers_out.push(%Q{#{line_no}#{c([:x, :black])}#{".."*level}#{c([:x, :yellow])}#{subdoc}#{title.strip}#{xc}}.strip)
+        headers_out.push(%Q{#{line_no}#{c(%i[x black])}#{".."*level}#{c(%i[x yellow])}#{subdoc}#{title.strip}#{xc}}.strip)
       end
 
       @output += headers_out.join("\n")
@@ -205,12 +205,12 @@ module CLIMarkdown
       input.split(/\n/).map{|line|
         if first
           first = false
-          line.gsub!(/\|/, "#{c([:d,:black])}|#{c([:x,:yellow])}")
+          line.gsub!(/\|/, "#{c(%i[d black])}|#{c(%i[x yellow])}")
         elsif line.strip =~ /^[|:\- ]+$/
-          line.gsub!(/^(.*)$/, "#{c([:d,:black])}\\1#{c([:x,:white])}")
-          line.gsub!(/([:\-]+)/,"#{c([:b,:black])}\\1#{c([:d,:black])}")
+          line.gsub!(/^(.*)$/, "#{c(%i[d black])}\\1#{c(%i[x white])}")
+          line.gsub!(/([:\-]+)/,"#{c(%i[b black])}\\1#{c(%i[d black])}")
         else
-          line.gsub!(/\|/, "#{c([:d,:black])}|#{c([:x,:white])}")
+          line.gsub!(/\|/, "#{c(%i[d black])}|#{c(%i[x white])}")
         end
       }.join("\n")
     end
@@ -289,32 +289,63 @@ module CLIMarkdown
     end
 
     def color_link(line, text, url)
-      out = c([:b,:black])
-      out += "[#{c([:u,:blue])}#{text}"
-      out += c([:b,:black])
+      out = c(%i[b black])
+      out += "[#{c(%i[u blue])}#{text}"
+      out += c(%i[b black])
       out += "]("
-      out += c([:x,:cyan])
+      out += c(%i[x cyan])
       out += url
-      out += c([:b,:black])
+      out += c(%i[b black])
       out += ")"
       out += find_color(line)
       out
     end
 
     def color_image(line, text, url)
-      text.gsub!(/\e\[0m/,c([:x,:cyan]))
+      text.gsub!(/\e\[0m/,c(%i[x cyan]))
 
-      "#{c([:x,:red])}!#{c([:b,:black])}[#{c([:x,:cyan])}#{text}#{c([:b,:black])}](#{c([:u,:yellow])}#{url}#{c([:b,:black])})" + find_color(line)
+      "#{c(%i[x red])}!#{c(%i[b black])}[#{c(%i[x cyan])}#{text}#{c(%i[b black])}](#{c(%i[u yellow])}#{url}#{c(%i[b black])})" + find_color(line)
     end
 
-    def hiliteCode(language, codeBlock, leader, block)
-      if exec_available('pygmentize')
-        lexer = language.nil? ? '-g' : "-l #{language}"
-        begin
-          hilite, s = Open3.capture2(%Q{pygmentize #{lexer} 2> /dev/null}, :stdin_data=>codeBlock)
+    def valid_lexer?(language)
+      lexers = %w(Clipper XBase Cucumber cucumber Gherkin gherkin RobotFramework robotframework abap ada ada95ada2005 ahk antlr-as antlr-actionscript antlr-cpp antlr-csharp antlr-c# antlr-java antlr-objc antlr-perl antlr-python antlr-ruby antlr-rb antlr apacheconf aconf apache applescript as actionscript as3 actionscript3 aspectj aspx-cs aspx-vb asy asymptote autoit Autoit awk gawk mawk nawk basemake bash sh ksh bat bbcode befunge blitzmax bmax boo brainfuck bf bro bugs winbugs openbugs c-objdump c ca65 cbmbas ceylon cfengine3 cf3 cfm cfs cheetah spitfire clojure clj cmake cobol cobolfree coffee-script coffeescript common-lisp cl console control coq cpp c++ cpp-objdump c++-objdumb cxx-objdump croc csharp c# css+django css+jinja css+erb css+ruby css+genshitext css+genshi css+lasso css+mako css+myghty css+php css+smarty css cuda cu cython pyx d-objdump d dart delphi pas pascal objectpascal dg diff udiff django jinja dpatch dtd duel Duel Engine Duel View JBST jbst JsonML+BST dylan-console dylan-repl dylan-lid lid dylan ec ecl elixir ex exs erb erl erlang evoque factor fan fancy fy felix flx fortran fsharp gas genshi kid xml+genshi xml+kid genshitext glsl gnuplot go gooddata-cl gosu groff nroff man groovy gst haml HAML haskell hs haxeml hxml html+cheetah html+spitfire html+django html+jinja html+evoque html+genshi html+kid html+lasso html+mako html+myghty html+php html+smarty html+velocity html http hx haXe hybris hy idl iex ini cfg io ioke ik irc jade JADE jags java jlcon js+cheetah javascript+cheetah js+spitfire javascript+spitfire js+django javascript+django js+jinja javascript+jinja js+erb javascript+erb js+ruby javascript+ruby js+genshitext js+genshi javascript+genshitext javascript+genshi js+lasso javascript+lasso js+mako javascript+mako js+myghty javascript+myghty js+php javascript+php js+smarty javascript+smarty js javascript json jsp julia jl kconfig menuconfig linux-config kernel-config koka kotlin lasso lassoscript lhs literate-haskell lighty lighttpd live-script livescript llvm logos logtalk lua make makefile mf bsdmake mako maql mason matlab matlabsession minid modelica modula2 m2 monkey moocode moon moonscript mscgen msc mupad mxml myghty mysql nasm nemerle newlisp newspeak nginx nimrod nim nsis nsi nsh numpy objdump objective-c++ objectivec++ obj-c++ objc++ objective-c objectivec obj-c objc objective-j objectivej obj-j objj ocaml octave ooc opa openedge abl progress perl pl php php3 php4 php5 plpgsql postgresql postgres postscript pot po pov powershell posh ps1 prolog properties protobuf psql postgresql-console postgres-console puppet py3tb pycon pypylog pypy pytb python py sage python3 py3 qml Qt Meta Language Qt modeling Language racket rkt ragel-c ragel-cpp ragel-d ragel-em ragel-java ragel-objc ragel-ruby ragel-rb ragel raw rb ruby duby rbcon irb rconsole rout rd rebol redcode registry rhtml html+erb html+ruby rst rest restructuredtext rust sass SASS scala scaml SCAML scheme scm scilab scss shell-session smali smalltalk squeak smarty sml snobol sourceslist sources.list sp spec splus s r sql sqlite3 squidconf squid.conf squid ssp stan systemverilog sv tcl tcsh csh tea tex latex text trac-wiki moin treetop ts urbiscript vala vapi vb.net vbnet velocity verilog v vgl vhdl vim xml+cheetah xml+spitfire xml+django xml+jinja xml+erb xml+ruby xml+evoque xml+lasso xml+mako xml+myghty xml+php xml+smarty xml+velocity xml xquery xqy xq xql xqm xslt xtend yaml)
+      return lexers.include? language.strip
+    end
 
+    def pad_max(block,eol='')
+      block.split(/\n/).map { |l|
+        new_code_line = l.gsub(/\t/, '    ')
+        orig_length = new_code_line.size + 8 + eol.size
+        pad_count = [@cols - orig_length, 0].max
+
+        [
+          new_code_line,
+          eol,
+          ' ' * ([pad_count-1,0].max)
+        ].join
+      }.join("\n")
+    end
+
+    def hiliteCode(language, codeBlock, leader, first_indent, block)
+      new_indent = first_indent > 0 ? first_indent + 2 : 0
+      last_indent = first_indent == 0 ? 7 : 5
+
+      if exec_available('pygmentize') && language && valid_lexer?(language)
+        lexer = "-l #{language}"
+        begin
+          hilite, s = Open3.capture2(%Q{pygmentize -f terminal256 -O style=monokai #{lexer} 2> /dev/null}, :stdin_data=>codeBlock)
           if s.success?
-            hilite = hilite.split(/\n/).map{|l| "#{c([:x,:black])}~ #{xc}" + l}.join("\n")
+
+            hilite = xc + hilite.split(/\n/).map{|l|
+              new_code_line = l.gsub(/\t/, '    ')
+              new_code_line.sub!(/^#{" "*first_indent}/,'')
+              [
+                c(%i[x intense_black]),
+                "> ",
+                " "*first_indent,
+                "#{c([:on_black])}#{l}"
+              ].join
+            }.join("\n").blackout + "#{xc}\n"
           end
         rescue => e
           @log.error(e)
@@ -323,20 +354,20 @@ module CLIMarkdown
       else
         hilite = codeBlock.split(/\n/).map do |line|
           new_code_line = line.gsub(/\t/, '    ')
-          orig_length = new_code_line.size + 3
+          new_code_line.sub!(/^#{" "*first_indent}/,'')
           new_code_line.gsub!(/ /, "#{c(%i[x white on_black])} ")
-
           [
-            "#{c(%i[x black])} ~#{c(%i[x white on_black])} ",
-            new_code_line,
+            c(%i[x intense_black]),
+            "> ",
+            " "*first_indent,
             c(%i[x white on_black]),
-            ' ' * [@cols - orig_length, 0].max,
+            new_code_line,
             xc
           ].join
-        end.join("\n")
+        end.join("\n") + "\n"
       end
 
-      "#{c(%i[x blue]) + '--[ '}#{c(%i[x magenta])}#{leader}#{c(%i[x blue]) + ' ]' + '-'*(@cols-6-leader.size) + xc}\n#{hilite}\n#{c(%i[x blue]) + '--[ '}#{c(%i[x magenta])}END #{leader}#{c(%i[x blue]) + ' ]' + '-'*(@cols-10-leader.size) + xc}"
+      "#{xc}\n#{" "*first_indent}#{c(%i[x blue]) + '--[ '}#{c(%i[x magenta])}#{leader}#{c(%i[x blue]) + ' ]' + '-'*(@cols-new_indent-leader.size+1) + xc}\n#{hilite}#{" "*(new_indent)}#{c(%i[x blue]) + '-'*(@cols-new_indent) + xc}\n"
     end
 
     def convert_markdown(input)
@@ -350,13 +381,13 @@ module CLIMarkdown
         input.sub!(/(?i-m)^---[ \t]*\n([\s\S]*?)\n[\-.]{3}[ \t]*\n/) do |yaml|
           m = Regexp.last_match
 
-          @log.warn("Processing YAML Header")
+          @log.info("Processing YAML Header")
           m[0].split(/\n/).map {|line|
             if line =~ /^[\-.]{3}\s*$/
-              line = c([:d,:black,:on_black]) + "% " + c([:d,:black,:on_black]) + line
+              line = c(%i[d black on_black]) + "% " + c(%i[d black on_black]) + line
             else
               line.sub!(/^(.*?:)[ \t]+(\S)/, '\1 \2')
-              line = c([:d,:black,:on_black]) + "% " + c([:d,:white]) + line
+              line = c(%i[d black on_black]) + "% " + c(%i[d white]) + line
             end
             if @cols - line.uncolor.size > 0
               line += " "*(@cols-line.uncolor.size)
@@ -371,7 +402,7 @@ module CLIMarkdown
           puts mmd
           mmd.split(/\n/).map {|line|
             line.sub!(/^(.*?:)[ \t]+(\S)/, '\1 \2')
-            line = c([:d,:black,:on_black]) + "% " + c([:d,:white,:on_black]) + line
+            line = c(%i[d black on_black]) + "% " + c(%i[d white on_black]) + line
             if @cols - line.uncolor.size > 0
               line += " "*(@cols - line.uncolor.size)
             end
@@ -434,40 +465,31 @@ module CLIMarkdown
       end
 
       # code block parsing
-      input.gsub!(/(?i-m)([`~]{3,})([\s\S]*?)\n([\s\S]*?)\1/) do
+      input.gsub!(/(?i-m)(^[ \t]*[`~]{3,})([\s\S]*?)\n([\s\S]*?)\1/m) do
+        language = nil
         m = Regexp.last_match
-        if m[2].strip !~ /^\s*$/
-          language = m[2].split(/ /)[0].downcase
-          code_block = m[3].to_s.strip
-          leader = language ? language.upcase : 'CODE'
+        first_indent = m[1].gsub(/\t/,'    ').match(/^ */)[0].size
+
+        if m[2] && m[2].strip.length > 0
+          language = m[2].strip.split(/ /)[0]
+          code_block = pad_max(m[3].to_s,'')
+          leader = language ? language : 'code'
         else
           first_line = m[3].to_s.split(/\n/)[0]
 
-          if first_line =~ /^#!/
-            @log.warn('Code block contains Shebang')
-            shebang = first_line.match(/^(#!.*\/(?:env )?)([^\/]+)$/)
-            language = shebang[2]
-            code_block = m[3].to_s.strip
-            leader = shebang[2] ? shebang[2].upcase : 'CODE'
+          if first_line =~ /^\s*#!/
+            shebang = first_line.match(/^\s*#!.*\/(?:env )?([^\/]+)$/)
+            language = shebang[1]
+            code_block = m[3]
+            leader = shebang[1] ? shebang[1] : 'code'
           else
-            code_block = m[3].to_s.split(/\n/).map do |l|
-              new_code_line = l.gsub(/\t/, '    ')
-              orig_length = new_code_line.size + 4
-              new_code_line.gsub!(/ /, "#{c(%i[x white on_black])} ")
-              pad_count = [@cols - orig_length, 0].max
-              [
-                "#{c(%i[x black])}~ #{c(%i[x white on_black])} ",
-                new_code_line,
-                c(%i[x white on_black]),
-                ' ' * pad_count,
-                xc
-              ].join
-            end.join("\n")
-            leader = language ? language.upcase : 'CODE'
+            code_block = pad_max(m[3].to_s, "#{c(%i[intense_black on_black])}¬")
+            leader = language ? language : 'code'
           end
         end
         leader += xc
-        hiliteCode(language, code_block, leader, m[0])
+
+        hiliteCode(language, code_block, leader, first_indent, m[0])
       end
 
       # remove empty links
@@ -504,19 +526,19 @@ module CLIMarkdown
             ansi = ''
             case m[1].length
             when 1
-              ansi = c([:b, :black, :on_intense_white])
-              pad = c([:b,:white])
+              ansi = c(%i[b black on_intense_white])
+              pad = c(%i[b white])
               pad += m[2].length + 2 > @cols ? "*"*m[2].length : "*"*(@cols - (m[2].length + 2))
             when 2
-              ansi = c([:b, :green, :on_black])
-              pad = c([:b,:black])
+              ansi = c(%i[b green on_black])
+              pad = c(%i[b black])
               pad += m[2].length + 2 > @cols ? "-"*m[2].length : "-"*(@cols - (m[2].length + 2))
             when 3
-              ansi = c([:u, :b, :yellow])
+              ansi = c(%i[u b yellow])
             when 4
-              ansi = c([:x, :u, :yellow])
+              ansi = c(%i[x u yellow])
             else
-              ansi = c([:b, :white])
+              ansi = c(%i[b white])
             end
 
             "\n#{xc}#{ansi}#{m[2]} #{pad}#{xc}\n"
@@ -526,7 +548,7 @@ module CLIMarkdown
           if line =~ /\[(?:\e\[[\d;]+m)*\^(?:\e\[[\d;]+m)*(\S+)(?:\e\[[\d;]+m)*\]/
             key = $1.uncolor
             if @footnotes.key? key
-              line += "\n\n#{c([:b,:black,:on_black])}[#{c([:b,:cyan,:on_black])}^#{c([:x,:yellow,:on_black])}#{key}#{c([:b,:black,:on_black])}]: #{c([:u,:white,:on_black])}#{@footnotes[key]}#{xc}"
+              line += "\n\n#{c(%i[b black on_black])}[#{c(%i[b cyan on_black])}^#{c(%i[x yellow on_black])}#{key}#{c(%i[b black on_black])}]: #{c(%i[u white on_black])}#{@footnotes[key]}#{xc}"
               @footnotes.delete(key)
             end
           end
@@ -540,7 +562,7 @@ module CLIMarkdown
               counter -= 1
               find_color(lines[counter])
             end
-            "#{c([:b,:black])}[#{c([:b,:yellow])}^#{c([:x,:yellow])}#{match[1]}#{c([:b,:black])}]" + (last ? last : xc)
+            "#{c(%i[b black])}[#{c(%i[b yellow])}^#{c(%i[x yellow])}#{match[1]}#{c(%i[b black])}]" + (last ? last : xc)
           end
 
           # blockquotes
@@ -552,7 +574,7 @@ module CLIMarkdown
               counter -= 1
               find_color(lines[counter])
             end
-            "#{c([:b,:black])}#{match[1]}#{c([:x,:magenta])} #{match[2]}" + (last ? last : xc)
+            "#{c(%i[b black])}#{match[1]}#{c(%i[x magenta])} #{match[2]}" + (last ? last : xc)
           end
 
           # make reference links inline
@@ -585,12 +607,12 @@ module CLIMarkdown
           line.gsub!(/`(.*?)`/) do |m|
             match = Regexp.last_match
             last = find_color(match.pre_match, true)
-            "#{c([:b,:black])}`#{c([:b,:white])}#{match[1]}#{c([:b,:black])}`" + (last ? last : xc)
+            "#{c(%i[b black])}`#{c(%i[b white])}#{match[1]}#{c(%i[b black])}`" + (last ? last : xc)
           end
 
           # horizontal rules
           line.gsub!(/^ {,3}([\-*] ?){3,}$/) do |m|
-            c([:x,:black]) + '_'*@cols + xc
+            c(%i[x black]) + '_'*@cols + xc
           end
 
           # bold, bold/italic
@@ -629,7 +651,7 @@ module CLIMarkdown
               brackets = [match[5], match[7]]
               equat = match[6]
             end
-            "#{c([:b, :black])}#{brackets[0]}#{xc}#{c([:b,:blue])}#{equat}#{c([:b, :black])}#{brackets[1]}" + (last ? last : xc)
+            "#{c(%i[b black])}#{brackets[0]}#{xc}#{c(%i[b blue])}#{equat}#{c(%i[b black])}#{brackets[1]}" + (last ? last : xc)
           end
 
           # list items
@@ -638,13 +660,13 @@ module CLIMarkdown
             match = Regexp.last_match
             last = find_color(match.pre_match)
             indent = match[1] || ''
-            "#{indent}#{c([:d, :red])}#{match[2]} " + (last ? last : xc)
+            "#{indent}#{c(%i[d red])}#{match[2]} " + (last ? last : xc)
           end
 
           # definition lists
           line.gsub!(/^(:\s*)(.*?)/) do |m|
             match = Regexp.last_match
-            "#{c([:d, :red])}#{match[1]} #{c([:b, :white])}#{match[2]}#{xc}"
+            "#{c(%i[d red])}#{match[1]} #{c(%i[b white])}#{match[2]}#{xc}"
           end
 
           # misc html
@@ -652,7 +674,7 @@ module CLIMarkdown
           line.gsub!(/(?i-m)((<\/?)(\w+[\s\S]*?)(>))/) do |tag|
             match = Regexp.last_match
             last = find_color(match.pre_match)
-            "#{c([:d,:yellow,:on_black])}#{match[2]}#{match[3]}#{match[4]}" + (last ? last : xc)
+            "#{c(%i[d yellow on_black])}#{match[2]}#{match[3]}#{match[4]}" + (last ? last : xc)
           end
         end
 
@@ -677,8 +699,8 @@ module CLIMarkdown
                   res, s = Open3.capture2(%Q{curl -sS "#{img_path}" 2> /dev/null | imgcat})
 
                   if s.success?
-                    pre = match[2].size > 0 ? "    #{c([:d,:blue])}[#{match[2].strip}]\n" : ''
-                    post = tail.size > 0 ? "\n    #{c([:b,:blue])}-- #{tail} --" : ''
+                    pre = match[2].size > 0 ? "    #{c(%i[d blue])}[#{match[2].strip}]\n" : ''
+                    post = tail.size > 0 ? "\n    #{c(%i[b blue])}-- #{tail} --" : ''
                     result = pre + res + post
                   end
                 rescue => e
@@ -692,8 +714,8 @@ module CLIMarkdown
                   img_path = File.join(base,img_path)
                 end
                 if File.exists?(img_path)
-                  pre = match[2].size > 0 ? "    #{c([:d,:blue])}[#{match[2].strip}]\n" : ''
-                  post = tail.size > 0 ? "\n    #{c([:b,:blue])}-- #{tail} --" : ''
+                  pre = match[2].size > 0 ? "    #{c(%i[d blue])}[#{match[2].strip}]\n" : ''
+                  post = tail.size > 0 ? "\n    #{c(%i[b blue])}-- #{tail} --" : ''
                   img = %x{imgcat "#{img_path}"}
                   result = pre + img + post
                 end
@@ -709,7 +731,7 @@ module CLIMarkdown
       end
 
       @footnotes.each {|t, v|
-        input += "\n\n#{c([:b,:black,:on_black])}[#{c([:b,:yellow,:on_black])}^#{c([:x,:yellow,:on_black])}#{t}#{c([:b,:black,:on_black])}]: #{c([:u,:white,:on_black])}#{v}#{xc}"
+        input += "\n\n#{c(%i[b black on_black])}[#{c(%i[b yellow on_black])}^#{c(%i[x yellow on_black])}#{t}#{c(%i[b black on_black])}]: #{c(%i[u white on_black])}#{v}#{xc}"
       }
 
       @output += input
@@ -761,7 +783,7 @@ module CLIMarkdown
 
 
       unless out && out.size > 0
-        $stderr.puts "No results"
+        @log.warn "No results"
         Process.exit
       end
 
