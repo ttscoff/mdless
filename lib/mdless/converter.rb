@@ -231,7 +231,8 @@ module CLIMarkdown
           end
           input.gsub!(/\r?\n/,"\n")
           if @options[:list]
-            list_headers(input)
+            puts list_headers(input)
+            Process.exit 0
           else
             convert_markdown(input)
           end
@@ -246,7 +247,8 @@ module CLIMarkdown
         end
         input.gsub!(/\r?\n/,"\n")
         if @options[:list]
-          list_headers(input)
+          puts list_headers(input)
+          Process.exit 0
         else
           convert_markdown(input)
         end
@@ -288,7 +290,7 @@ module CLIMarkdown
     def get_headers(input)
       unless @headers && @headers.length > 0
         @headers = []
-        headers = input.scan(/^((?!#!)(\#{1,6})\s*([^#]+?)(?: #+)?\s*|(.*?)\n([=-]+))$/i)
+        headers = input.scan(/^((?!#!)(\#{1,6})\s*([^#]+?)(?: #+)?\s*|(\S.+)\n([=-]+))$/i)
 
         headers.each {|h|
           hlevel = 6
@@ -351,11 +353,10 @@ module CLIMarkdown
         else
           '  '
         end
-        line_no = '%2d: ' % (idx + 1)
-        headers_out.push(%Q{#{line_no}#{c(%i[x black])}#{".."*level}#{c(%i[x yellow])}#{subdoc}#{title.strip}#{xc}}.strip)
+        headers_out.push ('%3d: %s' % [idx + 1, c(%i[x black])+"."*level+c(%i[x yellow])+subdoc+title.strip+xc])
       end
 
-      @output += headers_out.join("\n")
+      return headers_out.join("\n")
     end
 
     def highest_header(input)
@@ -1028,7 +1029,7 @@ module CLIMarkdown
     end
 
     def printout
-      out = @output.strip.split(/\n/).map {|p|
+      out = @output.rstrip.split(/\n/).map {|p|
         p.wrap(@cols)
       }.join("\n")
 
