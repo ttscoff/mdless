@@ -1,3 +1,13 @@
+require 'fileutils'
+require 'yaml'
+
+class ::Hash
+    def deep_merge(second)
+        merger = proc { |key, v1, v2| Hash === v1 && Hash === v2 ? v1.merge(v2, &merger) : Array === v1 && Array === v2 ? v1 | v2 : [:undefined, nil, :nil].include?(v2) ? v1 : v2 }
+        self.merge(second.to_h, &merger)
+    end
+end
+
 module CLIMarkdown
   class Converter
     include Colors
@@ -11,6 +21,113 @@ module CLIMarkdown
     def initialize(args)
       @log = Logger.new(STDERR)
       @log.level = Logger::ERROR
+
+      config_dir = File.expand_path('~/.config/mdless')
+      theme_file = File.join(config_dir,'mdless.theme')
+
+      theme_defaults = {
+        'metadata' => {
+          'border' => 'd blue on_black',
+          'marker' => 'd black on_black',
+          'color' => 'd white on_black'
+        },
+        'h1' => {
+          'color' => 'b intense_black on_white',
+          'pad' => 'd black on_white',
+          'pad_char' => '='
+        },
+        'h2' => {
+          'color' => 'b white on_intense_black',
+          'pad' => 'd white on_intense_black',
+          'pad_char' => '-'
+        },
+        'h3' => {
+          'color' => 'u b yellow'
+        },
+        'h4' => {
+          'color' => 'u yellow'
+        },
+        'h5' => {
+          'color' => 'b white'
+        },
+        'h6' => {
+          'color' => 'b white'
+        },
+        'link' => {
+          'brackets' => 'b black',
+          'text' => 'u b blue',
+          'url' => 'cyan'
+        },
+        'image' => {
+          'bang' => 'red',
+          'brackets' => 'b black',
+          'title' => 'cyan',
+          'url' => 'u yellow'
+        },
+        'list' => {
+          'bullet' => 'b intense_red',
+          'number' => 'b intense_blue',
+          'color' => 'intense_white'
+        },
+        'footnote' => {
+          'brackets' => 'b black on_black',
+          'caret' => 'b yellow on_black',
+          'title' => 'x yellow on_black',
+          'note' => 'u white on_black'
+        },
+        'code_span' => {
+          'marker' => 'b white',
+          'color' => 'b black on_intense_blue'
+        },
+        'code_block' => {
+          'marker' => 'intense_black',
+          'bg' => 'on_black',
+          'color' => 'white on_black',
+          'border' => 'blue',
+          'title' => 'magenta',
+          'eol' => 'intense_black on_black',
+          'pygments_theme' => 'monokai'
+        },
+        'dd' => {
+          'marker' => 'd red',
+          'color' => 'b white'
+        },
+        'hr' => {
+          'color' => 'd white'
+        },
+        'table' => {
+          'border' => 'd black',
+          'header' => 'yellow',
+          'divider' => 'b black',
+          'color' => 'white'
+        },
+        'html' => {
+          'brackets' => 'd yellow on_black',
+          'color' => 'yellow on_black'
+        }
+      }
+
+      unless File.directory?(config_dir)
+        @log.info("Creating config directory at #{config_dir}")
+        FileUtils.mkdir_p(config_dir)
+      end
+
+      unless File.exists?(theme_file)
+        @log.info("Writing fresh theme file to #{theme_file}")
+        File.open(theme_file,'w') {|f|
+          f.puts @theme.to_yaml
+        }
+        @theme = theme_defaults
+      else
+        new_theme = YAML.load(IO.read(theme_file))
+        begin
+          @theme = theme_defaults.deep_merge(new_theme)
+        rescue
+          @log.warn('Error merging user theme')
+          @theme = theme_defaults
+        end
+      end
+
 
       @options = {}
       optparse = OptionParser.new do |opts|
@@ -95,7 +212,8 @@ module CLIMarkdown
 
       @cols = @options[:width]
       @output = ''
-      @header_arr = []
+      @headers = []
+      @setheaders = []
 
       input = ''
       @ref_links = {}
@@ -139,9 +257,58 @@ module CLIMarkdown
       end
     end
 
+    def color(key)
+      val = nil
+      keys = key.split(/[ ,>]/)
+      if @theme.key?(keys[0])
+        val = @theme[keys.shift]
+      else
+        @log.error("Invalid theme key: #{key}")
+        return c([:reset])
+      end
+      keys.each {|k|
+        if val.key?(k)
+          val = val[k]
+        else
+          @log.error("Invalid theme key: #{k}")
+          return c([:reset])
+        end
+      }
+      if val.kind_of? String
+        val = "x #{val}"
+        res = val.split(/ /).map {|k|
+          k.to_sym
+        }
+        c(res)
+      else
+        c([:reset])
+      end
+    end
+
     def get_headers(input)
       unless @headers && @headers.length > 0
-        @headers = input.scan(/^(#+)\s*(.*?)( #+)?\s*$/)
+        @headers = []
+        headers = input.scan(/^((?!#!)(\#{1,6})\s*([^#]+?)(?: #+)?\s*|(.*?)\n([=-]+))$/i)
+
+        headers.each {|h|
+          hlevel = 6
+          title = nil
+          if h[4] =~ /=+/
+            hlevel = 1
+            title = h[3]
+          elsif h[4] =~ /-+/
+            hlevel = 2
+            title = h[3]
+          else
+            hlevel = h[1].length
+            title = h[2]
+          end
+          @headers << [
+            '#'*hlevel,
+            title,
+            h[0]
+          ]
+        }
       end
       @headers
     end
@@ -192,9 +359,9 @@ module CLIMarkdown
     end
 
     def highest_header(input)
-      headers = input.scan(/^(#+)/)
+      @headers = get_headers(input)
       top = 6
-      headers.each {|h|
+      @headers.each {|h|
         top = h[0].length if h[0].length < top
       }
       top
@@ -205,12 +372,12 @@ module CLIMarkdown
       input.split(/\n/).map{|line|
         if first
           first = false
-          line.gsub!(/\|/, "#{c(%i[d black])}|#{c(%i[x yellow])}")
+          line.gsub!(/\|/, "#{color('table border')}|#{color('table header')}")
         elsif line.strip =~ /^[|:\- ]+$/
-          line.gsub!(/^(.*)$/, "#{c(%i[d black])}\\1#{c(%i[x white])}")
-          line.gsub!(/([:\-]+)/,"#{c(%i[b black])}\\1#{c(%i[d black])}")
+          line.gsub!(/^(.*)$/, "#{color('table border')}\\1#{color('table color')}")
+          line.gsub!(/([:\-]+)/,"#{color('table divider')}\\1#{color('table border')}")
         else
-          line.gsub!(/\|/, "#{c(%i[d black])}|#{c(%i[x white])}")
+          line.gsub!(/\|/, "#{color('table border')}|#{color('table color')}")
         end
       }.join("\n")
     end
@@ -289,22 +456,39 @@ module CLIMarkdown
     end
 
     def color_link(line, text, url)
-      out = c(%i[b black])
-      out += "[#{c(%i[u blue])}#{text}"
-      out += c(%i[b black])
-      out += "]("
-      out += c(%i[x cyan])
-      out += url
-      out += c(%i[b black])
-      out += ")"
-      out += find_color(line)
-      out
+      [
+        color('link brackets'),
+        "[",
+        color('link text'),
+        text,
+        color('link brackets'),
+        "](",
+        color('link url'),
+        url,
+        color('link brackets'),
+        ")",
+        find_color(line)
+      ].join
     end
 
     def color_image(line, text, url)
-      text.gsub!(/\e\[0m/,c(%i[x cyan]))
+      text.gsub!(/\e\[0m/,color('image title'))
 
-      "#{c(%i[x red])}!#{c(%i[b black])}[#{c(%i[x cyan])}#{text}#{c(%i[b black])}](#{c(%i[u yellow])}#{url}#{c(%i[b black])})" + find_color(line)
+      [
+        color('image bang'),
+        "!",
+        color('image brackets'),
+        "[",
+        color('image title'),
+        text,
+        color('image brackets'),
+        "](",
+        color('image url'),
+        url,
+        color('image brackets'),
+        ")",
+        find_color(line)
+      ].join
     end
 
     def valid_lexer?(language)
@@ -333,19 +517,19 @@ module CLIMarkdown
       if exec_available('pygmentize') && language && valid_lexer?(language)
         lexer = "-l #{language}"
         begin
-          hilite, s = Open3.capture2(%Q{pygmentize -f terminal256 -O style=monokai #{lexer} 2> /dev/null}, :stdin_data=>codeBlock)
+          hilite, s = Open3.capture2(%Q{pygmentize -f terminal256 -O style=#{@theme['code_block']['pygments_theme']} #{lexer} 2> /dev/null}, :stdin_data=>codeBlock)
           if s.success?
 
             hilite = xc + hilite.split(/\n/).map{|l|
               new_code_line = l.gsub(/\t/, '    ')
               new_code_line.sub!(/^#{" "*first_indent}/,'')
               [
-                c(%i[x intense_black]),
+                color('code_block marker'),
                 "> ",
                 " "*first_indent,
-                "#{c([:on_black])}#{l}"
+                "#{color('code_block bg')}#{l}"
               ].join
-            }.join("\n").blackout + "#{xc}\n"
+            }.join("\n").blackout(@theme['code_block']['bg']) + "#{xc}\n"
           end
         rescue => e
           @log.error(e)
@@ -355,19 +539,38 @@ module CLIMarkdown
         hilite = codeBlock.split(/\n/).map do |line|
           new_code_line = line.gsub(/\t/, '    ')
           new_code_line.sub!(/^#{" "*first_indent}/,'')
-          new_code_line.gsub!(/ /, "#{c(%i[x white on_black])} ")
+          new_code_line.gsub!(/ /, "#{color('code_block color')} ")
           [
-            c(%i[x intense_black]),
+            color('code_block marker'),
             "> ",
             " "*first_indent,
-            c(%i[x white on_black]),
+            color('code_block color'),
             new_code_line,
             xc
           ].join
         end.join("\n") + "\n"
       end
 
-      "#{xc}\n#{" "*first_indent}#{c(%i[x blue]) + '--[ '}#{c(%i[x magenta])}#{leader}#{c(%i[x blue]) + ' ]' + '-'*(@cols-new_indent-leader.size+1) + xc}\n#{hilite}#{" "*(new_indent)}#{c(%i[x blue]) + '-'*(@cols-new_indent) + xc}\n"
+      [
+        xc,
+        "\n",
+        " "*first_indent,
+        color('code_block border'),
+        '--[ ',
+        color('code_block title'),
+        leader,
+        color('code_block border'),
+        ' ]',
+        '-'*(@cols-new_indent-leader.size+1),
+        xc,
+        "\n",
+        hilite,
+        " "*(new_indent),
+        color('code_block border'),
+        '-'*(@cols-new_indent),
+        xc,
+        "\n"
+      ].join
     end
 
     def convert_markdown(input)
@@ -380,14 +583,13 @@ module CLIMarkdown
         in_yaml = true
         input.sub!(/(?i-m)^---[ \t]*\n([\s\S]*?)\n[\-.]{3}[ \t]*\n/) do |yaml|
           m = Regexp.last_match
-
           @log.info("Processing YAML Header")
           m[0].split(/\n/).map {|line|
             if line =~ /^[\-.]{3}\s*$/
-              line = c(%i[d black on_black]) + "% " + c(%i[d black on_black]) + line
+              line = color('metadata marker') + "%% " + color('metadata border') + line
             else
               line.sub!(/^(.*?:)[ \t]+(\S)/, '\1 \2')
-              line = c(%i[d black on_black]) + "% " + c(%i[d white]) + line
+              line = color('metadata marker') + "%% " + color('metadata color') + line
             end
             if @cols - line.uncolor.size > 0
               line += " "*(@cols-line.uncolor.size)
@@ -399,10 +601,9 @@ module CLIMarkdown
       if !in_yaml && input.gsub(/\n/,' ') =~ /(?i-m)^\w.+:\s+\S+ /
         @log.info("Found MMD Headers")
         input.sub!(/(?i-m)^([\S ]+:[\s\S]*?)+(?=\n\n)/) do |mmd|
-          puts mmd
           mmd.split(/\n/).map {|line|
             line.sub!(/^(.*?:)[ \t]+(\S)/, '\1 \2')
-            line = c(%i[d black on_black]) + "% " + c(%i[d white on_black]) + line
+            line = color('metadata marker') + "%% " + color('metadata color') + line
             if @cols - line.uncolor.size > 0
               line += " "*(@cols - line.uncolor.size)
             end
@@ -483,7 +684,7 @@ module CLIMarkdown
             code_block = m[3]
             leader = shebang[1] ? shebang[1] : 'code'
           else
-            code_block = pad_max(m[3].to_s, "#{c(%i[intense_black on_black])}¬")
+            code_block = pad_max(m[3].to_s, "#{color('code_block eol')}¬")
             leader = language ? language : 'code'
           end
         end
@@ -519,31 +720,6 @@ module CLIMarkdown
           #   previous_indent = indent
           # end
         else
-          # Headlines
-          line.gsub!(/^(#+) *(.*?)(\s*#+)?\s*$/) do |match|
-            m = Regexp.last_match
-            pad = ""
-            ansi = ''
-            case m[1].length
-            when 1
-              ansi = c(%i[b black on_intense_white])
-              pad = c(%i[b white])
-              pad += m[2].length + 2 > @cols ? "*"*m[2].length : "*"*(@cols - (m[2].length + 2))
-            when 2
-              ansi = c(%i[b green on_black])
-              pad = c(%i[b black])
-              pad += m[2].length + 2 > @cols ? "-"*m[2].length : "-"*(@cols - (m[2].length + 2))
-            when 3
-              ansi = c(%i[u b yellow])
-            when 4
-              ansi = c(%i[x u yellow])
-            else
-              ansi = c(%i[b white])
-            end
-
-            "\n#{xc}#{ansi}#{m[2]} #{pad}#{xc}\n"
-          end
-
           # place footnotes under paragraphs that reference them
           if line =~ /\[(?:\e\[[\d;]+m)*\^(?:\e\[[\d;]+m)*(\S+)(?:\e\[[\d;]+m)*\]/
             key = $1.uncolor
@@ -578,6 +754,7 @@ module CLIMarkdown
           end
 
           # make reference links inline
+
           line.gsub!(/(?<![\e*])\[(\b.*?\b)?\]\[(\b.+?\b)?\]/) do |m|
             match = Regexp.last_match
             title = match[2] || ''
@@ -607,12 +784,20 @@ module CLIMarkdown
           line.gsub!(/`(.*?)`/) do |m|
             match = Regexp.last_match
             last = find_color(match.pre_match, true)
-            "#{c(%i[b black])}`#{c(%i[b white])}#{match[1]}#{c(%i[b black])}`" + (last ? last : xc)
+            [
+              color('code_span marker'),
+              '`',
+              color('code_span color'),
+              match[1],
+              color('code_span marker'),
+              '`',
+              last ? last : xc
+            ].join
           end
 
           # horizontal rules
           line.gsub!(/^ {,3}([\-*] ?){3,}$/) do |m|
-            c(%i[x black]) + '_'*@cols + xc
+            color('hr color') + '_'*@cols + xc
           end
 
           # bold, bold/italic
@@ -659,14 +844,27 @@ module CLIMarkdown
           line.gsub!(/^(\s*)([*\-+]|\d+\.) /) do |m|
             match = Regexp.last_match
             last = find_color(match.pre_match)
+            mcolor = match[2] =~ /^\d+\./ ? 'list number' : 'list bullet'
             indent = match[1] || ''
-            "#{indent}#{c(%i[d red])}#{match[2]} " + (last ? last : xc)
+            [
+              indent,
+              color(mcolor),
+              match[2], " ",
+              color('list color')
+            ].join
           end
 
           # definition lists
           line.gsub!(/^(:\s*)(.*?)/) do |m|
             match = Regexp.last_match
-            "#{c(%i[d red])}#{match[1]} #{c(%i[b white])}#{match[2]}#{xc}"
+            [
+              color('dd marker'),
+              match[1],
+              " ",
+              color('dd color'),
+              match[2],
+              xc
+            ].join
           end
 
           # misc html
@@ -674,7 +872,15 @@ module CLIMarkdown
           line.gsub!(/(?i-m)((<\/?)(\w+[\s\S]*?)(>))/) do |tag|
             match = Regexp.last_match
             last = find_color(match.pre_match)
-            "#{c(%i[d yellow on_black])}#{match[2]}#{match[3]}#{match[4]}" + (last ? last : xc)
+            [
+              color('html brackets'),
+              match[2],
+              color('html color'),
+              match[3],
+              color('html brackets'),
+              match[4],
+              last ? last : xc
+            ].join
           end
         end
 
@@ -682,6 +888,36 @@ module CLIMarkdown
       end
 
       input = lines.join("\n")
+
+      # Headlines
+      @headers.each {|h|
+        input.sub!(/^#{h[2]}/) do |m|
+          pad = ""
+          ansi = ''
+          case h[0].length
+          when 1
+            ansi = color('h1 color')
+            pad = color('h1 pad')
+            char = @theme['h1']['pad_char'] || "="
+            pad += h[1].length + 2 > @cols ? char*h[1].length : char*(@cols - (h[1].length + 1))
+          when 2
+            ansi = color('h2 color')
+            pad = color('h2 pad')
+            char = @theme['h2']['pad_char'] || "-"
+            pad += h[1].length + 2 > @cols ? char*h[1].length : char*(@cols - (h[1].length + 1))
+          when 3
+            ansi = color('h3 color')
+          when 4
+            ansi = color('h4 color')
+          when 5
+            ansi = color('h5 color')
+          else
+            ansi = color('h6 color')
+          end
+
+          "\n#{xc}#{ansi}#{h[1]} #{pad}#{xc}\n"
+        end
+      }
 
       # images
       input.gsub!(/^(.*?)!\[(.*)?\]\((.*?\.(?:png|gif|jpg))( +.*)?\)/) do |m|
@@ -731,7 +967,20 @@ module CLIMarkdown
       end
 
       @footnotes.each {|t, v|
-        input += "\n\n#{c(%i[b black on_black])}[#{c(%i[b yellow on_black])}^#{c(%i[x yellow on_black])}#{t}#{c(%i[b black on_black])}]: #{c(%i[u white on_black])}#{v}#{xc}"
+        input += [
+          "\n\n",
+          color('footnote brackets'),
+          "[",
+          color('footnote caret'),
+          "^",
+          color('footnote title'),
+          t,
+          color('footnote brackets'),
+          "]: ",
+          color('footnote note'),
+          v,
+          xc
+        ].join
       }
 
       @output += input
@@ -760,6 +1009,7 @@ module CLIMarkdown
         IO.select [input]
 
         pager = which_pager
+        @log.info(%{Using #{pager} as pager})
         begin
           exec(pager.join(' '))
         rescue SystemCallError => e
@@ -805,13 +1055,13 @@ module CLIMarkdown
     def which_pager
       pagers = [ENV['GIT_PAGER'], ENV['PAGER'],
                 `git config --get-all core.pager || true`.split.first,
-                'less', 'more', 'cat', 'pager']
+                'bat', 'less', 'more', 'cat', 'pager']
       pagers.select! do |f|
         if f
           if f.strip =~ /[ |]/
             f
           else
-          system "which #{f}", :out => File::NULL
+            system "which #{f}", :out => File::NULL
           end
         else
           false

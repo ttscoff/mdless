@@ -1,3 +1,28 @@
+title: Code block tests
+date: yesterday
+
+Code block tests
+=====
+
+![Image test](marked.gif)<br/>after a break
+
+This is [a test link](https://brettterpstra.com). <span class="test span">This is a test span.</span>
+
+| a table | to see | how |
+| :---- |----|:---:|
+coloring | works|out
+
+Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. [Excepteur sint occaecat](https://test.com) cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+
+* list test
+* more list with **some bold** in it
+  * more list nested
+
+---
+
+1. Numbered list
+2. it has numbers
+3. neat
 
 ## Nested, malformed language
 
@@ -26,7 +51,7 @@
           - git pull
        ```
 
-## Outdented, no language
+### Outdented, no language
 
 Wait a few seconds for the initial build to finish; you should see something like:
 ```

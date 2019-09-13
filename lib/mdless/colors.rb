@@ -1,60 +1,7 @@
 module CLIMarkdown
   module Colors
 
-    def uncolor
-      self.gsub(/\e\[[\d;]+m/,'')
-    end
-
-    def blackout
-      self.gsub(/(^|$)/,"\e[40m").gsub(/3([89])m/,"40;3\\1m")
-    end
-
-    def uncolor!
-      self.replace self.uncolor
-    end
-
-    def size_clean
-      self.uncolor.size
-    end
-
-    def wrap(width=78)
-
-      if self.uncolor =~ /(^([%~] |\s*>)| +[=\-]{5,})/
-        return self
-      end
-
-      visible_width = 0
-      lines = []
-      line = ''
-      last_ansi = ''
-
-      line += self.match(/^\s*/)[0].gsub(/\t/,'    ')
-      input = self.dup # .gsub(/(\w-)(\w)/,'\1 \2')
-      input.split(/\s+/).each do |word|
-        last_ansi = line.scan(/\e\[[\d;]+m/)[-1] || ''
-        if visible_width + word.size_clean >= width
-          lines << line + xc
-          visible_width = word.size_clean
-          line = last_ansi + word
-        elsif line.empty?
-          visible_width = word.size_clean
-          line = last_ansi + word
-        else
-          visible_width += word.size_clean + 1
-          line << " " << last_ansi + word
-        end
-       end
-       lines << line + self.match(/\s*$/)[0] + xc if line
-      return lines.join("\n") # .gsub(/\- (\S)/,'-\1')
-    end
-
-    def xc(count=0)
-      c([:x,:white])
-    end
-
-    def c(args)
-
-      colors = {
+    COLORS = {
             :reset => 0,     # synonym for :clear
             :x => 0,
             :bold => 1,
@@ -106,11 +53,68 @@ module CLIMarkdown
             :on_intense_white => 107
           }
 
+    def uncolor
+      self.gsub(/\e\[[\d;]+m/,'')
+    end
+
+    def blackout(bgcolor)
+      key = bgcolor.to_sym
+      bg = COLORS.key?(key) ? COLORS[key] : 40
+      self.gsub(/(^|$)/,"\e[#{bg}m").gsub(/3([89])m/,"#{bg};3\\1m")
+    end
+
+    def uncolor!
+      self.replace self.uncolor
+    end
+
+    def size_clean
+      self.uncolor.size
+    end
+
+    def wrap(width=78)
+
+      if self.uncolor =~ /(^([%~] |\s*>)| +[=\-]{5,})/
+        return self
+      end
+
+      visible_width = 0
+      lines = []
+      line = ''
+      last_ansi = ''
+
+      line += self.match(/^\s*/)[0].gsub(/\t/,'    ')
+      input = self.dup # .gsub(/(\w-)(\w)/,'\1 \2')
+      input.split(/\s+/).each do |word|
+        last_ansi = line.scan(/\e\[[\d;]+m/)[-1] || ''
+        if visible_width + word.size_clean >= width
+          lines << line + xc
+          visible_width = word.size_clean
+          line = last_ansi + word
+        elsif line.empty?
+          visible_width = word.size_clean
+          line = last_ansi + word
+        else
+          visible_width += word.size_clean + 1
+          line << " " << last_ansi + word
+        end
+       end
+       lines << line + self.match(/\s*$/)[0] + xc if line
+      return lines.join("\n") # .gsub(/\- (\S)/,'-\1')
+    end
+
+    def xc(count=0)
+      c([:x,:white])
+    end
+
+    def c(args)
+
+
+
       out = []
 
       args.each {|arg|
-        if colors.key? arg
-          out << colors[arg]
+        if COLORS.key? arg
+          out << COLORS[arg]
         end
       }
 
