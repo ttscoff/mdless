@@ -621,6 +621,7 @@ module CLIMarkdown
       end
 
       # Gather footnotes (non-inline)
+      # TODO: Need to implement option to output links as references
       input.gsub!(/^ {,3}(?<!\*)(?:\e\[[\d;]+m)*\[(?:\e\[[\d;]+m)*\^(?:\e\[[\d;]+m)*\b(.+)\b(?:\e\[[\d;]+m)*\]: *(.*?)\n/) do |m|
         match = Regexp.last_match
         @footnotes[match[1].uncolor] = match[2].uncolor

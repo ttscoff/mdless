@@ -35,6 +35,7 @@ The pager used is determined by system configuration in this order of preference
 * `$GIT_PAGER`
 * `$PAGER`
 * `git config --get-all core.pager`
+* `bat`
 * `less`
 * `more`
 * `cat`
