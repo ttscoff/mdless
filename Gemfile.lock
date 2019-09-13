@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    mdless (0.0.14)
+    mdless (0.0.15)
 
 GEM
   remote: https://rubygems.org/
