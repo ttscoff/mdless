@@ -31,6 +31,11 @@ module CLIMarkdown
           'marker' => 'd black on_black',
           'color' => 'd white on_black'
         },
+        'emphasis' => {
+          'bold' => 'b',
+          'italic' => 'u i',
+          'bold-italic' => 'b u i'
+        },
         'h1' => {
           'color' => 'b intense_black on_white',
           'pad' => 'd black on_white',
@@ -122,6 +127,11 @@ module CLIMarkdown
         new_theme = YAML.load(IO.read(theme_file))
         begin
           @theme = theme_defaults.deep_merge(new_theme)
+          # write merged theme back in case there are new keys since
+          # last updated
+          File.open(theme_file,'w') {|f|
+            f.puts @theme.to_yaml
+          }
         rescue
           @log.warn('Error merging user theme')
           @theme = theme_defaults
@@ -172,8 +182,11 @@ module CLIMarkdown
         @options[:local_images] = false
         @options[:remote_images] = false
 
-        if exec_available('imgcat') && ENV['TERM_PROGRAM'] == 'iTerm.app'
-          opts.on('-i', '--images=TYPE', 'Include [local|remote (both)] images in output (requires imgcat and iTerm2, default NONE)' ) do |type|
+
+        opts.on('-i', '--images=TYPE', 'Include [local|remote (both)] images in output (requires imgcat and iTerm2, default NONE)' ) do |type|
+          unless exec_available('imgcat')# && ENV['TERM_PROGRAM'] == 'iTerm.app'
+            @log.warn('images turned on but imgcat not found')
+          else
             if type =~ /^(r|b|a)/i
               @options[:local_images] = true
               @options[:remote_images] = true
@@ -181,7 +194,11 @@ module CLIMarkdown
               @options[:local_images] = true
             end
           end
-          opts.on('-I', '--all-images', 'Include local and remote images in output (requires imgcat and iTerm2)' ) do
+        end
+        opts.on('-I', '--all-images', 'Include local and remote images in output (requires imgcat and iTerm2)' ) do
+          unless exec_available('imgcat')# && ENV['TERM_PROGRAM'] == 'iTerm.app'
+            @log.warn('images turned on but imgcat not found')
+          else
             @options[:local_images] = true
             @options[:remote_images] = true
           end
@@ -802,8 +819,11 @@ module CLIMarkdown
             color('hr color') + '_'*@cols + xc
           end
 
+          # escaped characters
+          line.gsub!(/\\(\S)/,'\1')
+
           # bold, bold/italic
-          line.gsub!(/(?<pre>^|\s)(?<open>[\*_]{2,3})(?<content>[^\*_\s][^\*_]+?[^\*_\s])[\*_]{2,3}/) do |m|
+          line.gsub!(/(?<pre>^|[ "'\(“])(?<open>[\*_]{2,3})(?<content>[^\*_\s][^\*_]+?[^\*_\s])[\*_]{2,3}/) do |m|
             match = Regexp.last_match
             last = find_color(match.pre_match, true)
             counter = i
@@ -811,12 +831,12 @@ module CLIMarkdown
               counter -= 1
               last = find_color(lines[counter])
             end
-            emph = match['open'].length == 2 ? c([:b]) : c(%i[b u i])
+            emph = match['open'].length == 2 ? color('emphasis bold') : color('emphasis bold-italic')
             "#{match['pre']}#{emph}#{match['content']}" + (last ? last : xc)
           end
 
           # italic
-          line.gsub!(/(^|\s)[\*_]([^\*_\s][^\*_]+?[^\*_\s])[\*_]/) do |m|
+          line.gsub!(/(?<pre>^|[ "'\(“])[\*_](?<content>[^\*_\s][^\*_]+?[^\*_\s])[\*_]/) do |m|
             match = Regexp.last_match
             last = find_color(match.pre_match, true)
             counter = i
@@ -824,7 +844,7 @@ module CLIMarkdown
               counter -= 1
               last = find_color(lines[counter])
             end
-            "#{match[1]}#{c(%i[u i])}#{match[2]}" + (last ? last : xc)
+            "#{match['pre']}#{color('emphasis italic')}#{match[2]}" + (last ? last : xc)
           end
 
           # equations
