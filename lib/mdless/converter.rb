@@ -134,7 +134,7 @@ module CLIMarkdown
         opts.banner = "#{version} by Brett Terpstra\n\n> Usage: #{CLIMarkdown::EXECUTABLE_NAME} [options] [path]\n\n"
 
         @options[:section] = nil
-        opts.on( '-s', '--section=TITLE', 'Output only a headline-based section of the input (numeric from -l)' ) do |section|
+        opts.on( '-s', '--section=NUMBER', 'Output only a headline-based section of the input (numeric from --list)' ) do |section|
           @options[:section] = section.to_i
         end
 
@@ -158,7 +158,7 @@ module CLIMarkdown
         end
 
         @options[:links] = :inline
-        opts.on( '--links=FORMAT', 'Link style ([inline, reference], default inline)' ) do |format|
+        opts.on( '--links=FORMAT', 'Link style ([inline, reference], default inline) [NOT CURRENTLY IMPLEMENTED]' ) do |format|
           if format =~ /^r/i
             @options[:links] = :reference
           end

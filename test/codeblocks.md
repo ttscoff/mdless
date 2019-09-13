@@ -6,13 +6,15 @@ Code block tests
 
 ![Image test](marked.gif)<br/>after a break
 
-This is [a test link](https://brettterpstra.com). <span class="test span">This is a test span.</span>
+This is [a test link](https://brettterpstra.com). <span class="test span">This is a test of html tag sytling.</span>[^fn1]
 
 | a table | to see | how |
 | :---- |----|:---:|
 coloring | works|out
 
-Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. [Excepteur sint occaecat](https://test.com) cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+Lorem ipsum [dolor sit amet][reflink], consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. [Excepteur sint occaecat](https://test.com) cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+
+[reflink]: https://brettterpstra.com/should/become/inline "This should become an inline link"
 
 * list test
 * more list with **some bold** in it
@@ -119,8 +121,10 @@ end
 
 ## Wrapping indented code
 
-            ```
-            Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. 
-            Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. 
-            Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
-            ```
+    ```
+    Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. 
+    Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. 
+    Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+    ```
+
+[^fn1]: this should end up under its origin paragraph
