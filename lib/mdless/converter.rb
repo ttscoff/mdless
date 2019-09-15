@@ -1,16 +1,10 @@
 require 'fileutils'
 require 'yaml'
 
-class ::Hash
-    def deep_merge(second)
-        merger = proc { |key, v1, v2| Hash === v1 && Hash === v2 ? v1.merge(v2, &merger) : Array === v1 && Array === v2 ? v1 | v2 : [:undefined, nil, :nil].include?(v2) ? v1 : v2 }
-        self.merge(second.to_h, &merger)
-    end
-end
-
 module CLIMarkdown
   class Converter
     include Colors
+    include Theme
 
     attr_reader :helpers, :log
 
@@ -22,121 +16,7 @@ module CLIMarkdown
       @log = Logger.new(STDERR)
       @log.level = Logger::ERROR
 
-      config_dir = File.expand_path('~/.config/mdless')
-      theme_file = File.join(config_dir,'mdless.theme')
-
-      theme_defaults = {
-        'metadata' => {
-          'border' => 'd blue on_black',
-          'marker' => 'd black on_black',
-          'color' => 'd white on_black'
-        },
-        'emphasis' => {
-          'bold' => 'b',
-          'italic' => 'u i',
-          'bold-italic' => 'b u i'
-        },
-        'h1' => {
-          'color' => 'b intense_black on_white',
-          'pad' => 'd black on_white',
-          'pad_char' => '='
-        },
-        'h2' => {
-          'color' => 'b white on_intense_black',
-          'pad' => 'd white on_intense_black',
-          'pad_char' => '-'
-        },
-        'h3' => {
-          'color' => 'u b yellow'
-        },
-        'h4' => {
-          'color' => 'u yellow'
-        },
-        'h5' => {
-          'color' => 'b white'
-        },
-        'h6' => {
-          'color' => 'b white'
-        },
-        'link' => {
-          'brackets' => 'b black',
-          'text' => 'u b blue',
-          'url' => 'cyan'
-        },
-        'image' => {
-          'bang' => 'red',
-          'brackets' => 'b black',
-          'title' => 'cyan',
-          'url' => 'u yellow'
-        },
-        'list' => {
-          'bullet' => 'b intense_red',
-          'number' => 'b intense_blue',
-          'color' => 'intense_white'
-        },
-        'footnote' => {
-          'brackets' => 'b black on_black',
-          'caret' => 'b yellow on_black',
-          'title' => 'x yellow on_black',
-          'note' => 'u white on_black'
-        },
-        'code_span' => {
-          'marker' => 'b white',
-          'color' => 'b black on_intense_blue'
-        },
-        'code_block' => {
-          'marker' => 'intense_black',
-          'bg' => 'on_black',
-          'color' => 'white on_black',
-          'border' => 'blue',
-          'title' => 'magenta',
-          'eol' => 'intense_black on_black',
-          'pygments_theme' => 'monokai'
-        },
-        'dd' => {
-          'marker' => 'd red',
-          'color' => 'b white'
-        },
-        'hr' => {
-          'color' => 'd white'
-        },
-        'table' => {
-          'border' => 'd black',
-          'header' => 'yellow',
-          'divider' => 'b black',
-          'color' => 'white'
-        },
-        'html' => {
-          'brackets' => 'd yellow on_black',
-          'color' => 'yellow on_black'
-        }
-      }
-
-      unless File.directory?(config_dir)
-        @log.info("Creating config directory at #{config_dir}")
-        FileUtils.mkdir_p(config_dir)
-      end
-
-      unless File.exists?(theme_file)
-        @log.info("Writing fresh theme file to #{theme_file}")
-        File.open(theme_file,'w') {|f|
-          f.puts @theme.to_yaml
-        }
-        @theme = theme_defaults
-      else
-        new_theme = YAML.load(IO.read(theme_file))
-        begin
-          @theme = theme_defaults.deep_merge(new_theme)
-          # write merged theme back in case there are new keys since
-          # last updated
-          File.open(theme_file,'w') {|f|
-            f.puts @theme.to_yaml
-          }
-        rescue
-          @log.warn('Error merging user theme')
-          @theme = theme_defaults
-        end
-      end
+      @theme = load_theme
 
 
       @options = {}
@@ -678,11 +558,11 @@ module CLIMarkdown
         input = new_content.join("\n")
       end
 
-      h_adjust = highest_header(input) - 1
-      input.gsub!(/^(#+)/) do |m|
-        match = Regexp.last_match
-        "#" * (match[1].length - h_adjust)
-      end
+      # h_adjust = highest_header(input) - 1
+      # input.gsub!(/^(#+)/) do |m|
+      #   match = Regexp.last_match
+      #   "#" * (match[1].length - h_adjust)
+      # end
 
       # code block parsing
       input.gsub!(/(?i-m)(^[ \t]*[`~]{3,})([\s\S]*?)\n([\s\S]*?)\1/m) do

@@ -6,6 +6,8 @@ require 'logger'
 require 'mdless/version.rb'
 require 'mdless/colors'
 require 'mdless/tables'
+require 'mdless/hash'
+require 'mdless/theme'
 require 'mdless/converter'
 
 module CLIMarkdown
