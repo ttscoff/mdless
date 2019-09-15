@@ -87,9 +87,32 @@ module CLIMarkdown
           'color' => 'yellow on_black'
         }
       }
-    def load_theme
+
+    def load_theme_file(theme_file)
+      new_theme = YAML.load(IO.read(theme_file))
+      begin
+        theme = THEME_DEFAULTS.deep_merge(new_theme)
+        # write merged theme back in case there are new keys since
+        # last updated
+        File.open(theme_file,'w') {|f|
+          f.puts theme.to_yaml
+        }
+      rescue
+        @log.warn('Error merging user theme')
+        theme = THEME_DEFAULTS
+      end
+      theme
+    end
+
+    def load_theme(theme)
       config_dir = File.expand_path('~/.config/mdless')
-      theme_file = File.join(config_dir,'mdless.theme')
+      default_theme_file = File.join(config_dir,'mdless.theme')
+      if theme =~ /default/i || !theme
+        theme_file = default_theme_file
+      else
+        theme = theme.strip.sub(/(\.theme)?$/,'.theme')
+        theme_file = File.join(config_dir,theme)
+      end
 
       unless File.directory?(config_dir)
         @log.info("Creating config directory at #{config_dir}")
@@ -97,27 +120,19 @@ module CLIMarkdown
       end
 
       unless File.exists?(theme_file)
-        @log.info("Writing fresh theme file to #{theme_file}")
-        File.open(theme_file,'w') {|f|
-          f.puts theme.to_yaml
-        }
-        theme = THEME_DEFAULTS
-      else
-        new_theme = YAML.load(IO.read(theme_file))
-        begin
-          theme = THEME_DEFAULTS.deep_merge(new_theme)
-          # write merged theme back in case there are new keys since
-          # last updated
+        unless File.exists?(default_theme_file)
+          @log.info("Writing fresh theme file to #{theme_file}")
           File.open(theme_file,'w') {|f|
             f.puts theme.to_yaml
           }
-        rescue
-          @log.warn('Error merging user theme')
           theme = THEME_DEFAULTS
+        else
+          @log.info("Specified theme not found, using default")
+          theme_file = default_theme_file
         end
       end
 
-      theme
+      load_theme_file(theme_file)
     end
   end
 end

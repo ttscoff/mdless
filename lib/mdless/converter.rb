@@ -16,53 +16,31 @@ module CLIMarkdown
       @log = Logger.new(STDERR)
       @log.level = Logger::ERROR
 
-      @theme = load_theme
-
-
       @options = {}
       optparse = OptionParser.new do |opts|
         opts.banner = "#{version} by Brett Terpstra\n\n> Usage: #{CLIMarkdown::EXECUTABLE_NAME} [options] [path]\n\n"
-
-        @options[:section] = nil
-        opts.on( '-s', '--section=NUMBER', 'Output only a headline-based section of the input (numeric from --list)' ) do |section|
-          @options[:section] = section.to_i
-        end
-
-        @options[:width] = %x{tput cols}.strip.to_i
-        opts.on( '-w', '--width=COLUMNS', 'Column width to format for (default terminal width)' ) do |columns|
-          @options[:width] = columns.to_i
-        end
-
-        @options[:pager] = true
-        opts.on( '-p', '--[no-]pager', 'Formatted output to pager (default on)' ) do |p|
-          @options[:pager] = p
-        end
-
-        opts.on( '-P', 'Disable pager (same as --no-pager)' ) do
-          @options[:pager] = false
-        end
 
         @options[:color] = true
         opts.on( '-c', '--[no-]color', 'Colorize output (default on)' ) do |c|
           @options[:color] = c
         end
 
-        @options[:links] = :inline
-        opts.on( '--links=FORMAT', 'Link style ([inline, reference], default inline) [NOT CURRENTLY IMPLEMENTED]' ) do |format|
-          if format =~ /^r/i
-            @options[:links] = :reference
+        opts.on( '-d', '--debug LEVEL', 'Level of debug messages to output' ) do |level|
+          if level.to_i > 0 && level.to_i < 5
+            @log.level = 5 - level.to_i
+          else
+            $stderr.puts "Error: Log level out of range (1-4)"
+            Process.exit 1
           end
         end
 
-        @options[:list] = false
-        opts.on( '-l', '--list', 'List headers in document and exit' ) do
-          @options[:list] = true
+        opts.on( '-h', '--help', 'Display this screen' ) do
+          puts opts
+          exit
         end
 
         @options[:local_images] = false
         @options[:remote_images] = false
-
-
         opts.on('-i', '--images=TYPE', 'Include [local|remote (both)] images in output (requires imgcat and iTerm2, default NONE)' ) do |type|
           unless exec_available('imgcat')# && ENV['TERM_PROGRAM'] == 'iTerm.app'
             @log.warn('images turned on but imgcat not found')
@@ -84,29 +62,51 @@ module CLIMarkdown
           end
         end
 
-
-        opts.on( '-d', '--debug LEVEL', 'Level of debug messages to output' ) do |level|
-          if level.to_i > 0 && level.to_i < 5
-            @log.level = 5 - level.to_i
-          else
-            $stderr.puts "Error: Log level out of range (1-4)"
-            Process.exit 1
+        @options[:links] = :inline
+        opts.on( '--links=FORMAT', 'Link style ([inline, reference], default inline) [NOT CURRENTLY IMPLEMENTED]' ) do |format|
+          if format =~ /^r/i
+            @options[:links] = :reference
           end
         end
 
-        opts.on( '-h', '--help', 'Display this screen' ) do
-          puts opts
-          exit
+        @options[:list] = false
+        opts.on( '-l', '--list', 'List headers in document and exit' ) do
+          @options[:list] = true
+        end
+
+        @options[:pager] = true
+        opts.on( '-p', '--[no-]pager', 'Formatted output to pager (default on)' ) do |p|
+          @options[:pager] = p
+        end
+
+        opts.on( '-P', 'Disable pager (same as --no-pager)' ) do
+          @options[:pager] = false
+        end
+
+        @options[:section] = nil
+        opts.on( '-s', '--section=NUMBER', 'Output only a headline-based section of the input (numeric from --list)' ) do |section|
+          @options[:section] = section.to_i
+        end
+
+        @options[:theme] = 'default'
+        opts.on( '-t', '--theme=THEME_NAME', 'Specify an alternate color theme to load' ) do |theme|
+          @options[:theme] = theme
         end
 
         opts.on( '-v', '--version', 'Display version number' ) do
           puts version
           exit
         end
+
+        @options[:width] = %x{tput cols}.strip.to_i
+        opts.on( '-w', '--width=COLUMNS', 'Column width to format for (default terminal width)' ) do |columns|
+          @options[:width] = columns.to_i
+        end
       end
 
       optparse.parse!
 
+      @theme = load_theme(@options[:theme])
       @cols = @options[:width]
       @output = ''
       @headers = []
