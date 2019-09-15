@@ -17,6 +17,8 @@ lib/mdless/colors.rb
 lib/mdless/tables.rb
 lib/mdless/converter.rb
 lib/mdless/version.rb
+lib/mdless/theme.rb
+lib/mdless/hash.rb
   )
   s.require_paths << 'lib'
   s.extra_rdoc_files = ['README.md']
