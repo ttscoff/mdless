@@ -1,16 +1,10 @@
 require 'fileutils'
 require 'yaml'
 
-class ::Hash
-    def deep_merge(second)
-        merger = proc { |key, v1, v2| Hash === v1 && Hash === v2 ? v1.merge(v2, &merger) : Array === v1 && Array === v2 ? v1 | v2 : [:undefined, nil, :nil].include?(v2) ? v1 : v2 }
-        self.merge(second.to_h, &merger)
-    end
-end
-
 module CLIMarkdown
   class Converter
     include Colors
+    include Theme
 
     attr_reader :helpers, :log
 
@@ -22,167 +16,31 @@ module CLIMarkdown
       @log = Logger.new(STDERR)
       @log.level = Logger::ERROR
 
-      config_dir = File.expand_path('~/.config/mdless')
-      theme_file = File.join(config_dir,'mdless.theme')
-
-      theme_defaults = {
-        'metadata' => {
-          'border' => 'd blue on_black',
-          'marker' => 'd black on_black',
-          'color' => 'd white on_black'
-        },
-        'emphasis' => {
-          'bold' => 'b',
-          'italic' => 'u i',
-          'bold-italic' => 'b u i'
-        },
-        'h1' => {
-          'color' => 'b intense_black on_white',
-          'pad' => 'd black on_white',
-          'pad_char' => '='
-        },
-        'h2' => {
-          'color' => 'b white on_intense_black',
-          'pad' => 'd white on_intense_black',
-          'pad_char' => '-'
-        },
-        'h3' => {
-          'color' => 'u b yellow'
-        },
-        'h4' => {
-          'color' => 'u yellow'
-        },
-        'h5' => {
-          'color' => 'b white'
-        },
-        'h6' => {
-          'color' => 'b white'
-        },
-        'link' => {
-          'brackets' => 'b black',
-          'text' => 'u b blue',
-          'url' => 'cyan'
-        },
-        'image' => {
-          'bang' => 'red',
-          'brackets' => 'b black',
-          'title' => 'cyan',
-          'url' => 'u yellow'
-        },
-        'list' => {
-          'bullet' => 'b intense_red',
-          'number' => 'b intense_blue',
-          'color' => 'intense_white'
-        },
-        'footnote' => {
-          'brackets' => 'b black on_black',
-          'caret' => 'b yellow on_black',
-          'title' => 'x yellow on_black',
-          'note' => 'u white on_black'
-        },
-        'code_span' => {
-          'marker' => 'b white',
-          'color' => 'b black on_intense_blue'
-        },
-        'code_block' => {
-          'marker' => 'intense_black',
-          'bg' => 'on_black',
-          'color' => 'white on_black',
-          'border' => 'blue',
-          'title' => 'magenta',
-          'eol' => 'intense_black on_black',
-          'pygments_theme' => 'monokai'
-        },
-        'dd' => {
-          'marker' => 'd red',
-          'color' => 'b white'
-        },
-        'hr' => {
-          'color' => 'd white'
-        },
-        'table' => {
-          'border' => 'd black',
-          'header' => 'yellow',
-          'divider' => 'b black',
-          'color' => 'white'
-        },
-        'html' => {
-          'brackets' => 'd yellow on_black',
-          'color' => 'yellow on_black'
-        }
-      }
-
-      unless File.directory?(config_dir)
-        @log.info("Creating config directory at #{config_dir}")
-        FileUtils.mkdir_p(config_dir)
-      end
-
-      unless File.exists?(theme_file)
-        @log.info("Writing fresh theme file to #{theme_file}")
-        File.open(theme_file,'w') {|f|
-          f.puts @theme.to_yaml
-        }
-        @theme = theme_defaults
-      else
-        new_theme = YAML.load(IO.read(theme_file))
-        begin
-          @theme = theme_defaults.deep_merge(new_theme)
-          # write merged theme back in case there are new keys since
-          # last updated
-          File.open(theme_file,'w') {|f|
-            f.puts @theme.to_yaml
-          }
-        rescue
-          @log.warn('Error merging user theme')
-          @theme = theme_defaults
-        end
-      end
-
-
       @options = {}
       optparse = OptionParser.new do |opts|
         opts.banner = "#{version} by Brett Terpstra\n\n> Usage: #{CLIMarkdown::EXECUTABLE_NAME} [options] [path]\n\n"
-
-        @options[:section] = nil
-        opts.on( '-s', '--section=NUMBER', 'Output only a headline-based section of the input (numeric from --list)' ) do |section|
-          @options[:section] = section.to_i
-        end
-
-        @options[:width] = %x{tput cols}.strip.to_i
-        opts.on( '-w', '--width=COLUMNS', 'Column width to format for (default terminal width)' ) do |columns|
-          @options[:width] = columns.to_i
-        end
-
-        @options[:pager] = true
-        opts.on( '-p', '--[no-]pager', 'Formatted output to pager (default on)' ) do |p|
-          @options[:pager] = p
-        end
-
-        opts.on( '-P', 'Disable pager (same as --no-pager)' ) do
-          @options[:pager] = false
-        end
 
         @options[:color] = true
         opts.on( '-c', '--[no-]color', 'Colorize output (default on)' ) do |c|
           @options[:color] = c
         end
 
-        @options[:links] = :inline
-        opts.on( '--links=FORMAT', 'Link style ([inline, reference], default inline) [NOT CURRENTLY IMPLEMENTED]' ) do |format|
-          if format =~ /^r/i
-            @options[:links] = :reference
+        opts.on( '-d', '--debug LEVEL', 'Level of debug messages to output' ) do |level|
+          if level.to_i > 0 && level.to_i < 5
+            @log.level = 5 - level.to_i
+          else
+            $stderr.puts "Error: Log level out of range (1-4)"
+            Process.exit 1
           end
         end
 
-        @options[:list] = false
-        opts.on( '-l', '--list', 'List headers in document and exit' ) do
-          @options[:list] = true
+        opts.on( '-h', '--help', 'Display this screen' ) do
+          puts opts
+          exit
         end
 
         @options[:local_images] = false
         @options[:remote_images] = false
-
-
         opts.on('-i', '--images=TYPE', 'Include [local|remote (both)] images in output (requires imgcat and iTerm2, default NONE)' ) do |type|
           unless exec_available('imgcat')# && ENV['TERM_PROGRAM'] == 'iTerm.app'
             @log.warn('images turned on but imgcat not found')
@@ -204,29 +62,51 @@ module CLIMarkdown
           end
         end
 
-
-        opts.on( '-d', '--debug LEVEL', 'Level of debug messages to output' ) do |level|
-          if level.to_i > 0 && level.to_i < 5
-            @log.level = 5 - level.to_i
-          else
-            $stderr.puts "Error: Log level out of range (1-4)"
-            Process.exit 1
+        @options[:links] = :inline
+        opts.on( '--links=FORMAT', 'Link style ([inline, reference], default inline) [NOT CURRENTLY IMPLEMENTED]' ) do |format|
+          if format =~ /^r/i
+            @options[:links] = :reference
           end
         end
 
-        opts.on( '-h', '--help', 'Display this screen' ) do
-          puts opts
-          exit
+        @options[:list] = false
+        opts.on( '-l', '--list', 'List headers in document and exit' ) do
+          @options[:list] = true
+        end
+
+        @options[:pager] = true
+        opts.on( '-p', '--[no-]pager', 'Formatted output to pager (default on)' ) do |p|
+          @options[:pager] = p
+        end
+
+        opts.on( '-P', 'Disable pager (same as --no-pager)' ) do
+          @options[:pager] = false
+        end
+
+        @options[:section] = nil
+        opts.on( '-s', '--section=NUMBER', 'Output only a headline-based section of the input (numeric from --list)' ) do |section|
+          @options[:section] = section.to_i
+        end
+
+        @options[:theme] = 'default'
+        opts.on( '-t', '--theme=THEME_NAME', 'Specify an alternate color theme to load' ) do |theme|
+          @options[:theme] = theme
         end
 
         opts.on( '-v', '--version', 'Display version number' ) do
           puts version
           exit
         end
+
+        @options[:width] = %x{tput cols}.strip.to_i
+        opts.on( '-w', '--width=COLUMNS', 'Column width to format for (default terminal width)' ) do |columns|
+          @options[:width] = columns.to_i
+        end
       end
 
       optparse.parse!
 
+      @theme = load_theme(@options[:theme])
       @cols = @options[:width]
       @output = ''
       @headers = []
@@ -678,11 +558,11 @@ module CLIMarkdown
         input = new_content.join("\n")
       end
 
-      h_adjust = highest_header(input) - 1
-      input.gsub!(/^(#+)/) do |m|
-        match = Regexp.last_match
-        "#" * (match[1].length - h_adjust)
-      end
+      # h_adjust = highest_header(input) - 1
+      # input.gsub!(/^(#+)/) do |m|
+      #   match = Regexp.last_match
+      #   "#" * (match[1].length - h_adjust)
+      # end
 
       # code block parsing
       input.gsub!(/(?i-m)(^[ \t]*[`~]{3,})([\s\S]*?)\n([\s\S]*?)\1/m) do

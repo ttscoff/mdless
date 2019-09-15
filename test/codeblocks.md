@@ -2,7 +2,7 @@ title: Code block tests
 date: yesterday
 
 Code block tests
-=====
+================
 
 ![Image test](marked.gif)<br/>after a break
 
