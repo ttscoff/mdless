@@ -43,23 +43,23 @@ The pager used is determined by system configuration in this order of preference
 
 ### Options
 
-    -s, --section=NUMBER              Output only a headline-based section of 
-                                     the input (numeric based on --list output)
-    -w, --width=COLUMNS              Column width to format for (default terminal width)
+    -c, --[no-]color                 Colorize output (default on)
+    -d, --debug LEVEL                Level of debug messages to output
+    -h, --help                       Display this screen
+    -i, --images=TYPE                Include [local|remote (both)] images in output (requires imgcat and iTerm2, default NONE)
+    -I, --all-images                 Include local and remote images in output (requires imgcat and iTerm2)
+        --links=FORMAT               Link style ([inline, reference], default inline) [NOT CURRENTLY IMPLEMENTED]
+    -l, --list                       List headers in document and exit
     -p, --[no-]pager                 Formatted output to pager (default on)
     -P                               Disable pager (same as --no-pager)
-    -c, --[no-]color                 Colorize output (default on)
-    -l, --list                       List headers in document and exit
-    -i, --images=TYPE                Include [local|remote (both)] images in 
-                                     output (requires imgcat and iTerm2, 
-                                     default NONE)
-    -I, --all-images                 Include local and remote images in output 
-    -h, --help                       Display this screen
+    -s, --section=NUMBER             Output only a headline-based section of the input (numeric from --list)
+    -t, --theme=THEME_NAME           Specify an alternate color theme to load
     -v, --version                    Display version number
+    -w, --width=COLUMNS              Column width to format for (default terminal width)
 
 ## Customization
 
-On first run a default theme file will be placed in `~/.config/mdless/mdless.theme`. You can edit this file to modify the colors mdless uses when highlighting your files.
+On first run a default theme file will be placed in `~/.config/mdless/mdless.theme`. You can edit this file to modify the colors mdless uses when highlighting your files. You can copy this file and create multiple theme options which can be specified with the `-t NAME` option. For example, create `~/.config/mdless/brett.theme` and then call `mdless -t brett filename.md`.
 
 Colors are limited to basic ANSI codes, with support for bold, underline, italics (if available for the terminal/font), dark and bright, and foreground and background colors.
 
