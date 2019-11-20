@@ -41,7 +41,7 @@ module CLIMarkdown
 
         @options[:local_images] = false
         @options[:remote_images] = false
-        opts.on('-i', '--images=TYPE', 'Include [local|remote (both)] images in output (requires imgcat and iTerm2, default NONE)' ) do |type|
+        opts.on('-i', '--images=TYPE', 'Include [local|remote (both)] images in output (requires imgcat and iTerm2, default NONE). Does not work with pagers, use with -P' ) do |type|
           unless exec_available('imgcat')# && ENV['TERM_PROGRAM'] == 'iTerm.app'
             @log.warn('images turned on but imgcat not found')
           else
@@ -817,6 +817,14 @@ module CLIMarkdown
             ansi = color('h6 color')
           end
 
+          # If we're in iTerm and not paginating, add
+          # iTerm Marks for navigation on h1-3
+          if h[0].length < 4 &&
+            ENV['TERM_PROGRAM'] =~ /^iterm/i &&
+            @options[:pager] == false
+            ansi = "\e]1337;SetMark\a" + ansi
+          end
+
           "\n#{xc}#{ansi}#{h[1]} #{pad}#{xc}\n"
         end
       }
@@ -941,7 +949,7 @@ module CLIMarkdown
 
       out = cleanup_tables(out)
       out = clean_markers(out)
-      out = out.gsub(/\n+{2,}/m,"\n\n") + "\n#{xc}\n\n"
+      out = out.gsub(/\n+{2,}/m,"\n\n") + "\n#{xc}\n"
 
       unless @options[:color]
         out.uncolor!

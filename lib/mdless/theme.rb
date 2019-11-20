@@ -100,6 +100,13 @@ module CLIMarkdown
       rescue
         @log.warn('Error merging user theme')
         theme = THEME_DEFAULTS
+        if File.basename(theme_file) =~ /mdless\.theme/
+          FileUtils.rm(theme_file)
+          @log.info("Rewriting default theme file to #{theme_file}")
+          File.open(theme_file,'w') {|f|
+            f.puts theme.to_yaml
+          }
+        end
       end
       theme
     end
