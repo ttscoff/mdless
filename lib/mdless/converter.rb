@@ -976,6 +976,8 @@ module CLIMarkdown
         ' -r'
       when 'less'
         ' -r'
+      when 'bat'
+        ' -p'
       else
         ''
       end

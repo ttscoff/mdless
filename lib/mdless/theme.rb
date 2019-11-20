@@ -58,7 +58,7 @@ module CLIMarkdown
         },
         'code_span' => {
           'marker' => 'b white',
-          'color' => 'b black on_intense_blue'
+          'color' => 'b white on_intense_black'
         },
         'code_block' => {
           'marker' => 'intense_black',
@@ -121,11 +121,11 @@ module CLIMarkdown
 
       unless File.exists?(theme_file)
         unless File.exists?(default_theme_file)
+          theme = THEME_DEFAULTS
           @log.info("Writing fresh theme file to #{theme_file}")
           File.open(theme_file,'w') {|f|
             f.puts theme.to_yaml
           }
-          theme = THEME_DEFAULTS
         else
           @log.info("Specified theme not found, using default")
           theme_file = default_theme_file
