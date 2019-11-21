@@ -269,11 +269,15 @@ module CLIMarkdown
       first = true
       input.split(/\n/).map{|line|
         if first
-          first = false
-          line.gsub!(/\|/, "#{color('table border')}|#{color('table header')}")
-        elsif line.strip =~ /^[|:\- ]+$/
+          if line =~ /^\+-+/
+            line.gsub!(/^/, color('table border'))
+          else
+            first = false
+            line.gsub!(/\|/, "#{color('table border')}|#{color('table header')}")
+          end
+        elsif line.strip =~ /^[|:\- +]+$/
           line.gsub!(/^(.*)$/, "#{color('table border')}\\1#{color('table color')}")
-          line.gsub!(/([:\-]+)/,"#{color('table divider')}\\1#{color('table border')}")
+          line.gsub!(/([:\-+]+)/,"#{color('table divider')}\\1#{color('table border')}")
         else
           line.gsub!(/\|/, "#{color('table border')}|#{color('table color')}")
         end
