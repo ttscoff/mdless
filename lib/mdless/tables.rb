@@ -1,6 +1,8 @@
 module CLIMarkdown
   class MDTableCleanup
 
+    PAD_CHAR = '⎕'
+
     def initialize(input)
       @string = input
       @format_row = []
@@ -25,10 +27,11 @@ module CLIMarkdown
       end
 
       format.each_with_index {|cell, i|
+        cell.strip!
         f = 'left'
         if cell =~ /^:.*?:$/
           f = 'center'
-        elsif cell =~ /:$/
+        elsif cell =~ /[^:]+:$/
           f = 'right'
         else
           f = 'just'
@@ -81,13 +84,13 @@ module CLIMarkdown
     def pad(string,type,length)
       string.strip!
       if type == 'center'
-        string.center(length, ' ')
+        string.center(length, PAD_CHAR)
       elsif type == 'right'
-        string.rjust(length, ' ')
+        string.rjust(length, PAD_CHAR)
       elsif type == 'left'
-        string.ljust(length, ' ')
+        string.ljust(length, PAD_CHAR)
       else
-        string.ljust(length, ' ')
+        string.ljust(length, PAD_CHAR)
       end
     end
 
@@ -114,6 +117,14 @@ module CLIMarkdown
       "|#{output.join('|')}|"
     end
 
+    def table_border
+      output = []
+      @format_row.each_with_index do |column, i|
+        output.push separator(column_width(i), column)
+      end
+      "+#{output.join('+').gsub(/:/,'-')}+"
+    end
+
     def to_md
       output = []
       t = table.clone
@@ -123,7 +134,12 @@ module CLIMarkdown
         output.push("| #{row.join(' | ').lstrip} |")
       end
       output.insert(1, header_separator_row)
-      output.join("\n")
+      output.insert(0, table_border)
+      output.push(table_border)
+
+      output.join("\n").gsub(/((?<=\| )#{PAD_CHAR}+|#{PAD_CHAR}+(?= \|))/) {|m|
+        " "*m.length
+      }
     end
   end
 end

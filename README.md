@@ -21,6 +21,7 @@ I often use iTerm2 in visor mode, so `qlmanage -p` is annoying. I still wanted a
 - List headlines in document
     - Display single section of the document based on headlines
 - Customizable colors
+- Add iTerm marks for h1-3 navigation when pager is disabled
 
 ## Installation
 
