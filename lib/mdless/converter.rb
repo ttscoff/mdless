@@ -932,9 +932,13 @@ module CLIMarkdown
         end
       end
 
-      read_io.close
-      write_io.write(text)
-      write_io.close
+      begin
+        read_io.close
+        write_io.write(text)
+        write_io.close
+      rescue SystemCallError => e
+        exit 1
+      end
 
       _, status = Process.waitpid2(pid)
       status.success?
