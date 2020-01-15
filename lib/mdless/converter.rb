@@ -209,6 +209,7 @@ module CLIMarkdown
           ]
         }
       end
+
       @headers
     end
 
@@ -797,8 +798,8 @@ module CLIMarkdown
 
       # Headlines
       @headers.each {|h|
-        input.sub!(/^#{h[2]}/) do |m|
-          pad = ""
+        input.sub!(/^#{Regexp.escape(h[2])}/m) do |m|
+          pad = ''
           ansi = ''
           case h[0].length
           when 1
