@@ -85,7 +85,7 @@ task :bump, :type do |t, args|
       inc += 1
     end
 
-    $stdout.puts "At version #{major}.#{minor}.#{inc}#{pre}"
+    $stdout.print "#{major}.#{minor}.#{inc}#{pre}"
     "VERSION = '#{major}.#{minor}.#{inc}#{pre}'"
   }
   File.open(version_file, 'w+') {|f|

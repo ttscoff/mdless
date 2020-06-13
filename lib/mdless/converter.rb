@@ -154,6 +154,7 @@ module CLIMarkdown
         $stderr.puts "No input"
         Process.exit 1
       end
+
     end
 
     def color(key)
@@ -286,6 +287,7 @@ module CLIMarkdown
     end
 
     def cleanup_tables(input)
+
       in_table = false
       header_row = false
       all_content = []
@@ -312,6 +314,7 @@ module CLIMarkdown
               end
 
               table = this_table.join("\n").strip
+
               begin
                 formatted = MDTableCleanup.new(table)
                 res = formatted.to_md
@@ -336,6 +339,7 @@ module CLIMarkdown
 
     def clean_markers(input)
       input.gsub!(/^(\e\[[\d;]+m)?[%~] ?/,'\1')
+      input.gsub!(/(\e\[[\d;]+m)?@@@(\e\[[\d;]+m)?$/,'')
       input
     end
 
@@ -451,7 +455,7 @@ module CLIMarkdown
             new_code_line,
             xc
           ].join
-        end.join("\n") + "\n"
+        end.join("\n")
       end
 
       [
@@ -478,6 +482,7 @@ module CLIMarkdown
 
     def convert_markdown(input)
       @headers = get_headers(input)
+      input += "\n\n@@@"
       # yaml/MMD headers
       in_yaml = false
       if input.split("\n")[0] =~ /(?i-m)^---[ \t]*?(\n|$)/

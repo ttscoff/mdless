@@ -80,7 +80,8 @@ module CLIMarkdown
           'border' => 'd black',
           'header' => 'yellow',
           'divider' => 'b black',
-          'color' => 'white'
+          'color' => 'white',
+          'bg' => 'on_black'
         },
         'html' => {
           'brackets' => 'd yellow on_black',
