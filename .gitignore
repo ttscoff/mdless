@@ -3,5 +3,5 @@ pkg
 mdless.sublime-*
 *.taskpaper
 Gemfile.lock
-buildnotes.md
-pushgem.fish
+/pushgem.fish
+/buildnotes.md

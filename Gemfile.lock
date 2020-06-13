@@ -15,8 +15,7 @@ GEM
       thor (~> 0.19)
     backports (3.15.0)
     builder (3.2.3)
-    childprocess (2.0.0)
-      rake (< 13.0)
+    childprocess (1.0.0)
     contracts (0.16.0)
     cucumber (3.1.2)
       builder (>= 2.1.2)
@@ -39,7 +38,7 @@ GEM
     gherkin (5.1.0)
     multi_json (1.13.1)
     multi_test (0.1.2)
-    rake (0.9.6)
+    rake (13.0.1)
     rdoc (4.3.0)
     rspec-expectations (3.8.4)
       diff-lcs (>= 1.2.0, < 2.0)
@@ -53,7 +52,7 @@ PLATFORMS
 DEPENDENCIES
   aruba (~> 0)
   mdless!
-  rake (~> 0)
+  rake (~> 13)
   rdoc (~> 4.1, >= 4.1.1)
 
 BUNDLED WITH
