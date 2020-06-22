@@ -977,9 +977,15 @@ module CLIMarkdown
     end
 
     def which_pager
-      pagers = [ENV['GIT_PAGER'], ENV['PAGER'],
-                `git config --get-all core.pager || true`.split.first,
-                'bat', 'less', 'more', 'cat', 'pager']
+      pagers = [ENV['GIT_PAGER'], ENV['PAGER']]
+
+      if exec_available('git')
+        git_pager = `git config --get-all core.pager || true`.split.first
+        git_pager && pagers.push(git_pager)
+      end
+
+      pagers.concat(['bat', 'less', 'more', 'cat', 'pager'])
+
       pagers.select! do |f|
         if f
           if f.strip =~ /[ |]/
