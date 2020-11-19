@@ -911,7 +911,7 @@ module CLIMarkdown
       if File.exists?(File.expand_path(cli))
         File.executable?(File.expand_path(cli))
       else
-        system "which #{cli}", :out => File::NULL
+        system "which #{cli}", :out => File::NULL, :err => File::NULL
       end
     end
 
@@ -991,7 +991,7 @@ module CLIMarkdown
           if f.strip =~ /[ |]/
             f
           else
-            system "which #{f}", :out => File::NULL
+            system "which #{f}", :out => File::NULL, :err => File::NULL
           end
         else
           false
