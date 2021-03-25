@@ -1,5 +1,6 @@
 require 'fileutils'
 require 'yaml'
+require 'fileutils'
 
 module CLIMarkdown
   class Converter
@@ -41,9 +42,9 @@ module CLIMarkdown
 
         @options[:local_images] = false
         @options[:remote_images] = false
-        opts.on('-i', '--images=TYPE', 'Include [local|remote (both)] images in output (requires imgcat and iTerm2, default NONE). Does not work with pagers, use with -P' ) do |type|
-          unless exec_available('imgcat')# && ENV['TERM_PROGRAM'] == 'iTerm.app'
-            @log.warn('images turned on but imgcat not found')
+        opts.on('-i', '--images=TYPE', 'Include [local|remote (both)] images in output (requires chafa or imgcat, default NONE). imgcat does not work with pagers, use with -P' ) do |type|
+          unless exec_available('imgcat') || exec_available('chafa')# && ENV['TERM_PROGRAM'] == 'iTerm.app'
+            @log.warn('images turned on but imgcat/chafa not found')
           else
             if type =~ /^(r|b|a)/i
               @options[:local_images] = true
@@ -53,12 +54,12 @@ module CLIMarkdown
             end
           end
         end
-        opts.on('-I', '--all-images', 'Include local and remote images in output (requires imgcat and iTerm2)' ) do
-          unless exec_available('imgcat')# && ENV['TERM_PROGRAM'] == 'iTerm.app'
-            @log.warn('images turned on but imgcat not found')
-          else
+        opts.on('-I', '--all-images', 'Include local and remote images in output (requires imgcat or chafa)' ) do
+          if exec_available('imgcat') || exec_available('chafa')# && ENV['TERM_PROGRAM'] == 'iTerm.app'
             @options[:local_images] = true
             @options[:remote_images] = true
+          else
+            @log.warn('images turned on but imgcat/chafa not found')
           end
         end
 
@@ -339,6 +340,8 @@ module CLIMarkdown
 
     def clean_markers(input)
       input.gsub!(/^(\e\[[\d;]+m)?[%~] ?/,'\1')
+      input.gsub!(/^(\e\[[\d;]+m)*>(\e\[[\d;]+m)?( +)/,' \3\1\2')
+      input.gsub!(/^(\e\[[\d;]+m)*>(\e\[[\d;]+m)?/,'\1\2')
       input.gsub!(/(\e\[[\d;]+m)?@@@(\e\[[\d;]+m)?$/,'')
       input
     end
@@ -431,8 +434,8 @@ module CLIMarkdown
               new_code_line = l.gsub(/\t/, '    ')
               new_code_line.sub!(/^#{" "*first_indent}/,'')
               [
-                color('code_block marker'),
                 "> ",
+                color('code_block marker'),
                 " "*first_indent,
                 "#{color('code_block bg')}#{l}"
               ].join
@@ -448,8 +451,8 @@ module CLIMarkdown
           new_code_line.sub!(/^#{" "*first_indent}/,'')
           new_code_line.gsub!(/ /, "#{color('code_block color')} ")
           [
-            color('code_block marker'),
             "> ",
+            color('code_block marker'),
             " "*first_indent,
             color('code_block color'),
             new_code_line,
@@ -847,20 +850,41 @@ module CLIMarkdown
         else
           tail = match[4].nil? ? '' : " "+match[4].strip
           result = nil
-          if exec_available('imgcat') && @options[:local_images]
+          if (exec_available('imgcat') || exec_available('chafa')) && @options[:local_images]
             if match[3]
               img_path = match[3]
               if img_path =~ /^http/ && @options[:remote_images]
-                begin
-                  res, s = Open3.capture2(%Q{curl -sS "#{img_path}" 2> /dev/null | imgcat})
 
-                  if s.success?
-                    pre = match[2].size > 0 ? "    #{c(%i[d blue])}[#{match[2].strip}]\n" : ''
-                    post = tail.size > 0 ? "\n    #{c(%i[b blue])}-- #{tail} --" : ''
-                    result = pre + res + post
+                if exec_available('chafa')
+                  if File.directory?('.mdless_tmp')
+                    FileUtils.rm_r '.mdless_tmp', force: true
                   end
-                rescue => e
-                  @log.error(e)
+                  Dir.mkdir('.mdless_tmp')
+                  Dir.chdir('.mdless_tmp')
+                  `curl -SsO #{img_path} 2> /dev/null`
+                  tmp_img = File.basename(img_path)
+                  img = `chafa "#{tmp_img}"`
+                  pre = match[2].size > 0 ? "    #{c(%i[d blue])}[#{match[2].strip}]\n" : ''
+                  post = tail.size > 0 ? "\n    #{c(%i[b blue])}-- #{tail} --" : ''
+                  result = pre + img + post
+                  Dir.chdir('..')
+                  FileUtils.rm_r '.mdless_tmp', force: true
+                else
+                  if exec_available('imgcat')
+                    begin
+                      res, s = Open3.capture2(%Q{curl -sS "#{img_path}" 2> /dev/null | imgcat})
+
+                      if s.success?
+                        pre = match[2].size > 0 ? "    #{c(%i[d blue])}[#{match[2].strip}]\n" : ''
+                        post = tail.size > 0 ? "\n    #{c(%i[b blue])}-- #{tail} --" : ''
+                        result = pre + res + post
+                      end
+                    rescue => e
+                      @log.error(e)
+                    end
+                  else
+                    @log.warn("No viewer for remote images")
+                  end
                 end
               else
                 if img_path =~ /^[~\/]/
@@ -872,7 +896,11 @@ module CLIMarkdown
                 if File.exists?(img_path)
                   pre = match[2].size > 0 ? "    #{c(%i[d blue])}[#{match[2].strip}]\n" : ''
                   post = tail.size > 0 ? "\n    #{c(%i[b blue])}-- #{tail} --" : ''
-                  img = %x{imgcat "#{img_path}"}
+                  if exec_available('chafa')
+                    img = %x{chafa "#{img_path}"}
+                  elsif exec_available('imgcat')
+                    img = %x{imgcat "#{img_path}"}
+                  end
                   result = pre + img + post
                 end
               end
@@ -963,16 +991,16 @@ module CLIMarkdown
 
       out = cleanup_tables(out)
       out = clean_markers(out)
-      out = out.gsub(/\n+{2,}/m,"\n\n") + "\n#{xc}\n"
+      out = out.gsub(/\n{2,}/m,"\n\n") + "#{xc}"
 
       unless @options[:color]
         out.uncolor!
       end
 
       if @options[:pager]
-        page("\n\n" + out)
+        page(out)
       else
-        $stdout.puts ("\n\n" + out)
+        $stdout.puts (out)
       end
     end
 
@@ -990,6 +1018,9 @@ module CLIMarkdown
         if f
           if f.strip =~ /[ |]/
             f
+          elsif f == 'most'
+            @log.warn('most not allowed as pager')
+            false
           else
             system "which #{f}", :out => File::NULL, :err => File::NULL
           end

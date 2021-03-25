@@ -4,7 +4,7 @@ date: yesterday
 Code block tests
 ================
 
-![Image test](marked.gif)<br/>after a break
+![Image test](https://raw.githubusercontent.com/eddieantonio/i/master/imgcat.png)<br/>after a break
 
 This is [a test link](https://brettterpstra.com). <span class="test span">This is a test of html tag sytling.</span>[^fn1]
 
@@ -35,21 +35,24 @@ Lorem ipsum [dolor sit amet][reflink], consectetur adipisicing elit, sed do eius
    ``` bash
    1 scripts/fetch-develop.deps.sh
    ```
-   Whenever you git pull on `riot-web` you will also probably need to force an update
-   to these dependencies - the simplest way is to re-run the script, but you can also
-   manually update and rebuild them:
-   ```bash bin
-   cd matrix-js-sdk
-      git pull
-   yarn install # re-run to pull in any new dependencies
-      cd ../matrix-react-sdk
-         git pull
-   yarn install
-   ```
-   Or just use https://riot.im/develop - the continuous integration release of the
-   develop branch. (Note that we don't reference the develop versions in git directly
-   due to https://github.com/npm/npm/issues/3055.)
-   1. super indented
+Whenever you git pull on `riot-web` you will also probably need to force an update
+to these dependencies - the simplest way is to re-run the script, but you can also
+manually update and rebuild them:
+
+```bash bin
+cd matrix-js-sdk
+  git pull
+yarn install # re-run to pull in any new dependencies
+  cd ../matrix-react-sdk
+     git pull
+yarn install
+```
+
+Or just use https://riot.im/develop - the continuous integration release of the
+develop branch. (Note that we don't reference the develop versions in git directly
+due to https://github.com/npm/npm/issues/3055.)
+
+1. super indented
        
        ```bash bin
        cd matrix-js-sdk
@@ -80,15 +83,15 @@ Open http://127.0.0.1:8080/ in your browser to see your newly built Riot.
 
 If you're building a custom branch, or want to use the develop branch, check out the appropriate
 riot-web branch and then run:
-   ```
-   docker build -t vectorim/riot-web:develop \
+
+    docker build -t vectorim/riot-web:develop \
        --build-arg USE_CUSTOM_SDKS=true \
        --build-arg REACT_SDK_REPO="https://github.com/matrix-org/matrix-react-sdk.git" \
        --build-arg REACT_SDK_BRANCH="develop" \
        --build-arg JS_SDK_REPO="https://github.com/matrix-org/matrix-js-sdk.git" \
        --build-arg JS_SDK_BRANCH="develop" \
        .
-   ```
+
 
 ## Language via hashbang
 

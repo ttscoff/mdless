@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    mdless (1.0.13)
+    mdless (1.0.17)
 
 GEM
   remote: http://rubygems.org/
@@ -56,4 +56,4 @@ DEPENDENCIES
   rdoc (~> 4.1, >= 4.1.1)
 
 BUNDLED WITH
-   1.17.3
+   2.1.4
