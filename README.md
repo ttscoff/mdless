@@ -27,6 +27,14 @@ I often use iTerm2 in visor mode, so `qlmanage -p` is annoying. I still wanted a
 
     gem install mdless
 
+### Dependencies
+
+Some OSs are missing `tput`, which is necessary for mdless.
+
+    apt update
+    apt install ruby ncurses-utils
+    gem install mdless
+
 ## Usage 
 
 `mdless [options] path` or `cat [path] | mdless`
