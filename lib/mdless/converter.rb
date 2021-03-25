@@ -105,7 +105,12 @@ module CLIMarkdown
         end
       end
 
-      optparse.parse!
+      begin
+        optparse.parse!
+      rescue OptionParser::ParseError => pe
+        $stderr.puts "error: #{pe.message}"
+        exit 1
+      end
 
       @theme = load_theme(@options[:theme])
       @cols = @options[:width]
