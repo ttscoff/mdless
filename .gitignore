@@ -5,5 +5,5 @@ mdless.sublime-*
 Gemfile.lock
 /pushgem.fish
 /buildnotes.md
-/vendor
+vendor
 .tool-versions
