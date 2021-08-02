@@ -93,11 +93,11 @@ module CLIMarkdown
       new_theme = YAML.load(IO.read(theme_file))
       begin
         theme = THEME_DEFAULTS.deep_merge(new_theme)
-        # write merged theme back in case there are new keys since
-        # last updated
-        File.open(theme_file,'w') {|f|
-          f.puts theme.to_yaml
-        }
+        # # write merged theme back in case there are new keys since
+        # # last updated
+        # File.open(theme_file,'w') {|f|
+        #   f.puts theme.to_yaml
+        # }
       rescue
         @log.warn('Error merging user theme')
         theme = THEME_DEFAULTS

@@ -27,5 +27,4 @@ lib/mdless/hash.rb
   s.executables << 'mdless'
   s.add_development_dependency 'rake', '~> 13'
   s.add_development_dependency 'rdoc', '~> 4.1', '>= 4.1.1'
-  s.add_development_dependency 'aruba', '~> 0'
 end

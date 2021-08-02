@@ -6,3 +6,4 @@ Gemfile.lock
 /pushgem.fish
 /buildnotes.md
 /vendor
+.tool-versions
