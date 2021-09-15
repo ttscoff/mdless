@@ -811,7 +811,7 @@ module CLIMarkdown
           end
 
           # misc html
-          line.gsub!(/<br\/?>/, "\n#{xc}")
+          line.gsub!(/<br\/?>/, "\n")
           line.gsub!(/(?i-m)((<\/?)(\w+[\s\S]*?)(>))/) do |tag|
             match = Regexp.last_match
             last = find_color(match.pre_match)
