@@ -4,7 +4,11 @@ date: yesterday
 Code block tests
 ================
 
+Just some text before we get started.
+
 ![Image test](https://raw.githubusercontent.com/eddieantonio/i/master/imgcat.png)<br/>after a break
+
+This is some text after the image.
 
 This is [a test link](https://brettterpstra.com). <span class="test span">This is a test of html tag sytling.</span>[^fn1]
 

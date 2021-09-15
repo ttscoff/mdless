@@ -169,7 +169,7 @@ module CLIMarkdown
       if @theme.key?(keys[0])
         val = @theme[keys.shift]
       else
-        @log.error("Invalid theme key: #{key}")
+        @log.error("Invalid theme key: #{key}") unless keys[0] =~ /^text/
         return c([:reset])
       end
       keys.each {|k|
@@ -360,7 +360,7 @@ module CLIMarkdown
       end
     end
 
-    def find_color(line,nullable=false)
+    def find_color(line, nullable = false)
       return line if line.nil?
       colors = line.scan(/\e\[[\d;]+m/)
       if colors && colors.size > 0
@@ -473,13 +473,14 @@ module CLIMarkdown
         color('code_block border'),
         '--[ ',
         color('code_block title'),
-        leader,
+        leader.chomp,
         color('code_block border'),
         ' ]',
-        '-'*(@cols-new_indent-leader.size+1),
+        '-'*(@cols-new_indent-leader.size-2),
         xc,
         "\n",
-        hilite,
+        hilite.chomp,
+        "\n",
         " "*(new_indent),
         color('code_block border'),
         '-'*(@cols-new_indent),
@@ -581,6 +582,44 @@ module CLIMarkdown
       #   match = Regexp.last_match
       #   "#" * (match[1].length - h_adjust)
       # end
+      #
+      # Headlines
+      @headers.each {|h|
+        input.sub!(/^#{Regexp.escape(h[2])}/m) do |m|
+          pad = ''
+          ansi = ''
+          case h[0].length
+          when 1
+            ansi = color('h1 color')
+            pad = color('h1 pad')
+            char = @theme['h1']['pad_char'] || "="
+            pad += h[1].length + 2 > @cols ? char*h[1].length : char*(@cols - (h[1].length + 1))
+          when 2
+            ansi = color('h2 color')
+            pad = color('h2 pad')
+            char = @theme['h2']['pad_char'] || "-"
+            pad += h[1].length + 2 > @cols ? char*h[1].length : char*(@cols - (h[1].length + 1))
+          when 3
+            ansi = color('h3 color')
+          when 4
+            ansi = color('h4 color')
+          when 5
+            ansi = color('h5 color')
+          else
+            ansi = color('h6 color')
+          end
+
+          # If we're in iTerm and not paginating, add
+          # iTerm Marks for navigation on h1-3
+          if h[0].length < 4 &&
+            ENV['TERM_PROGRAM'] =~ /^iterm/i &&
+            @options[:pager] == false
+            ansi = "\e]1337;SetMark\a" + ansi
+          end
+
+          "\n#{xc}#{ansi}#{h[1]} #{pad}#{xc}\n"
+        end
+      }
 
       # code block parsing
       input.gsub!(/(?i-m)(^[ \t]*[`~]{3,})([\s\S]*?)\n([\s\S]*?)\1/m) do
@@ -637,11 +676,41 @@ module CLIMarkdown
           #   previous_indent = indent
           # end
         else
+          # list items
+          # TODO: Fix ordered list numbering, pad numbers based on total number of list items
+          line.gsub!(/^(\s*)([*\-+]|\d+\.) /) do |m|
+            match = Regexp.last_match
+            last = find_color(match.pre_match)
+            mcolor = match[2] =~ /^\d+\./ ? 'list number' : 'list bullet'
+            indent = match[1] || ''
+            [
+              indent,
+              color(mcolor),
+              match[2], " ",
+              color('list color')
+            ].join
+          end
+
+          # definition lists
+          line.gsub!(/^(:\s*)(.*?)/) do |m|
+            match = Regexp.last_match
+            [
+              color('dd marker'),
+              match[1],
+              " ",
+              color('dd color'),
+              match[2],
+              xc
+            ].join
+          end
+
           # place footnotes under paragraphs that reference them
           if line =~ /\[(?:\e\[[\d;]+m)*\^(?:\e\[[\d;]+m)*(\S+)(?:\e\[[\d;]+m)*\]/
-            key = $1.uncolor
+            match = Regexp.last_match
+            key = match[1].uncolor
             if @footnotes.key? key
-              line += "\n\n#{c(%i[b black on_black])}[#{c(%i[b cyan on_black])}^#{c(%i[x yellow on_black])}#{key}#{c(%i[b black on_black])}]: #{c(%i[u white on_black])}#{@footnotes[key]}#{xc}"
+              line = "#{xc}#{line}"
+              line += "\n\n#{color('footnote brackets')}[#{color('footnote caret')}^#{color('footnote title')}#{key}#{color('footnote brackets')}]: #{color('footnote note')}#{@footnotes[key]}#{xc}"
               @footnotes.delete(key)
             end
           end
@@ -655,7 +724,7 @@ module CLIMarkdown
               counter -= 1
               find_color(lines[counter])
             end
-            "#{c(%i[b black])}[#{c(%i[b yellow])}^#{c(%i[x yellow])}#{match[1]}#{c(%i[b black])}]" + (last ? last : xc)
+            "#{color('footnote brackets')}[#{color('footnote caret')}^#{color('footnote title')}#{match[1]}#{color('footnote brackets')}]" + (last ? last : xc)
           end
 
           # blockquotes
@@ -671,7 +740,6 @@ module CLIMarkdown
           end
 
           # make reference links inline
-
           line.gsub!(/(?<![\e*])\[(\b.*?\b)?\]\[(\b.+?\b)?\]/) do |m|
             match = Regexp.last_match
             title = match[2] || ''
@@ -693,23 +761,6 @@ module CLIMarkdown
           line.gsub!(/(?<![\e*!])\[(\S.*?\S)\]\((\S.+?\S)\)/) do |m|
             match = Regexp.last_match
             color_link(match.pre_match, match[1], match[2])
-          end
-
-
-
-          # inline code
-          line.gsub!(/`(.*?)`/) do |m|
-            match = Regexp.last_match
-            last = find_color(match.pre_match, true)
-            [
-              color('code_span marker'),
-              '`',
-              color('code_span color'),
-              match[1],
-              color('code_span marker'),
-              '`',
-              last ? last : xc
-            ].join
           end
 
           # horizontal rules
@@ -746,7 +797,7 @@ module CLIMarkdown
           end
 
           # equations
-          line.gsub!(/((\\\\\[)(.*?)(\\\\\])|(\\\\\()(.*?)(\\\\\)))/) do |m|
+          line.gsub!(/((\\\\\[|\$\$)(.*?)(\\\\\]|\$\$)|(\\\\\(|\$)(.*?)(\\\\\)|\$))/) do |m|
             match = Regexp.last_match
             last = find_color(match.pre_match)
             if match[2]
@@ -759,36 +810,8 @@ module CLIMarkdown
             "#{c(%i[b black])}#{brackets[0]}#{xc}#{c(%i[b blue])}#{equat}#{c(%i[b black])}#{brackets[1]}" + (last ? last : xc)
           end
 
-          # list items
-          # TODO: Fix ordered list numbering, pad numbers based on total number of list items
-          line.gsub!(/^(\s*)([*\-+]|\d+\.) /) do |m|
-            match = Regexp.last_match
-            last = find_color(match.pre_match)
-            mcolor = match[2] =~ /^\d+\./ ? 'list number' : 'list bullet'
-            indent = match[1] || ''
-            [
-              indent,
-              color(mcolor),
-              match[2], " ",
-              color('list color')
-            ].join
-          end
-
-          # definition lists
-          line.gsub!(/^(:\s*)(.*?)/) do |m|
-            match = Regexp.last_match
-            [
-              color('dd marker'),
-              match[1],
-              " ",
-              color('dd color'),
-              match[2],
-              xc
-            ].join
-          end
-
           # misc html
-          line.gsub!(/<br\/?>/, "\n")
+          line.gsub!(/<br\/?>/, "\n#{xc}")
           line.gsub!(/(?i-m)((<\/?)(\w+[\s\S]*?)(>))/) do |tag|
             match = Regexp.last_match
             last = find_color(match.pre_match)
@@ -802,50 +825,32 @@ module CLIMarkdown
               last ? last : xc
             ].join
           end
+
+          # inline code spans
+          line.gsub!(/`(.*?)`/) do |m|
+            match = Regexp.last_match
+            last = find_color(match.pre_match, true)
+            [
+              color('code_span marker'),
+              '`',
+              color('code_span color'),
+              match[1],
+              color('code_span marker'),
+              '`',
+              last ? last : xc
+            ].join
+          end
         end
+
+        ## Should force a foreground color but doesn't...
+        # unless line =~ /^\s*\e\[[\d;]+m/
+        #   line.sub!(/^(\s*)/, "\\1#{color('text')}")
+        # end
 
         line
       end
 
       input = lines.join("\n")
-
-      # Headlines
-      @headers.each {|h|
-        input.sub!(/^#{Regexp.escape(h[2])}/m) do |m|
-          pad = ''
-          ansi = ''
-          case h[0].length
-          when 1
-            ansi = color('h1 color')
-            pad = color('h1 pad')
-            char = @theme['h1']['pad_char'] || "="
-            pad += h[1].length + 2 > @cols ? char*h[1].length : char*(@cols - (h[1].length + 1))
-          when 2
-            ansi = color('h2 color')
-            pad = color('h2 pad')
-            char = @theme['h2']['pad_char'] || "-"
-            pad += h[1].length + 2 > @cols ? char*h[1].length : char*(@cols - (h[1].length + 1))
-          when 3
-            ansi = color('h3 color')
-          when 4
-            ansi = color('h4 color')
-          when 5
-            ansi = color('h5 color')
-          else
-            ansi = color('h6 color')
-          end
-
-          # If we're in iTerm and not paginating, add
-          # iTerm Marks for navigation on h1-3
-          if h[0].length < 4 &&
-            ENV['TERM_PROGRAM'] =~ /^iterm/i &&
-            @options[:pager] == false
-            ansi = "\e]1337;SetMark\a" + ansi
-          end
-
-          "\n#{xc}#{ansi}#{h[1]} #{pad}#{xc}\n"
-        end
-      }
 
       # images
       input.gsub!(/^(.*?)!\[(.*)?\]\((.*?\.(?:png|gif|jpg))( +.*)?\)/) do |m|
@@ -985,7 +990,7 @@ module CLIMarkdown
 
     def printout
       out = @output.rstrip.split(/\n/).map {|p|
-        p.wrap(@cols)
+        p.wrap(@cols, color('text'))
       }.join("\n")
 
 
@@ -1047,6 +1052,10 @@ module CLIMarkdown
       end
 
       [pg, args]
+    end
+
+    def xc
+      color('text')
     end
   end
 end
