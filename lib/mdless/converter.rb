@@ -1044,9 +1044,9 @@ module CLIMarkdown
       when 'more'
         ' -r'
       when 'less'
-        ' -r'
+        ' -Xr'
       when 'bat'
-        ' -p'
+        ' -p --pager="less -Xr"'
       else
         ''
       end
