@@ -4,6 +4,10 @@ date: yesterday
 Code block tests
 ================
 
+```
+#!
+```
+
 Just some text before we get started.
 
 ![Image test](https://raw.githubusercontent.com/eddieantonio/i/master/imgcat.png)<br/>after a break

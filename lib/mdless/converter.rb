@@ -634,7 +634,7 @@ module CLIMarkdown
         else
           first_line = m[3].to_s.split(/\n/)[0]
 
-          if first_line =~ /^\s*#!/
+          if first_line =~ /^\s*#!.*\/.+/
             shebang = first_line.match(/^\s*#!.*\/(?:env )?([^\/]+)$/)
             language = shebang[1]
             code_block = m[3]
