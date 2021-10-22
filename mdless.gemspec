@@ -26,5 +26,5 @@ lib/mdless/hash.rb
   s.bindir = 'bin'
   s.executables << 'mdless'
   s.add_development_dependency 'rake', '~> 13'
-  s.add_development_dependency 'rdoc', '~> 4.1', '>= 4.1.1'
+  s.add_development_dependency 'rdoc', '>= 6.3.1'
 end
