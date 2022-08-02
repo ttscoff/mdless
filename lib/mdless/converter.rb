@@ -811,8 +811,8 @@ module CLIMarkdown
           end
 
           # misc html
-          line.gsub!(/<br\/?>/, "\n")
-          line.gsub!(/(?i-m)((<\/?)(\w+[\s\S]*?)(>))/) do |tag|
+          line.gsub!(%r{<br/?>}, "\n")
+          line.gsub!(%r{(?i-m)((</?)(\w+[\s\S]*?)(>))}) do
             match = Regexp.last_match
             last = find_color(match.pre_match)
             [
@@ -822,12 +822,12 @@ module CLIMarkdown
               match[3],
               color('html brackets'),
               match[4],
-              last ? last : xc
+              last || xc
             ].join
           end
 
           # inline code spans
-          line.gsub!(/`(.*?)`/) do |m|
+          line.gsub!(/`(.*?)`/) do
             match = Regexp.last_match
             last = find_color(match.pre_match, true)
             [
@@ -837,7 +837,7 @@ module CLIMarkdown
               match[1],
               color('code_span marker'),
               '`',
-              last ? last : xc
+              last || xc
             ].join
           end
         end
@@ -853,7 +853,7 @@ module CLIMarkdown
       input = lines.join("\n")
 
       # images
-      input.gsub!(/^(.*?)!\[(.*)?\]\((.*?\.(?:png|gif|jpg))( +.*)?\)/) do |m|
+      input.gsub!(/^(.*?)!\[(.*)?\]\((.*?\.(?:png|gif|jpg))( +.*)?\)/) do
         match = Regexp.last_match
         if match[1].uncolor =~ /^( {4,}|\t)+/
           match[0]
@@ -893,23 +893,23 @@ module CLIMarkdown
                       @log.error(e)
                     end
                   else
-                    @log.warn("No viewer for remote images")
+                    @log.warn('No viewer for remote images')
                   end
                 end
               else
-                if img_path =~ /^[~\/]/
+                if img_path =~ %r{^[~/]}
                   img_path = File.expand_path(img_path)
                 elsif @file
                   base = File.expand_path(File.dirname(@file))
-                  img_path = File.join(base,img_path)
+                  img_path = File.join(base, img_path)
                 end
-                if File.exists?(img_path)
-                  pre = match[2].size > 0 ? "    #{c(%i[d blue])}[#{match[2].strip}]\n" : ''
-                  post = tail.size > 0 ? "\n    #{c(%i[b blue])}-- #{tail} --" : ''
+                if File.exist?(img_path)
+                  pre = !match[2].empty? ? "    #{c(%i[d blue])}[#{match[2].strip}]\n" : ''
+                  post = !tail.empty? ? "\n    #{c(%i[b blue])}-- #{tail} --" : ''
                   if exec_available('chafa')
-                    img = %x{chafa "#{img_path}"}
+                    img = `chafa "#{img_path}"`
                   elsif exec_available('imgcat')
-                    img = %x{imgcat "#{img_path}"}
+                    img = `imgcat "#{img_path}"`
                   end
                   result = pre + img + post
                 end
@@ -924,32 +924,31 @@ module CLIMarkdown
         end
       end
 
-      @footnotes.each {|t, v|
+      @footnotes.each do |t, v|
         input += [
           "\n\n",
           color('footnote brackets'),
-          "[",
+          '[',
           color('footnote caret'),
-          "^",
+          '^',
           color('footnote title'),
           t,
           color('footnote brackets'),
-          "]: ",
+          ']: ',
           color('footnote note'),
           v,
           xc
         ].join
-      }
+      end
 
       @output += input
-
     end
 
     def exec_available(cli)
-      if File.exists?(File.expand_path(cli))
+      if File.exist?(File.expand_path(cli))
         File.executable?(File.expand_path(cli))
       else
-        system "which #{cli}", :out => File::NULL, :err => File::NULL
+        system "which #{cli}", out: File::NULL, err: File::NULL
       end
     end
 
@@ -967,7 +966,7 @@ module CLIMarkdown
         IO.select [input]
 
         pager = which_pager
-        @log.info(%{Using #{pager} as pager})
+        @log.info("Using #{pager} as pager")
         begin
           exec(pager.join(' '))
         rescue SystemCallError => e
@@ -980,7 +979,7 @@ module CLIMarkdown
         read_io.close
         write_io.write(text)
         write_io.close
-      rescue SystemCallError => e
+      rescue SystemCallError
         exit 1
       end
 
@@ -1010,12 +1009,12 @@ module CLIMarkdown
       if @options[:pager]
         page(out)
       else
-        $stdout.puts (out)
+        $stdout.print (out.rstrip)
       end
     end
 
     def which_pager
-      pagers = [ENV['GIT_PAGER'], ENV['PAGER']]
+      pagers = [ENV['PAGER'], ENV['GIT_PAGER']]
 
       if exec_available('git')
         git_pager = `git config --get-all core.pager || true`.split.first
@@ -1041,6 +1040,8 @@ module CLIMarkdown
 
       pg = pagers.first
       args = case pg
+      when 'delta'
+        ' --pager="less -Xr"'
       when 'more'
         ' -r'
       when 'less'
