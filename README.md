@@ -1,10 +1,12 @@
 # mdless
 
+<!--README-->
 `mdless` is a utility that provides a formatted and highlighted view of Markdown files in Terminal.
 
 I often use iTerm2 in visor mode, so `qlmanage -p` is annoying. I still wanted a way to view Markdown files quickly and without cruft.
 
-![mdless screenshot](screenshots/mdless.png)
+<!--GITHUB-->![mdless screenshot](screenshots/mdless.png)<!--END GITHUB-->
+<!--JEKYLL {% gif /uploads/2015/08/mdless.gif %} -->
 
 ## Features
 
@@ -34,7 +36,7 @@ Some OSs are missing `tput`, which is necessary for mdless.
     apt install ruby ncurses-utils
     gem install mdless
 
-## Usage 
+## Usage
 
 `mdless [options] path` or `cat [path] | mdless`
 
@@ -112,4 +114,4 @@ Use 'r' to reverse foreground and background colors. `r white on_black` would di
 To set a background color, use `on_[color]` with one of the 8 colors. This can be used with foreground colors in the same setting, e.g. `white on_black`.
 
 Use 'd' (dark) to indicate the darker version of a foreground color. On macOS (and possibly other systems) you can use the brighter version of a color by prefixing with "intense", e.g. `intense_red` or `on_intense_black`.
-
+<!--END README-->
