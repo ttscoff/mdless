@@ -123,32 +123,32 @@ module CLIMarkdown
       @footnotes = {}
 
       if args.length > 0
-        files = args.delete_if { |f| !File.exists?(f) }
-        files.each {|file|
-          @log.info(%Q{Processing "#{file}"})
+        files = args.delete_if { |f| !File.exist?(f) }
+        files.each do |file|
+          @log.info(%(Processing "#{file}"))
           @file = file
           begin
             input = IO.read(file).force_encoding('utf-8')
-          rescue
+          rescue StandardError
             input = IO.read(file)
           end
-          input.gsub!(/\r?\n/,"\n")
+          input.gsub!(/\r?\n/, "\n")
           if @options[:list]
             puts list_headers(input)
             Process.exit 0
           else
             convert_markdown(input)
           end
-        }
+        end
         printout
-      elsif ! STDIN.tty?
+      elsif !$stdin.isatty
         @file = nil
         begin
-          input = STDIN.read.force_encoding('utf-8')
-        rescue
-          input = STDIN.read
+          input = $stdin.read.force_encoding('utf-8')
+        rescue StandardError
+          input = $stdin.read
         end
-        input.gsub!(/\r?\n/,"\n")
+        input.gsub!(/\r?\n/, "\n")
         if @options[:list]
           puts list_headers(input)
           Process.exit 0
@@ -157,7 +157,7 @@ module CLIMarkdown
         end
         printout
       else
-        $stderr.puts "No input"
+        warn 'No input'
         Process.exit 1
       end
 
@@ -172,19 +172,17 @@ module CLIMarkdown
         @log.error("Invalid theme key: #{key}") unless keys[0] =~ /^text/
         return c([:reset])
       end
-      keys.each {|k|
+      keys.each do |k|
         if val.key?(k)
           val = val[k]
         else
           @log.error("Invalid theme key: #{k}")
           return c([:reset])
         end
-      }
-      if val.kind_of? String
+      end
+      if val.is_a? String
         val = "x #{val}"
-        res = val.split(/ /).map {|k|
-          k.to_sym
-        }
+        res = val.split(/ /).map { |k| k.to_sym }
         c(res)
       else
         c([:reset])
@@ -192,7 +190,7 @@ module CLIMarkdown
     end
 
     def get_headers(input)
-      unless @headers && @headers.length > 0
+      unless @headers && !@headers.empty?
         @headers = []
         headers = input.scan(/^((?!#!)(\#{1,6})\s*([^#]+?)(?: #+)?\s*|(\S.+)\n([=-]+))$/i)
 
@@ -1042,8 +1040,6 @@ module CLIMarkdown
       args = case pg
       when 'delta'
         ' --pager="less -Xr"'
-      when 'more'
-        ' -r'
       when 'less'
         ' -Xr'
       when 'bat'
