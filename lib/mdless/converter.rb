@@ -22,11 +22,11 @@ module CLIMarkdown
         opts.banner = "#{version} by Brett Terpstra\n\n> Usage: #{CLIMarkdown::EXECUTABLE_NAME} [options] [path]\n\n"
 
         @options[:color] = true
-        opts.on( '-c', '--[no-]color', 'Colorize output (default on)' ) do |c|
+        opts.on('-c', '--[no-]color', 'Colorize output (default on)') do |c|
           @options[:color] = c
         end
 
-        opts.on( '-d', '--debug LEVEL', 'Level of debug messages to output' ) do |level|
+        opts.on('-d', '--debug LEVEL', 'Level of debug messages to output') do |level|
           if level.to_i > 0 && level.to_i < 5
             @log.level = 5 - level.to_i
           else
@@ -35,7 +35,7 @@ module CLIMarkdown
           end
         end
 
-        opts.on( '-h', '--help', 'Display this screen' ) do
+        opts.on('-h', '--help', 'Display this screen') do
           puts opts
           exit
         end
@@ -54,8 +54,8 @@ module CLIMarkdown
             end
           end
         end
-        opts.on('-I', '--all-images', 'Include local and remote images in output (requires imgcat or chafa)' ) do
-          if exec_available('imgcat') || exec_available('chafa')# && ENV['TERM_PROGRAM'] == 'iTerm.app'
+        opts.on('-I', '--all-images', 'Include local and remote images in output (requires imgcat or chafa)') do
+          if exec_available('imgcat') || exec_available('chafa') # && ENV['TERM_PROGRAM'] == 'iTerm.app'
             @options[:local_images] = true
             @options[:remote_images] = true
           else
@@ -64,51 +64,51 @@ module CLIMarkdown
         end
 
         @options[:links] = :inline
-        opts.on( '--links=FORMAT', 'Link style ([inline, reference], default inline) [NOT CURRENTLY IMPLEMENTED]' ) do |format|
+        opts.on('--links=FORMAT', 'Link style ([inline, reference], default inline) [NOT CURRENTLY IMPLEMENTED]') do |format|
           if format =~ /^r/i
             @options[:links] = :reference
           end
         end
 
         @options[:list] = false
-        opts.on( '-l', '--list', 'List headers in document and exit' ) do
+        opts.on('-l', '--list', 'List headers in document and exit' ) do
           @options[:list] = true
         end
 
         @options[:pager] = true
-        opts.on( '-p', '--[no-]pager', 'Formatted output to pager (default on)' ) do |p|
+        opts.on('-p', '--[no-]pager', 'Formatted output to pager (default on)') do |p|
           @options[:pager] = p
         end
 
-        opts.on( '-P', 'Disable pager (same as --no-pager)' ) do
+        opts.on('-P', 'Disable pager (same as --no-pager)') do
           @options[:pager] = false
         end
 
         @options[:section] = nil
-        opts.on( '-s', '--section=NUMBER', 'Output only a headline-based section of the input (numeric from --list)' ) do |section|
-          @options[:section] = section.to_i
+        opts.on('-s', '--section=NUMBER[,NUMBER]', 'Output only a headline-based section of the input (numeric from --list)') do |section|
+          @options[:section] = section.split(/ *, */).map(&:strip).map(&:to_i)
         end
 
         @options[:theme] = 'default'
-        opts.on( '-t', '--theme=THEME_NAME', 'Specify an alternate color theme to load' ) do |theme|
+        opts.on('-t', '--theme=THEME_NAME', 'Specify an alternate color theme to load') do |theme|
           @options[:theme] = theme
         end
 
-        opts.on( '-v', '--version', 'Display version number' ) do
+        opts.on('-v', '--version', 'Display version number') do
           puts version
           exit
         end
 
-        @options[:width] = %x{tput cols}.strip.to_i
-        opts.on( '-w', '--width=COLUMNS', 'Column width to format for (default terminal width)' ) do |columns|
+        @options[:width] = `tput cols`.strip.to_i
+        opts.on('-w', '--width=COLUMNS', 'Column width to format for (default: terminal width)') do |columns|
           @options[:width] = columns.to_i
         end
       end
 
       begin
         optparse.parse!
-      rescue OptionParser::ParseError => pe
-        $stderr.puts "error: #{pe.message}"
+      rescue OptionParser::ParseError => e
+        warn "error: #{e.message}"
         exit 1
       end
 
@@ -122,7 +122,7 @@ module CLIMarkdown
       @ref_links = {}
       @footnotes = {}
 
-      if args.length > 0
+      if !args.empty?
         files = args.delete_if { |f| !File.exist?(f) }
         files.each do |file|
           @log.info(%(Processing "#{file}"))
@@ -488,6 +488,10 @@ module CLIMarkdown
     end
 
     def convert_markdown(input)
+      ## Replace setex headers with ATX
+      input.gsub!(/^([^\n]+)\n={3,}\s*$/m, "# \\1\n")
+      input.gsub!(/^([^\n]+?)\n-{3,}\s*$/m, "## \\1\n")
+
       @headers = get_headers(input)
       input += "\n\n@@@"
       # yaml/MMD headers
@@ -527,7 +531,6 @@ module CLIMarkdown
 
       end
 
-
       # Gather reference links
       input.gsub!(/^\s{,3}(?<![\e*])\[\b(.+)\b\]: +(.+)/) do |m|
         match = Regexp.last_match
@@ -544,34 +547,34 @@ module CLIMarkdown
       end
 
       if @options[:section]
-        in_section = false
-        top_level = 1
         new_content = []
-
-        input.split(/\n/).each {|graf|
-          if graf =~ /^(#+) *(.*?)( *#+)?$/
-            level = $1.length
-            title = $2
-
-            if in_section
-              if level >= top_level
+        @options[:section].each do |sect|
+          in_section = false
+          top_level = 1
+          input.split(/\n/).each do |graf|
+            if graf =~ /^(#+) *(.*?)( *#+)?$/
+              m = Regexp.last_match
+              level = m[1].length
+              title = m[2]
+              if in_section
+                if level >= top_level
+                  new_content.push(graf)
+                else
+                  in_section = false
+                  break
+                end
+              elsif title.downcase == @headers[sect - 1][1].downcase
+                in_section = true
+                top_level = level + 1
                 new_content.push(graf)
               else
-                in_section = false
-                break
+                next
               end
-            elsif title.downcase == "#{@headers[@options[:section] - 1][1].downcase}"
-              in_section = true
-              top_level = level + 1
+            elsif in_section
               new_content.push(graf)
-            else
-              next
             end
-          elsif in_section
-            new_content.push(graf)
           end
-        }
-
+        end
         input = new_content.join("\n")
       end
 
