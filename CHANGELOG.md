@@ -1,3 +1,6 @@
+1.0.35
+: Improved code block parsing and handling
+
 1.0.33
 : Allow multiple sections with `-s 3,4,5`
 
