@@ -626,23 +626,23 @@ module CLIMarkdown
       input.gsub!(/(?i-m)(^[ \t]*[`~]{3,})([\s\S]*?)\n([\s\S]*?)\1/m) do
         language = nil
         m = Regexp.last_match
-        first_indent = m[1].gsub(/\t/,'    ').match(/^ */)[0].size
+        first_indent = m[1].gsub(/\t/, '    ').match(/^ */)[0].size
 
-        if m[2] && m[2].strip.length > 0
+        if m[2] && !m[2].strip.empty?
           language = m[2].strip.split(/ /)[0]
-          code_block = pad_max(m[3].to_s,'')
-          leader = language ? language : 'code'
+          code_block = pad_max(m[3].to_s, '')
+          leader = language || 'code'
         else
           first_line = m[3].to_s.split(/\n/)[0]
 
-          if first_line =~ /^\s*#!.*\/.+/
-            shebang = first_line.match(/^\s*#!.*\/(?:env )?([^\/]+)$/)
+          if first_line =~ %r{^\s*#!.*/.+}
+            shebang = first_line.match(%r{^\s*#!.*/(?:env )?([^/]+)$})
             language = shebang[1]
             code_block = m[3]
-            leader = shebang[1] ? shebang[1] : 'code'
+            leader = shebang[1] || 'code'
           else
             code_block = pad_max(m[3].to_s, "#{color('code_block eol')}¬")
-            leader = language ? language : 'code'
+            leader = language || 'code'
           end
         end
         leader += xc

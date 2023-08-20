@@ -151,6 +151,12 @@ end
 
 ## and indentation
 
+```ruby
+    def double_indented_code
+        puts "one too many indents"
+    end
+```
+
 ## almost enough
 
 ## gotta get to 10
