@@ -1,3 +1,6 @@
+1.0.37
+: Comments inside of fenced code rendering as ATX headlines
+
 1.0.35
 : Improved code block parsing and handling
 
