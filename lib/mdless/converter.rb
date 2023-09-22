@@ -578,6 +578,34 @@ module CLIMarkdown
         input = new_content.join("\n")
       end
 
+      # fenced code block parsing
+      input.gsub!(/(?i-m)(^[ \t]*[`~]{3,})([\s\S]*?)\n([\s\S]*?)\1/m) do
+        language = nil
+        m = Regexp.last_match
+        first_indent = m[1].gsub(/\t/, '    ').match(/^ */)[0].size
+
+        if m[2] && !m[2].strip.empty?
+          language = m[2].strip.split(/ /)[0]
+          code_block = pad_max(m[3].to_s, '')
+          leader = language || 'code'
+        else
+          first_line = m[3].to_s.split(/\n/)[0]
+
+          if first_line =~ %r{^\s*#!.*/.+}
+            shebang = first_line.match(%r{^\s*#!.*/(?:env )?([^/]+)$})
+            language = shebang[1]
+            code_block = m[3]
+            leader = shebang[1] || 'code'
+          else
+            code_block = pad_max(m[3].to_s, "#{color('code_block eol')}¬")
+            leader = language || 'code'
+          end
+        end
+        leader += xc
+
+        hiliteCode(language, code_block, leader, first_indent, m[0])
+      end
+
       # h_adjust = highest_header(input) - 1
       # input.gsub!(/^(#+)/) do |m|
       #   match = Regexp.last_match
@@ -621,34 +649,6 @@ module CLIMarkdown
           "\n#{xc}#{ansi}#{h[1]} #{pad}#{xc}\n"
         end
       }
-
-      # code block parsing
-      input.gsub!(/(?i-m)(^[ \t]*[`~]{3,})([\s\S]*?)\n([\s\S]*?)\1/m) do
-        language = nil
-        m = Regexp.last_match
-        first_indent = m[1].gsub(/\t/, '    ').match(/^ */)[0].size
-
-        if m[2] && !m[2].strip.empty?
-          language = m[2].strip.split(/ /)[0]
-          code_block = pad_max(m[3].to_s, '')
-          leader = language || 'code'
-        else
-          first_line = m[3].to_s.split(/\n/)[0]
-
-          if first_line =~ %r{^\s*#!.*/.+}
-            shebang = first_line.match(%r{^\s*#!.*/(?:env )?([^/]+)$})
-            language = shebang[1]
-            code_block = m[3]
-            leader = shebang[1] || 'code'
-          else
-            code_block = pad_max(m[3].to_s, "#{color('code_block eol')}¬")
-            leader = language || 'code'
-          end
-        end
-        leader += xc
-
-        hiliteCode(language, code_block, leader, first_indent, m[0])
-      end
 
       # remove empty links
       input.gsub!(/\[(.*?)\]\(\s*?\)/, '\1')

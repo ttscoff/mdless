@@ -8,6 +8,15 @@ Code block tests
 #!
 ```
 
+```
+# Just a comment
+do_thing()
+```
+
+    # Another comment
+    does_this_work?
+
+
 Just some text before we get started.
 
 ![Image test](https://raw.githubusercontent.com/eddieantonio/i/master/imgcat.png)<br/>after a break
