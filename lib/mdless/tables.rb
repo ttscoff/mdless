@@ -1,16 +1,15 @@
 module CLIMarkdown
   class MDTableCleanup
-
-    PAD_CHAR = '⎕'
+    PAD_CHAR = "\u00A0"
 
     def initialize(input)
       @string = input
-      @format_row = []
     end
 
     def parse
+      @format_row = []
       @table = []
-      format = []
+      fmt = []
       cols = 0
       rows = @string.split(/\r?\n/)
       rows.each do |row|
@@ -19,29 +18,29 @@ module CLIMarkdown
         row_array = row.split(/\|/)
         row_array.map! { |cell| cell.strip }
         if row =~ /^[\|:\- ]+$/
-          format = row_array
+          fmt = row_array
         else
           @table.push row_array
         end
         cols = row_array.length if row_array.length > cols
       end
 
-      format.each_with_index {|cell, i|
+      fmt.each_with_index do |cell, i|
         cell.strip!
-        f = 'left'
-        if cell =~ /^:.*?:$/
-          f = 'center'
-        elsif cell =~ /[^:]+:$/
-          f = 'right'
+        f = case cell
+        when /^:.*?:$/
+          :center
+        when /[^:]+:$/
+          :right
         else
-          f = 'just'
+          :just
         end
         @format_row.push(f)
-      }
+      end
 
       if @format_row.length < cols
         (cols - @format_row.length).times do
-          @format_row.push('left')
+          @format_row.push(:left)
         end
       end
 
@@ -60,9 +59,9 @@ module CLIMarkdown
       @table ||= parse
     end
 
-    def column_width(i)
+    def column_width(idx)
       @widths ||= column_widths
-      @widths[i]
+      @widths[idx]
     end
 
     def column_widths
@@ -72,7 +71,7 @@ module CLIMarkdown
       end
 
       table.each do |row|
-        @format_row.each_with_index do |cell, i|
+        @format_row.each_with_index do |_, i|
           length = row[i].strip.length
           @widths[i] = length if length > @widths[i]
         end
@@ -81,32 +80,31 @@ module CLIMarkdown
       @widths
     end
 
-    def pad(string,type,length)
-      string.strip!
-      if type == 'center'
-        string.center(length, PAD_CHAR)
-      elsif type == 'right'
-        string.rjust(length, PAD_CHAR)
-      elsif type == 'left'
-        string.ljust(length, PAD_CHAR)
+    def pad(string, alignment, length)
+      case alignment
+      when :center
+        string.strip.center(length, PAD_CHAR)
+      when :right
+        string.strip.rjust(length, PAD_CHAR)
+      when :left
+        string.strip.ljust(length, PAD_CHAR)
       else
-        string.ljust(length, PAD_CHAR)
+        string.strip.ljust(length, PAD_CHAR)
       end
     end
 
     def separator(length, alignment)
-      out = "".ljust(length,'-')
+      out = ''.ljust(length, '-')
       case alignment
-      when 'left'
-        out = ':' + out + '-'
-      when 'right'
-        out = '-' + out + ':'
-      when 'center'
-        out = ":#{out}:"
+      when :left
+        ":#{out}-"
+      when :right
+        "-#{out}:"
+      when :center
+        ":#{out}:"
       else
-        out = "-#{out}-"
+        "-#{out}-"
       end
-      out
     end
 
     def header_separator_row
@@ -128,18 +126,15 @@ module CLIMarkdown
     def to_md
       output = []
       t = table.clone
-
-      t.each_with_index do |row, index|
-        row.map!.with_index { |cell, i| cell = pad(cell, @format_row[i], column_width(i)) }
-        output.push("| #{row.join(' | ').lstrip} |")
+      t.each do |row|
+        new_row = row.map.with_index { |cell, i| pad(cell, @format_row[i], column_width(i)) }.join(' | ')
+        output.push("| #{new_row} |")
       end
       output.insert(1, header_separator_row)
       output.insert(0, table_border)
       output.push(table_border)
 
-      output.join("\n").gsub(/((?<=\| )#{PAD_CHAR}+|#{PAD_CHAR}+(?= \|))/) {|m|
-        " "*m.length
-      }
+      output.join("\n")
     end
   end
 end

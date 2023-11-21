@@ -1,6 +1,399 @@
 require 'fileutils'
 require 'yaml'
-require 'fileutils'
+
+module Redcarpet
+  module Render
+    class Console < Base
+      include CLIMarkdown::Colors
+      include CLIMarkdown::Theme
+      attr_writer :theme, :cols, :log
+      attr_writer :listitemid, :list_indent
+
+      def xc
+        color('text')
+      end
+
+      def color_table(input)
+        first = true
+        input.split(/\n/).map do |line|
+          if first
+            if line =~ /^\+-+/
+              line.gsub!(/^/, color('table border'))
+            else
+              first = false
+              line.gsub!(/\|/, "#{color('table border')}|#{color('table header')}")
+            end
+          elsif line.strip =~ /^[|:\- +]+$/
+            line.gsub!(/^(.*)$/, "#{color('table border')}\\1#{color('table color')}")
+            line.gsub!(/([:\-+]+)/, "#{color('table divider')}\\1#{color('table border')}")
+          else
+            line.gsub!(/\|/, "#{color('table border')}|#{color('table color')}")
+          end
+        end.join("\n")
+      end
+
+      def exec_available(cli)
+        if File.exist?(File.expand_path(cli))
+          File.executable?(File.expand_path(cli))
+        else
+          system "which #{cli}", out: File::NULL, err: File::NULL
+        end
+      end
+
+      def valid_lexer?(language)
+        lexers = %w(Clipper XBase Cucumber cucumber Gherkin gherkin RobotFramework robotframework abap ada ada95ada2005 ahk antlr-as antlr-actionscript antlr-cpp antlr-csharp antlr-c# antlr-java antlr-objc antlr-perl antlr-python antlr-ruby antlr-rb antlr apacheconf aconf apache applescript as actionscript as3 actionscript3 aspectj aspx-cs aspx-vb asy asymptote autoit Autoit awk gawk mawk nawk basemake bash sh ksh bat bbcode befunge blitzmax bmax boo brainfuck bf bro bugs winbugs openbugs c-objdump c ca65 cbmbas ceylon cfengine3 cf3 cfm cfs cheetah spitfire clojure clj cmake cobol cobolfree coffee-script coffeescript common-lisp cl console control coq cpp c++ cpp-objdump c++-objdumb cxx-objdump croc csharp c# css+django css+jinja css+erb css+ruby css+genshitext css+genshi css+lasso css+mako css+myghty css+php css+smarty css cuda cu cython pyx d-objdump d dart delphi pas pascal objectpascal dg diff udiff django jinja dpatch dtd duel Duel Engine Duel View JBST jbst JsonML+BST dylan-console dylan-repl dylan-lid lid dylan ec ecl elixir ex exs erb erl erlang evoque factor fan fancy fy felix flx fortran fsharp gas genshi kid xml+genshi xml+kid genshitext glsl gnuplot go gooddata-cl gosu groff nroff man groovy gst haml HAML haskell hs haxeml hxml html+cheetah html+spitfire html+django html+jinja html+evoque html+genshi html+kid html+lasso html+mako html+myghty html+php html+smarty html+velocity html http hx haXe hybris hy idl iex ini cfg io ioke ik irc jade JADE jags java jlcon js+cheetah javascript+cheetah js+spitfire javascript+spitfire js+django javascript+django js+jinja javascript+jinja js+erb javascript+erb js+ruby javascript+ruby js+genshitext js+genshi javascript+genshitext javascript+genshi js+lasso javascript+lasso js+mako javascript+mako js+myghty javascript+myghty js+php javascript+php js+smarty javascript+smarty js javascript json jsp julia jl kconfig menuconfig linux-config kernel-config koka kotlin lasso lassoscript lhs literate-haskell lighty lighttpd live-script livescript llvm logos logtalk lua make makefile mf bsdmake mako maql mason matlab matlabsession minid modelica modula2 m2 monkey moocode moon moonscript mscgen msc mupad mxml myghty mysql nasm nemerle newlisp newspeak nginx nimrod nim nsis nsi nsh numpy objdump objective-c++ objectivec++ obj-c++ objc++ objective-c objectivec obj-c objc objective-j objectivej obj-j objj ocaml octave ooc opa openedge abl progress perl pl php php3 php4 php5 plpgsql postgresql postgres postscript pot po pov powershell posh ps1 prolog properties protobuf psql postgresql-console postgres-console puppet py3tb pycon pypylog pypy pytb python py sage python3 py3 qml Qt Meta Language Qt modeling Language racket rkt ragel-c ragel-cpp ragel-d ragel-em ragel-java ragel-objc ragel-ruby ragel-rb ragel raw rb ruby duby rbcon irb rconsole rout rd rebol redcode registry rhtml html+erb html+ruby rst rest restructuredtext rust sass SASS scala scaml SCAML scheme scm scilab scss shell-session smali smalltalk squeak smarty sml snobol sourceslist sources.list sp spec splus s r sql sqlite3 squidconf squid.conf squid ssp stan systemverilog sv tcl tcsh csh tea tex latex text trac-wiki moin treetop ts urbiscript vala vapi vb.net vbnet velocity verilog v vgl vhdl vim xml+cheetah xml+spitfire xml+django xml+jinja xml+erb xml+ruby xml+evoque xml+lasso xml+mako xml+myghty xml+php xml+smarty xml+velocity xml xquery xqy xq xql xqm xslt xtend yaml)
+        return lexers.include? language.strip
+      end
+
+      def hilite_code(code_block, language)
+        if exec_available('pygmentize')
+          lexer = language && valid_lexer?(language) ? "-l #{language}" : '-g'
+          begin
+            cmd = [
+              'pygmentize -f terminal256',
+              "-O style=#{@theme['code_block']['pygments_theme']}",
+              lexer,
+              '2> /dev/null'
+            ].join(' ')
+            hilite, s = Open3.capture2(cmd,
+                                       stdin_data: code_block)
+            if s.success?
+              hilite = xc + hilite.split(/\n/).map do |l|
+                [
+                  color('code_block marker'),
+                  '> ',
+                  "#{color('code_block bg')}#{l.strip}#{xc}"
+                ].join
+              end.join("\n").blackout(@theme['code_block']['bg']) + "#{xc}\n"
+            end
+          rescue StandardError => e
+            @log.error(e)
+            hilite = code_block
+          end
+        else
+          hilite = code_block.split(/\n/).map do |line|
+            [
+              color('code_block marker'),
+              '> ',
+              color('code_block color'),
+              line,
+              xc
+            ].join
+          end.join("\n")
+        end
+
+        [
+          xc,
+          color('code_block border'),
+          '-' * @cols,
+          xc,
+          "\n",
+          color('code_block color'),
+          hilite.chomp,
+          "\n",
+          color('code_block border'),
+          '-' * @cols,
+          xc
+        ].join
+      end
+
+      def color(key)
+        val = nil
+        keys = key.split(/[ ,>]/)
+        if @theme.key?(keys[0])
+          val = @theme[keys.shift]
+        else
+          @log.error("Invalid theme key: #{key}") unless keys[0] =~ /^text/
+          return c([:reset])
+        end
+        keys.each do |k|
+          if val.key?(k)
+            val = val[k]
+          else
+            @log.error("Invalid theme key: #{k}")
+            return c([:reset])
+          end
+        end
+        if val.is_a? String
+          val = "x #{val}"
+          res = val.split(/ /).map(&:to_sym)
+          c(res)
+        else
+          c([:reset])
+        end
+      end
+
+      def block_code(code, language)
+        "\n#{hilite_code(code, language)}\n"
+      end
+
+      def block_quote(quote)
+        ret = "\n"
+        quote.split("\n").each do |line|
+          ret += [
+            color('blockquote marker color'),
+            @theme['blockquote']['marker']['character'],
+            color('blockquote color'),
+            line,
+            "\n"
+          ].join('')
+        end
+        "#{ret}\n"
+      end
+
+      def block_html(raw_html)
+        raw_html
+      end
+
+      def header(text, header_level)
+        pad = ''
+        ansi = ''
+        case header_level
+        when 1
+          ansi = color('h1 color')
+          pad = color('h1 pad')
+          char = @theme['h1']['pad_char'] || '='
+          pad += text.length + 2 > @cols ? char * text.length : char * (@cols - (text.length + 1))
+        when 2
+          ansi = color('h2 color')
+          pad = color('h2 pad')
+          char = @theme['h2']['pad_char'] || '-'
+          pad += text.length + 2 > @cols ? char * text.length : char * (@cols - (text.length + 1))
+        when 3
+          ansi = color('h3 color')
+        when 4
+          ansi = color('h4 color')
+        when 5
+          ansi = color('h5 color')
+        else
+          ansi = color('h6 color')
+        end
+
+        # If we're in iTerm and not paginating, add
+        # iTerm Marks for navigation on h1-3
+        if header_level < 4 &&
+           ENV['TERM_PROGRAM'] =~ /^iterm/i &&
+           @options[:pager] == false
+          ansi = "\e]1337;SetMark\a#{ansi}"
+        end
+
+        "\n#{xc}#{ansi}#{text} #{pad}#{xc}\n\n"
+      end
+
+      def hrule()
+        "\n#{color('hr color')}#{'_' * @cols}#{xc}\n"
+      end
+
+      def list(contents, list_type)
+        @listitemid = 0
+        @list_indent += 1
+        contents
+        @list_indent = 0
+      end
+
+      def list_item(text, list_type)
+        indent = "\t" * @list_indent
+        case list_type
+        when :unordered
+          [
+            indent,
+            "#{color('list bullet')}• ",
+            color('list color'),
+            text,
+            xc
+          ].join('')
+        when :ordered
+          @listitemid += 1
+          [
+            indent,
+            color('list number'),
+            "#{@listitemid}. ",
+            color('list color'),
+            text,
+            xc
+          ].join('')
+        end
+      end
+
+      def paragraph(text)
+        "#{xc}#{text}#{xc}\n"
+      end
+
+      @table_cols = nil
+
+      def table_header_row
+        @header_row.map do |alignment|
+          case alignment
+          when :left
+            '|:---'
+          when :right
+            '|---:'
+          when :center
+            '|:--:'
+          else
+            '|----'
+          end
+        end.join('') + '|'
+      end
+
+      def table(header, body)
+        formatted = CLIMarkdown::MDTableCleanup.new([
+          "#{header}",
+          table_header_row,
+          "|\n",
+          "#{body}\n"
+        ].join(''))
+        res = formatted.to_md
+        color_table(res)
+        # res
+      end
+
+      def table_row(content)
+        @table_cols = content.scan(/\|/).count
+        %(#{content}\n)
+      end
+
+      def table_cell(content, alignment)
+        @header_row ||= []
+        if @table_cols && @header_row.count < @table_cols
+          @header_row << alignment
+        end
+        %(#{content} |)
+      end
+
+      def autolink(link, _)
+        [
+          color('link brackets'),
+          '<',
+          color('link url'),
+          link,
+          color('link brackets'),
+          '>',
+          xc
+        ].join('')
+      end
+
+      def codespan(code)
+        [
+          color('code_span marker'),
+          '`',
+          color('code_span color'),
+          code,
+          color('code_span marker'),
+          '`',
+          xc
+        ].join('')
+      end
+
+      def double_emphasis(text)
+        "#{color('emphasis bold')}#{text}#{xc}"
+      end
+
+      def emphasis(text)
+        "#{color('emphasis italic')}#{text}#{xc}"
+      end
+
+      def triple_emphasis(text)
+        "#{color('emphasis bold-italic')}#{text}#{xc}"
+      end
+
+      def highlight(text)
+        "#{color('highlight')}#{text}#{xc}"
+      end
+
+      def image(link, title, alt_text)
+        [
+          color('image bang'),
+          '!',
+          color('image brackets'),
+          '[',
+          color('image title'),
+          alt_text,
+          color('image brackets'),
+          '](',
+          color('image url'),
+          link,
+          title.nil? ? '' : %( "#{title}"),
+          color('image brackets'),
+          ')',
+          xc
+        ].join
+      end
+
+      def linebreak()
+        "\n"
+      end
+
+      def link(link, title, content)
+        [
+          color('link brackets'),
+          '[',
+          color('link text'),
+          content,
+          color('link brackets'),
+          '](',
+          color('link url'),
+          link,
+          title.nil? ? '' : %( "#{title}"),
+          color('link brackets'),
+          ')',
+          xc
+        ].join
+      end
+
+      def color_tags(html)
+        html.gsub(%r{(<\S+( .*?)?/?>)}, "#{color('html brackets')}\\1#{xc}")
+      end
+
+      def raw_html(raw_html)
+        "#{color('html color')}#{color_tags(raw_html)}#{xc}"
+      end
+
+      def strikethrough(text)
+        "#{color('strikethrough')}#{text}#{xc}"
+      end
+
+      def superscript(text)
+        "#{color('super')}^#{text}#{xc}"
+      end
+
+      def footnotes(text)
+        [
+          color('footnote note'),
+          text,
+          "\n",
+          xc,
+        ].join('')
+      end
+
+      def footnote_def(text, idx)
+        [
+          color('footnote brackets'),
+          "[",
+          color('footnote caret'),
+          "^",
+          color('footnote title'),
+          idx,
+          color('footnote brackets'),
+          "]:",
+          color('footnote note'),
+          ' ',
+          text.uncolor.strip,
+          xc,
+          "\n"
+        ].join('')
+      end
+
+      def footnote_ref(text)
+        [
+          color('footnote title'),
+          text,
+          xc
+        ].join('')
+      end
+    end
+  end
+end
 
 module CLIMarkdown
   class Converter
@@ -15,7 +408,7 @@ module CLIMarkdown
 
     def initialize(args)
       @log = Logger.new(STDERR)
-      @log.level = Logger::ERROR
+      @log.level = Logger::INFO
 
       @options = {}
       optparse = OptionParser.new do |opts|
@@ -113,7 +506,7 @@ module CLIMarkdown
       end
 
       @theme = load_theme(@options[:theme])
-      @cols = @options[:width]
+      @cols = @options[:width] - 2
       @output = ''
       @headers = []
       @setheaders = []
@@ -121,6 +514,27 @@ module CLIMarkdown
       input = ''
       @ref_links = {}
       @footnotes = {}
+
+      renderer = Redcarpet::Render::Console.new
+      renderer.theme = @theme
+      renderer.cols = @cols
+      renderer.log = @log
+      renderer.listitemid = 0
+      renderer.list_indent = 0
+
+      markdown = Redcarpet::Markdown.new(renderer,
+                                         autolink: true,
+                                         fenced_code_blocks: true,
+                                         footnotes: true,
+                                         hard_wrap: false,
+                                         highlight: true,
+                                         lax_spacing: true,
+                                         quote: false,
+                                         space_after_headers: false,
+                                         strikethrough: true,
+                                         superscript: true,
+                                         tables: true,
+                                         underline: false)
 
       if !args.empty?
         files = args.delete_if { |f| !File.exist?(f) }
@@ -137,7 +551,7 @@ module CLIMarkdown
             puts list_headers(input)
             Process.exit 0
           else
-            convert_markdown(input)
+            @output = markdown.render(input)
           end
         end
         printout
@@ -153,14 +567,13 @@ module CLIMarkdown
           puts list_headers(input)
           Process.exit 0
         else
-          convert_markdown(input)
+          @output = markdown.render(input)
         end
         printout
       else
         warn 'No input'
         Process.exit 1
       end
-
     end
 
     def color(key)
@@ -218,48 +631,43 @@ module CLIMarkdown
       @headers
     end
 
-
     def list_headers(input)
       h_adjust = highest_header(input) - 1
-      input.gsub!(/^(#+)/) do |m|
-        match = Regexp.last_match
-        new_level = match[1].length - h_adjust
-        if new_level > 0
-          "#" * new_level
-        else
-          ''
-        end
+      input.gsub!(/^(#+)/) do
+        m = Regexp.last_match
+        new_level = m[1].length - h_adjust
+        new_level > 0 ? '#' * new_level : ''
       end
 
       @headers = get_headers(input)
       last_level = 0
       headers_out = []
       @headers.each_with_index do |h,idx|
-
         level = h[0].length - 1
         title = h[1]
 
-        if level - 1 > last_level
-          level = last_level + 1
-        end
+        level = last_level + 1 if level - 1 > last_level
+
         last_level = level
 
         subdoc = case level
-        when 0
-          ''
-        when 1
-          '- '
-        when 2
-          '+ '
-        when 3
-          '* '
-        else
-          '  '
-        end
-        headers_out.push ('%3d: %s' % [idx + 1, c(%i[x black])+"."*level+c(%i[x yellow])+subdoc+title.strip+xc])
+                 when 0
+                   ''
+                 when 1
+                   '- '
+                 when 2
+                   '+ '
+                 when 3
+                   '* '
+                 else
+                   '  '
+                 end
+        headers_out.push format('%<d>d: %<s>s',
+                                d: idx + 1,
+                                s: "#{c(%i[x black])}#{'.' * level}#{c(%i[x yellow])}#{subdoc}#{title.strip}#{xc}")
       end
 
-      return headers_out.join("\n")
+      headers_out.join("\n")
     end
 
     def highest_header(input)
@@ -271,75 +679,7 @@ module CLIMarkdown
       top
     end
 
-    def color_table(input)
-      first = true
-      input.split(/\n/).map{|line|
-        if first
-          if line =~ /^\+-+/
-            line.gsub!(/^/, color('table border'))
-          else
-            first = false
-            line.gsub!(/\|/, "#{color('table border')}|#{color('table header')}")
-          end
-        elsif line.strip =~ /^[|:\- +]+$/
-          line.gsub!(/^(.*)$/, "#{color('table border')}\\1#{color('table color')}")
-          line.gsub!(/([:\-+]+)/,"#{color('table divider')}\\1#{color('table border')}")
-        else
-          line.gsub!(/\|/, "#{color('table border')}|#{color('table color')}")
-        end
-      }.join("\n")
-    end
 
-    def cleanup_tables(input)
-
-      in_table = false
-      header_row = false
-      all_content = []
-      this_table = []
-      orig_table = []
-      input.split(/\n/).each {|line|
-        if line =~ /(\|.*?)+/ && line !~ /^\s*~/
-          in_table = true
-          table_line = line.to_s.uncolor.strip.sub(/^\|?\s*/,'|').gsub(/\s*([\|:])\s*/,'\1')
-
-          if table_line.strip.gsub(/[\|:\- ]/,'') == ''
-            header_row = true
-          end
-          this_table.push(table_line)
-          orig_table.push(line)
-        else
-          if in_table
-            if this_table.length > 2
-              # if there's no header row, add one, cleanup requires it
-              unless header_row
-                cells = this_table[0].sub(/^\|/,'').scan(/.*?\|/).length
-                cell_row = '|' + ':-----|'*cells
-                this_table.insert(1, cell_row)
-              end
-
-              table = this_table.join("\n").strip
-
-              begin
-                formatted = MDTableCleanup.new(table)
-                res = formatted.to_md
-                res = color_table(res)
-              rescue
-                res = orig_table.join("\n")
-              end
-              all_content.push(res)
-            else
-              all_content.push(orig_table.join("\n"))
-            end
-            this_table = []
-            orig_table = []
-          end
-          in_table = false
-          header_row = false
-          all_content.push(line)
-        end
-      }
-      all_content.join("\n")
-    end
 
     def clean_markers(input)
       input.gsub!(/^(\e\[[\d;]+m)?[%~] ?/,'\1')
@@ -352,64 +692,24 @@ module CLIMarkdown
     def update_inline_links(input)
       links = {}
       counter = 1
-      input.gsub!(/(?<=\])\((.*?)\)/) do |m|
-        links[counter] = $1.uncolor
+      input.gsub!(/(?<=\])\((.*?)\)/) do
+        links[counter] = Regexp.last_match(1).uncolor
         "[#{counter}]"
       end
     end
 
     def find_color(line, nullable = false)
       return line if line.nil?
+
       colors = line.scan(/\e\[[\d;]+m/)
-      if colors && colors.size > 0
+      if colors.size&.positive?
         colors[-1]
       else
         nullable ? nil : xc
       end
     end
 
-    def color_link(line, text, url)
-      [
-        color('link brackets'),
-        "[",
-        color('link text'),
-        text,
-        color('link brackets'),
-        "](",
-        color('link url'),
-        url,
-        color('link brackets'),
-        ")",
-        find_color(line)
-      ].join
-    end
-
-    def color_image(line, text, url)
-      text.gsub!(/\e\[0m/,color('image title'))
-
-      [
-        color('image bang'),
-        "!",
-        color('image brackets'),
-        "[",
-        color('image title'),
-        text,
-        color('image brackets'),
-        "](",
-        color('image url'),
-        url,
-        color('image brackets'),
-        ")",
-        find_color(line)
-      ].join
-    end
-
-    def valid_lexer?(language)
-      lexers = %w(Clipper XBase Cucumber cucumber Gherkin gherkin RobotFramework robotframework abap ada ada95ada2005 ahk antlr-as antlr-actionscript antlr-cpp antlr-csharp antlr-c# antlr-java antlr-objc antlr-perl antlr-python antlr-ruby antlr-rb antlr apacheconf aconf apache applescript as actionscript as3 actionscript3 aspectj aspx-cs aspx-vb asy asymptote autoit Autoit awk gawk mawk nawk basemake bash sh ksh bat bbcode befunge blitzmax bmax boo brainfuck bf bro bugs winbugs openbugs c-objdump c ca65 cbmbas ceylon cfengine3 cf3 cfm cfs cheetah spitfire clojure clj cmake cobol cobolfree coffee-script coffeescript common-lisp cl console control coq cpp c++ cpp-objdump c++-objdumb cxx-objdump croc csharp c# css+django css+jinja css+erb css+ruby css+genshitext css+genshi css+lasso css+mako css+myghty css+php css+smarty css cuda cu cython pyx d-objdump d dart delphi pas pascal objectpascal dg diff udiff django jinja dpatch dtd duel Duel Engine Duel View JBST jbst JsonML+BST dylan-console dylan-repl dylan-lid lid dylan ec ecl elixir ex exs erb erl erlang evoque factor fan fancy fy felix flx fortran fsharp gas genshi kid xml+genshi xml+kid genshitext glsl gnuplot go gooddata-cl gosu groff nroff man groovy gst haml HAML haskell hs haxeml hxml html+cheetah html+spitfire html+django html+jinja html+evoque html+genshi html+kid html+lasso html+mako html+myghty html+php html+smarty html+velocity html http hx haXe hybris hy idl iex ini cfg io ioke ik irc jade JADE jags java jlcon js+cheetah javascript+cheetah js+spitfire javascript+spitfire js+django javascript+django js+jinja javascript+jinja js+erb javascript+erb js+ruby javascript+ruby js+genshitext js+genshi javascript+genshitext javascript+genshi js+lasso javascript+lasso js+mako javascript+mako js+myghty javascript+myghty js+php javascript+php js+smarty javascript+smarty js javascript json jsp julia jl kconfig menuconfig linux-config kernel-config koka kotlin lasso lassoscript lhs literate-haskell lighty lighttpd live-script livescript llvm logos logtalk lua make makefile mf bsdmake mako maql mason matlab matlabsession minid modelica modula2 m2 monkey moocode moon moonscript mscgen msc mupad mxml myghty mysql nasm nemerle newlisp newspeak nginx nimrod nim nsis nsi nsh numpy objdump objective-c++ objectivec++ obj-c++ objc++ objective-c objectivec obj-c objc objective-j objectivej obj-j objj ocaml octave ooc opa openedge abl progress perl pl php php3 php4 php5 plpgsql postgresql postgres postscript pot po pov powershell posh ps1 prolog properties protobuf psql postgresql-console postgres-console puppet py3tb pycon pypylog pypy pytb python py sage python3 py3 qml Qt Meta Language Qt modeling Language racket rkt ragel-c ragel-cpp ragel-d ragel-em ragel-java ragel-objc ragel-ruby ragel-rb ragel raw rb ruby duby rbcon irb rconsole rout rd rebol redcode registry rhtml html+erb html+ruby rst rest restructuredtext rust sass SASS scala scaml SCAML scheme scm scilab scss shell-session smali smalltalk squeak smarty sml snobol sourceslist sources.list sp spec splus s r sql sqlite3 squidconf squid.conf squid ssp stan systemverilog sv tcl tcsh csh tea tex latex text trac-wiki moin treetop ts urbiscript vala vapi vb.net vbnet velocity verilog v vgl vhdl vim xml+cheetah xml+spitfire xml+django xml+jinja xml+erb xml+ruby xml+evoque xml+lasso xml+mako xml+myghty xml+php xml+smarty xml+velocity xml xquery xqy xq xql xqm xslt xtend yaml)
-      return lexers.include? language.strip
-    end
-
-    def pad_max(block,eol='')
+    def pad_max(block, eol='')
       block.split(/\n/).map { |l|
         new_code_line = l.gsub(/\t/, '    ')
         orig_length = new_code_line.size + 8 + eol.size
@@ -423,69 +723,7 @@ module CLIMarkdown
       }.join("\n")
     end
 
-    def hiliteCode(language, codeBlock, leader, first_indent, block)
-      new_indent = first_indent > 0 ? first_indent + 2 : 0
-      last_indent = first_indent == 0 ? 7 : 5
 
-      if exec_available('pygmentize') && language && valid_lexer?(language)
-        lexer = "-l #{language}"
-        begin
-          hilite, s = Open3.capture2(%Q{pygmentize -f terminal256 -O style=#{@theme['code_block']['pygments_theme']} #{lexer} 2> /dev/null}, :stdin_data=>codeBlock)
-          if s.success?
-
-            hilite = xc + hilite.split(/\n/).map{|l|
-              new_code_line = l.gsub(/\t/, '    ')
-              new_code_line.sub!(/^#{" "*first_indent}/,'')
-              [
-                "> ",
-                color('code_block marker'),
-                " "*first_indent,
-                "#{color('code_block bg')}#{l}"
-              ].join
-            }.join("\n").blackout(@theme['code_block']['bg']) + "#{xc}\n"
-          end
-        rescue => e
-          @log.error(e)
-          hilite = block
-        end
-      else
-        hilite = codeBlock.split(/\n/).map do |line|
-          new_code_line = line.gsub(/\t/, '    ')
-          new_code_line.sub!(/^#{" "*first_indent}/,'')
-          new_code_line.gsub!(/ /, "#{color('code_block color')} ")
-          [
-            "> ",
-            color('code_block marker'),
-            " "*first_indent,
-            color('code_block color'),
-            new_code_line,
-            xc
-          ].join
-        end.join("\n")
-      end
-
-      [
-        xc,
-        "\n",
-        " "*first_indent,
-        color('code_block border'),
-        '--[ ',
-        color('code_block title'),
-        leader.chomp,
-        color('code_block border'),
-        ' ]',
-        '-'*(@cols-new_indent-leader.size-2),
-        xc,
-        "\n",
-        hilite.chomp,
-        "\n",
-        " "*(new_indent),
-        color('code_block border'),
-        '-'*(@cols-new_indent),
-        xc,
-        "\n"
-      ].join
-    end
 
     def convert_markdown(input)
       ## Replace setex headers with ATX
@@ -606,50 +844,6 @@ module CLIMarkdown
         hiliteCode(language, code_block, leader, first_indent, m[0])
       end
 
-      # h_adjust = highest_header(input) - 1
-      # input.gsub!(/^(#+)/) do |m|
-      #   match = Regexp.last_match
-      #   "#" * (match[1].length - h_adjust)
-      # end
-      #
-      # Headlines
-      @headers.each {|h|
-        input.sub!(/^#{Regexp.escape(h[2])}/m) do |m|
-          pad = ''
-          ansi = ''
-          case h[0].length
-          when 1
-            ansi = color('h1 color')
-            pad = color('h1 pad')
-            char = @theme['h1']['pad_char'] || "="
-            pad += h[1].length + 2 > @cols ? char*h[1].length : char*(@cols - (h[1].length + 1))
-          when 2
-            ansi = color('h2 color')
-            pad = color('h2 pad')
-            char = @theme['h2']['pad_char'] || "-"
-            pad += h[1].length + 2 > @cols ? char*h[1].length : char*(@cols - (h[1].length + 1))
-          when 3
-            ansi = color('h3 color')
-          when 4
-            ansi = color('h4 color')
-          when 5
-            ansi = color('h5 color')
-          else
-            ansi = color('h6 color')
-          end
-
-          # If we're in iTerm and not paginating, add
-          # iTerm Marks for navigation on h1-3
-          if h[0].length < 4 &&
-            ENV['TERM_PROGRAM'] =~ /^iterm/i &&
-            @options[:pager] == false
-            ansi = "\e]1337;SetMark\a" + ansi
-          end
-
-          "\n#{xc}#{ansi}#{h[1]} #{pad}#{xc}\n"
-        end
-      }
-
       # remove empty links
       input.gsub!(/\[(.*?)\]\(\s*?\)/, '\1')
       input.gsub!(/\[(.*?)\]\[\]/, '[\1][\1]')
@@ -726,18 +920,6 @@ module CLIMarkdown
               find_color(lines[counter])
             end
             "#{color('footnote brackets')}[#{color('footnote caret')}^#{color('footnote title')}#{match[1]}#{color('footnote brackets')}]" + (last ? last : xc)
-          end
-
-          # blockquotes
-          line.gsub!(/^(\s*>)+( .*?)?$/) do |m|
-            match = Regexp.last_match
-            last = find_color(match.pre_match, true)
-            counter = i
-            while last.nil? && counter > 0
-              counter -= 1
-              find_color(lines[counter])
-            end
-            "#{c(%i[b black])}#{match[1]}#{c(%i[x magenta])} #{match[2]}" + (last ? last : xc)
           end
 
           # make reference links inline
@@ -945,14 +1127,6 @@ module CLIMarkdown
       @output += input
     end
 
-    def exec_available(cli)
-      if File.exist?(File.expand_path(cli))
-        File.executable?(File.expand_path(cli))
-      else
-        system "which #{cli}", out: File::NULL, err: File::NULL
-      end
-    end
-
     def page(text, &callback)
       read_io, write_io = IO.pipe
 
@@ -988,41 +1162,64 @@ module CLIMarkdown
       status.success?
     end
 
-    def printout
-      out = @output.rstrip.split(/\n/).map {|p|
-        p.wrap(@cols, color('text'))
+    def color_table(input)
+      first = true
+      input.split(/\n/).map{|line|
+        if first
+          if line =~ /^\+-+/
+            line.gsub!(/^/, color('table border'))
+          else
+            first = false
+            line.gsub!(/\|/, "#{color('table border')}|#{color('table header')}")
+          end
+        elsif line.strip =~ /^[|:\- +]+$/
+          line.gsub!(/^(.*)$/, "#{color('table border')}\\1#{color('table color')}")
+          line.gsub!(/([:\-+]+)/,"#{color('table divider')}\\1#{color('table border')}")
+        else
+          line.gsub!(/\|/, "#{color('table border')}|#{color('table color')}")
+        end
       }.join("\n")
+    end
 
+    def cleanup_tables(input)
+      formatted = MDTableCleanup.new(input)
+      res = formatted.to_md
+      color_table(res)
+    end
 
-      unless out && out.size > 0
-        @log.warn "No results"
+    def printout
+      out = @output.rstrip.split(/\n/).map do |p|
+        p.wrap(@cols, color('text'))
+      end.join("\n")
+
+      unless out.size&.positive?
+        @log.warn 'No results'
         Process.exit
       end
 
-      out = cleanup_tables(out)
+      # out = cleanup_tables(out)
       out = clean_markers(out)
-      out = out.gsub(/\n{2,}/m,"\n\n") + "#{xc}"
+      out = "#{out.gsub(/\n{2,}/m, "\n\n")}#{xc}"
 
-      unless @options[:color]
-        out.uncolor!
-      end
+      out.uncolor! unless @options[:color]
 
       if @options[:pager]
         page(out)
       else
-        $stdout.print (out.rstrip)
+        $stdout.print out.rstrip
       end
     end
 
     def which_pager
-      pagers = [ENV['PAGER'], ENV['GIT_PAGER']]
+      # pagers = [ENV['PAGER'], ENV['GIT_PAGER']]
+      pagers = [ENV['PAGER']]
 
-      if exec_available('git')
-        git_pager = `git config --get-all core.pager || true`.split.first
-        git_pager && pagers.push(git_pager)
-      end
+      # if exec_available('git')
+      #   git_pager = `git config --get-all core.pager || true`.split.first
+      #   git_pager && pagers.push(git_pager)
+      # end
 
-      pagers.concat(['bat', 'less', 'more', 'cat', 'pager'])
+      pagers.concat(['less', 'more', 'cat', 'pager'])
 
       pagers.select! do |f|
         if f
@@ -1032,7 +1229,7 @@ module CLIMarkdown
             @log.warn('most not allowed as pager')
             false
           else
-            system "which #{f}", :out => File::NULL, :err => File::NULL
+            system "which #{f}", out: File::NULL, err: File::NULL
           end
         else
           false
@@ -1041,21 +1238,25 @@ module CLIMarkdown
 
       pg = pagers.first
       args = case pg
-      when 'delta'
-        ' --pager="less -Xr"'
-      when 'less'
-        ' -Xr'
-      when 'bat'
-        ' -p --pager="less -Xr"'
-      else
-        ''
-      end
+             # when 'delta'
+             #   ' --pager="less -Xr"'
+             when 'less'
+               ' -Xr'
+             # when 'bat'
+             #   ' -p --pager="less -Xr"'
+             else
+               ''
+             end
 
       [pg, args]
     end
 
-    def xc
-      color('text')
+    def exec_available(cli)
+      if File.exist?(File.expand_path(cli))
+        File.executable?(File.expand_path(cli))
+      else
+        system "which #{cli}", out: File::NULL, err: File::NULL
+      end
     end
   end
 end

@@ -76,12 +76,15 @@ guide](https://yarnpkg.com/docs/install/) if you do not have it already.
 1. If you're using the `develop` branch then it is recommended to set up a proper
    development environment ("Setting up a dev environment" below) however one can
    install the develop versions of the dependencies instead:
-   ``` bash
+   
+   ```bash
    scripts/fetch-develop.deps.sh
    ```
+   
    Whenever you git pull on `riot-web` you will also probably need to force an update
    to these dependencies - the simplest way is to re-run the script, but you can also
    manually update and rebuild them:
+   
    ```bash
    cd matrix-js-sdk
    git pull
@@ -90,6 +93,7 @@ guide](https://yarnpkg.com/docs/install/) if you do not have it already.
    git pull
    yarn install
    ```
+   
    Or just use https://riot.im/develop - the continuous integration release of the
    develop branch. (Note that we don't reference the develop versions in git directly
    due to https://github.com/npm/npm/issues/3055.)
@@ -319,8 +323,7 @@ are designed to run in a browser instance under the control of
 The above will run the tests under Chrome in a `headless` mode.
 
 You can also tell karma to run the tests in a loop (every time the source
-changes), in an instance of Chrome on your desktop, with `yarn
-test-multi`. This also gives you the option of running the tests in 'debug'
+changes), in an instance of Chrome on your desktop, with `yarn test-multi`. This also gives you the option of running the tests in 'debug'
 mode, which is useful for stepping through the tests in the developer tools.
 
 Translations

@@ -8,6 +8,7 @@ require 'mdless/colors'
 require 'mdless/tables'
 require 'mdless/hash'
 require 'mdless/theme'
+require 'redcarpet'
 require 'mdless/converter'
 
 module CLIMarkdown

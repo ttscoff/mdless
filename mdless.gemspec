@@ -25,6 +25,7 @@ lib/mdless/hash.rb
   s.rdoc_options << '--title' << 'mdless' << '--main' << 'README.md' << '--markup' << 'markdown' << '-ri'
   s.bindir = 'bin'
   s.executables << 'mdless'
+  s.add_dependency 'redcarpet', '~> 3.6'
   s.add_development_dependency 'rake', '~> 13'
   s.add_development_dependency 'rdoc', '>= 6.3.1'
 end
