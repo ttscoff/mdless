@@ -37,16 +37,17 @@ Some OSs are missing `tput`, which is necessary for mdless.
     apt install ruby ncurses-utils
     gem install mdless
 
+To render images, you need `imgcat` or `chafa` installed (`brew install chafa`).
+
+For syntax highlighting, the `pygmentize` command must be available, part of the [Pygments](http://pygments.org/) package (`brew install pygments`).
+
 ## Usage
 
 `mdless [options] path` or `cat [path] | mdless`
 
 The pager used is determined by system configuration in this order of preference:
 
-* `$GIT_PAGER`
 * `$PAGER`
-* `git config --get-all core.pager`
-* `bat`
 * `less`
 * `more`
 * `cat`
@@ -55,18 +56,24 @@ The pager used is determined by system configuration in this order of preference
 ### Options
 
     -c, --[no-]color                 Colorize output (default on)
-    -d, --debug LEVEL                Level of debug messages to output
+    -d, --debug LEVEL                Level of debug messages to output (1-4, 4 to see all messages)
     -h, --help                       Display this screen
-    -i, --images=TYPE                Include [local|remote (both)] images in output (requires imgcat and iTerm2, default NONE)
-    -I, --all-images                 Include local and remote images in output (requires imgcat and iTerm2)
+    -i, --images=TYPE                Include [local|remote (both)] images in output (requires chafa or imgcat, default NONE).
+    -I, --all-images                 Include local and remote images in output (requires imgcat or chafa)
+        --syntax                     Syntax highlight code blocks
         --links=FORMAT               Link style ([inline, reference], default inline) [NOT CURRENTLY IMPLEMENTED]
     -l, --list                       List headers in document and exit
     -p, --[no-]pager                 Formatted output to pager (default on)
     -P                               Disable pager (same as --no-pager)
-    -s, --section=NUMBER             Output only a headline-based section of the input (numeric from --list)
+    -s, --section=NUMBER[,NUMBER]    Output only a headline-based section of the input (numeric from --list)
     -t, --theme=THEME_NAME           Specify an alternate color theme to load
     -v, --version                    Display version number
-    -w, --width=COLUMNS              Column width to format for (default terminal width)
+    -w, --width=COLUMNS              Column width to format for (default: terminal width)
+        --[no-]inline_footnotes      Display footnotes immediately after the paragraph that references them
+
+## Configuration
+
+The first time mdless is run, a config file will be written to `~/.config/mdless/config.yml`, based on the command line options used on the first run. Update that file to make any options permanent (config options will always be overridden by command line flags).
 
 ## Customization
 
