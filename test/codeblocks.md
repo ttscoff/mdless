@@ -17,9 +17,14 @@ do_thing()
     does_this_work?
 
 
-Just some text before we get started.
+How about definition lists?
+: Do those work with redcarpet?
 
-![Image test](https://raw.githubusercontent.com/eddieantonio/i/master/imgcat.png)<br/>after a break
+Just some text[^fn0] before we get started.
+
+![Image test](https://raw.githubusercontent.com/eddieantonio/i/master/imgcat.png "imgcat cat")<br/>after a break
+
+[^fn0]: This is the first footnote
 
 This is some text after the image.
 
@@ -38,14 +43,14 @@ Lorem ipsum [dolor sit amet][reflink], consectetur adipisicing elit, sed do eius
 
 * list test
 * more list with **some bold** in it
-  * more list nested
-      + Just checking
-          1. nested numeric
-          2. list stuff
-          3. you wouldn't get it
-      * another list
-          1. this should
-          2. start over
+    * more list nested
+        + Just checking
+            1. nested numeric
+            2. list stuff
+            3. you wouldn't get it
+        * another list
+            1. this should
+            2. start over
 
 ---
 

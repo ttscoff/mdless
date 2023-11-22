@@ -133,7 +133,6 @@ module CLIMarkdown
       output.insert(1, header_separator_row)
       output.insert(0, table_border)
       output.push(table_border)
-
       output.join("\n")
     end
   end

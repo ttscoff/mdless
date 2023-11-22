@@ -1,3 +1,3 @@
 module CLIMarkdown
-  VERSION = '1.0.37'
+  VERSION = '2.0.0'
 end

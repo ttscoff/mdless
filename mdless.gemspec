@@ -26,6 +26,7 @@ lib/mdless/hash.rb
   s.bindir = 'bin'
   s.executables << 'mdless'
   s.add_dependency 'redcarpet', '~> 3.6'
+  s.add_dependency 'tty-which', '~> 0.5'
   s.add_development_dependency 'rake', '~> 13'
   s.add_development_dependency 'rdoc', '>= 6.3.1'
 end

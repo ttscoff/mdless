@@ -70,6 +70,7 @@ module CLIMarkdown
         'pygments_theme' => 'monokai'
       },
       'dd' => {
+        'term' => 'black on_white',
         'marker' => 'd red',
         'color' => 'b white'
       },
@@ -86,7 +87,9 @@ module CLIMarkdown
       'html' => {
         'brackets' => 'd yellow on_black',
         'color' => 'yellow on_black'
-      }
+      },
+      'super' => 'b green',
+      'text' => 'white'
     }
 
     def load_theme_file(theme_file)
