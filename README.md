@@ -16,10 +16,8 @@ I often use iTerm2 in visor mode, so `qlmanage -p` is annoying. I still wanted a
 - Colorize Markdown syntax for most elements
 - Normalize spacing and link formatting
 - Display footnotes after each paragraph
-- Inline image display (local, optionally remote) if using iTerm2 2.9+
+- Inline image display (local, optionally remote) (with compatible tools like imgcat or chafa)
 - Syntax highlighting when [Pygments](http://pygments.org/) is installed
-    - Only fenced code with a language defined (e.g. `python`) will be highlighted
-    - Languages can also be determined by hashbang in the code block
 - List headlines in document
     - Display single section of the document based on headlines
 - Customizable colors
@@ -28,6 +26,8 @@ I often use iTerm2 in visor mode, so `qlmanage -p` is annoying. I still wanted a
 ## Installation
 
     gem install mdless
+
+If you run into errors, try `gem install --user-install mdless`, or `sudo gem install mdless` (in that order).
 
 ### Dependencies
 

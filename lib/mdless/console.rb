@@ -8,6 +8,7 @@ module Redcarpet
       @@listitemid = 0
       @@listid = 0
       @@footnotes = []
+      @@headers = []
 
       def xc
         x + color('text')
@@ -491,12 +492,12 @@ module Redcarpet
             indent -= outdent
             "#{' ' * indent}#{l}"
           end.join("\n"), indent)
-        end
+        end + "\n"
       end
 
       def get_headers(input)
-        unless @headers && !@headers.empty?
-          @headers = []
+        unless @@headers && !@@headers.empty?
+          @@headers = []
           headers = input.scan(/^((?!#!)(\#{1,6})\s*([^#]+?)(?: #+)?\s*|(\S.+)\n([=-]+))$/i)
 
           headers.each do |h|
@@ -512,7 +513,7 @@ module Redcarpet
               hlevel = h[1].length
               title = h[2]
             end
-            @headers << [
+            @@headers << [
               '#' * hlevel,
               title,
               h[0]
@@ -520,7 +521,7 @@ module Redcarpet
           end
         end
 
-        @headers
+        @@headers
       end
 
       def preprocess(input)
@@ -545,7 +546,7 @@ module Redcarpet
           end
         end
 
-        if !in_yaml && input.gsub(/\n/, ' ') =~ /(?i-m)^\w.+:\s+\S+/
+        if !in_yaml && input.gsub(/\n/, ' ') =~ /(?i-m)^[\w ]+:\s+\S+/
           @log.info('Found MMD Headers')
           input.sub!(/(?i-m)^([\S ]+:[\s\S]*?)+(?=\n\n)/) do |mmd|
             mmd.split(/\n/).map do |line|
@@ -562,7 +563,7 @@ module Redcarpet
         input.gsub!(/^([^\n]+)\n={3,}\s*$/m, "# \\1\n")
         input.gsub!(/^([^\n]+?)\n-{3,}\s*$/m, "## \\1\n")
 
-        @headers = get_headers(input)
+        @@headers = get_headers(input)
 
         if @options[:section]
           new_content = []
@@ -581,7 +582,7 @@ module Redcarpet
                     in_section = false
                     break
                   end
-                elsif title.downcase == @headers[sect - 1][1].downcase
+                elsif title.downcase == @@headers[sect - 1][1].downcase
                   in_section = true
                   top_level = level + 1
                   new_content.push(graf)
