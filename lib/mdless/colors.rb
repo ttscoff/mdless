@@ -71,7 +71,7 @@ module CLIMarkdown
       self.uncolor.size
     end
 
-    def wrap(width=78)
+    def wrap(width=78,foreground=:x)
 
       if self.uncolor =~ /(^([%~] |\s*>)| +[=\-]{5,})/
         return self
@@ -87,7 +87,7 @@ module CLIMarkdown
       input.split(/\s+/).each do |word|
         last_ansi = line.scan(/\e\[[\d;]+m/)[-1] || ''
         if visible_width + word.size_clean >= width
-          lines << line + xc
+          lines << line + xc(foreground)
           visible_width = word.size_clean
           line = last_ansi + word
         elsif line.empty?
@@ -98,18 +98,11 @@ module CLIMarkdown
           line << " " << last_ansi + word
         end
        end
-       lines << line + self.match(/\s*$/)[0] + xc if line
+       lines << line + self.match(/\s*$/)[0] + xc(foreground) if line
       return lines.join("\n") # .gsub(/\- (\S)/,'-\1')
     end
 
-    def xc(count=0)
-      c([:x,:white])
-    end
-
     def c(args)
-
-
-
       out = []
 
       args.each {|arg|
@@ -123,6 +116,12 @@ module CLIMarkdown
       else
         ''
       end
+    end
+
+    private
+
+    def xc(foreground=:x)
+      c([foreground])
     end
   end
 end

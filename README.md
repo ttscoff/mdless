@@ -1,10 +1,13 @@
 # mdless
 
+<!--README-->
+
 `mdless` is a utility that provides a formatted and highlighted view of Markdown files in Terminal.
 
 I often use iTerm2 in visor mode, so `qlmanage -p` is annoying. I still wanted a way to view Markdown files quickly and without cruft.
 
-![mdless screenshot](screenshots/mdless.png)
+<!--GITHUB-->![mdless screenshot](screenshots/mdless.png)<!--END GITHUB-->
+<!--JEKYLL{% gif /uploads/2015/08/mdless.gif %}-->
 
 ## Features
 
@@ -15,7 +18,7 @@ I often use iTerm2 in visor mode, so `qlmanage -p` is annoying. I still wanted a
 - Display footnotes after each paragraph
 - Inline image display (local, optionally remote) if using iTerm2 2.9+
 - Syntax highlighting when [Pygments](http://pygments.org/) is installed
-    - Only fenced code with a language defined (e.g. `\`\`\`python`) will be highlighted
+    - Only fenced code with a language defined (e.g. `python`) will be highlighted
     - Languages can also be determined by hashbang in the code block
 - List headlines in document
     - Display single section of the document based on headlines
@@ -34,7 +37,7 @@ Some OSs are missing `tput`, which is necessary for mdless.
     apt install ruby ncurses-utils
     gem install mdless
 
-## Usage 
+## Usage
 
 `mdless [options] path` or `cat [path] | mdless`
 
@@ -113,3 +116,4 @@ To set a background color, use `on_[color]` with one of the 8 colors. This can b
 
 Use 'd' (dark) to indicate the darker version of a foreground color. On macOS (and possibly other systems) you can use the brighter version of a color by prefixing with "intense", e.g. `intense_red` or `on_intense_black`.
 
+<!--END README-->

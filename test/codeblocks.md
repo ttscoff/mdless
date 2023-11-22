@@ -4,7 +4,29 @@ date: yesterday
 Code block tests
 ================
 
-![Image test](https://raw.githubusercontent.com/eddieantonio/i/master/imgcat.png)<br/>after a break
+```
+#!
+```
+
+```
+# Just a comment
+do_thing()
+```
+
+    # Another comment
+    does_this_work?
+
+
+How about definition lists?
+: Do those work with redcarpet?
+
+Just some text[^fn0] before we get started.
+
+![Image test](https://raw.githubusercontent.com/eddieantonio/i/master/imgcat.png "imgcat cat")<br/>after a break
+
+[^fn0]: This is the first footnote
+
+This is some text after the image.
 
 This is [a test link](https://brettterpstra.com). <span class="test span">This is a test of html tag sytling.</span>[^fn1]
 
@@ -21,7 +43,14 @@ Lorem ipsum [dolor sit amet][reflink], consectetur adipisicing elit, sed do eius
 
 * list test
 * more list with **some bold** in it
-  * more list nested
+    * more list nested
+        + Just checking
+            1. nested numeric
+            2. list stuff
+            3. you wouldn't get it
+        * another list
+            1. this should
+            2. start over
 
 ---
 
@@ -32,14 +61,16 @@ Lorem ipsum [dolor sit amet][reflink], consectetur adipisicing elit, sed do eius
 ## Nested, malformed language
 
 1. If you're using the `develop` branch then it is recommended to set up a proper development environment ("Setting up a dev environment" below) however one can install the develop versions of the dependencies instead:
+
    ``` bash
    1 scripts/fetch-develop.deps.sh
    ```
+
 Whenever you git pull on `riot-web` you will also probably need to force an update
 to these dependencies - the simplest way is to re-run the script, but you can also
 manually update and rebuild them:
 
-```bash bin
+```bash
 cd matrix-js-sdk
   git pull
 yarn install # re-run to pull in any new dependencies
@@ -54,7 +85,7 @@ due to https://github.com/npm/npm/issues/3055.)
 
 1. super indented
        
-       ```bash bin
+       ```bash
        cd matrix-js-sdk
           - git pull
        ```
@@ -62,7 +93,8 @@ due to https://github.com/npm/npm/issues/3055.)
 ### Outdented, no language
 
 Wait a few seconds for the initial build to finish; you should see something like:
-```
+
+```console
 Hash: b0af76309dd56d7275c8
 Version: webpack 1.12.14
 Time: 14533ms
@@ -73,9 +105,10 @@ Time: 14533ms
 bundle.css.map   116 kB       0  [emitted]  main
     + 1013 hidden modules
 ```
-   Remember, the command will not terminate since it runs the web server
-   and rebuilds source files when they change. This development server also
-   disables caching, so do NOT use it in production.
+
+Remember, the command will not terminate since it runs the web server
+and rebuilds source files when they change. This development server also
+disables caching, so do NOT use it in production.
 
 ## Indented, no language
 
@@ -95,7 +128,7 @@ riot-web branch and then run:
 
 ## Language via hashbang
 
-```
+```ruby
 #!/usr/bin/env ruby
 def convert_markdown(input)
   @headers = get_headers(input)
@@ -142,6 +175,12 @@ end
 ## index listing
 
 ## and indentation
+
+```ruby
+    def double_indented_code
+        puts "one too many indents"
+    end
+```
 
 ## almost enough
 
