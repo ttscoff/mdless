@@ -1,3 +1,9 @@
+2.0.2
+: Rely on Redcarpet for Markdown parsing, far more accurate with a
+: Config file at ~/.config/mdless/config.yml
+: Allow inlining of footnotes
+: Nested list indentation
+
 2.0.1
 : Rely on Redcarpet for Markdown parsing, far more accurate with a
 : Config file at ~/.config/mdless/config.yml

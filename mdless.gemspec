@@ -10,16 +10,7 @@ spec = Gem::Specification.new do |s|
   s.summary = 'A pager like less, but for Markdown files'
   s.description = 'A CLI that provides a formatted and highlighted view of Markdown files in a terminal'
   s.license = 'MIT'
-  s.files = %w(
-bin/mdless
-lib/mdless.rb
-lib/mdless/colors.rb
-lib/mdless/tables.rb
-lib/mdless/converter.rb
-lib/mdless/version.rb
-lib/mdless/theme.rb
-lib/mdless/hash.rb
-  )
+  s.files = Dir['lib/**/*.rb'] + Dir['bin/*']
   s.require_paths << 'lib'
   s.extra_rdoc_files = ['README.md']
   s.rdoc_options << '--title' << 'mdless' << '--main' << 'README.md' << '--markup' << 'markdown' << '-ri'
