@@ -9,6 +9,8 @@ module Redcarpet
       @@listid = 0
       @@footnotes = []
       @@headers = []
+      @@links = []
+      @@footer_links = []
 
       def xc
         x + color('text')
@@ -393,11 +395,11 @@ module Redcarpet
         end
       end
 
-      def linebreak()
-        "\n"
+      def linebreak
+        "  \n"
       end
 
-      def link(link, title, content)
+      def color_link(link, title, content)
         [
           color('link brackets'),
           '[',
@@ -412,6 +414,50 @@ module Redcarpet
           ')',
           xc
         ].join
+      end
+
+      def color_link_reference(link, idx, content)
+        [
+          color('link brackets'),
+          '[',
+          color('link text'),
+          content,
+          color('link brackets'),
+          '][',
+          color('link url'),
+          idx,
+          color('link brackets'),
+          ']',
+          xc
+        ].join
+      end
+
+      def color_reference_link(link, title, content)
+        [
+          color('link brackets'),
+          '[',
+          color('link text'),
+          content,
+          color('link brackets'),
+          ']:',
+          color('text'),
+          ' ',
+          color('link url'),
+          link,
+          title.nil? ? '' : %( "#{title}"),
+          xc
+        ].join
+      end
+
+      def link(link, title, content)
+        res = color_link(link, title, content)
+        @@links << {
+          link: res,
+          url: link,
+          title: title,
+          content: content
+        }
+        res
       end
 
       def color_tags(html)
@@ -626,6 +672,51 @@ module Redcarpet
         end
       end
 
+      def color_links(input)
+        input.gsub(/(?mi)(?<!\\e)\[(?<text>[^\[]+)\]\((?<url>\S+)(?: +"(?<title>.*?)")?\)/) do
+          m = Regexp.last_match
+          color_link(m['url'].uncolor, m['title']&.uncolor, m['text'].uncolor)
+        end
+      end
+
+      def reference_links(input)
+        grafs = input.split(/\n{2,}/)
+        counter = 1
+
+        grafs.map! do |graf|
+          next if graf =~ /^$/
+
+          links_added = false
+
+          @@links.each do |link|
+            if graf =~ /#{Regexp.escape(link[:link])}/
+              url = link[:url].uncolor
+              content = link[:content]
+              title = link[:title]&.uncolor
+              graf.gsub!(/#{Regexp.escape(link[:link])}/, color_link_reference(url, counter, content))
+              if @options[:links] == :paragraph
+                if links_added
+                  graf += "\n#{color_reference_link(url, title, counter)}"
+                else
+                  graf = "#{graf}\n\n#{color_reference_link(url, title, counter)}"
+                  links_added = true
+                end
+              else
+                @@footer_links << color_reference_link(url, title, counter)
+              end
+              counter += 1
+            end
+          end
+          "\n#{graf}\n"
+        end
+
+        if @options[:links] == :paragraph
+          grafs.join("\n")
+        else
+          grafs.join("\n") + "\n#{@@footer_links.join("\n")}\n"
+        end
+      end
+
       def postprocess(input)
         if @options[:inline_footnotes]
           input = insert_footnotes(input)
@@ -653,6 +744,10 @@ module Redcarpet
         end
         # misc html
         input.gsub!(%r{<br */?>}, "\n")
+        # format links
+        if @options[:links] == :reference || @options[:links] == :paragraph
+          input = reference_links(input)
+        end
         # lists
         fix_lists(input, 0)
       end
