@@ -1,3 +1,7 @@
+2.0.6
+: Render links as reference links at the end of the file (`--links ref`) or per-paragraph (`--links para`). Defaults to inline (`--links inline`)
+: Pad numbers on headline listing to preserve indentation
+
 2.0.5
 : Better highlighting of metadata (both YAML and MMD)
 
