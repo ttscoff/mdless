@@ -596,10 +596,13 @@ module Redcarpet
           end
         end
 
-        if !in_yaml && input.gsub(/\n/, ' ') =~ /(?i-m)^[\w ]+:\s+\S+/
+        first_line = input.split("\n").first
+        if !in_yaml && first_line =~ /(?i-m)^[\w ]+:\s+\S+/
           @log.info('Found MMD Headers')
           input.sub!(/(?i-m)^([\S ]+:[\s\S]*?)+(?=\n\n)/) do |mmd|
             lines = mmd.split(/\n/)
+            return mmd if lines.count > 20
+
             longest = lines.inject { |memo, word| memo.length > word.length ? memo : word }.length
             longest = longest < @cols ? longest + 1 : @cols
             lines.map do |line|
