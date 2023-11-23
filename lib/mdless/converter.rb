@@ -73,8 +73,15 @@ module CLIMarkdown
 
         @options[:links] ||= :inline
         opts.on('--links=FORMAT',
-                'Link style ([inline, reference], default inline) [NOT CURRENTLY IMPLEMENTED]') do |format|
-          @options[:links] = :reference if format =~ /^r/i
+                'Link style ([inline, reference, paragraph], default inline, "paragraph" will position reference links after each paragraph)') do |fmt|
+          @options[:links] = case fmt
+                             when /^:?r/i
+                               :reference
+                             when /^:?p/i
+                               :paragraph
+                             else
+                               :inline
+                             end
         end
 
         @options[:list] ||= false
@@ -275,6 +282,7 @@ module CLIMarkdown
       @headers = get_headers(input)
       last_level = 0
       headers_out = []
+      len = (@headers.count + 1).to_s.length
       @headers.each_with_index do |h, idx|
         level = h[0].length - 1
         title = h[1]
@@ -295,7 +303,7 @@ module CLIMarkdown
                  else
                    '  '
                  end
-        headers_out.push format('%<d>d: %<s>s',
+        headers_out.push format("%<d>#{len}d: %<s>s",
                                 d: idx + 1,
                                 s: "#{c(%i[x black])}#{'.' * level}#{c(%i[x yellow])}#{subdoc}#{title.strip}#{xc}")
       end

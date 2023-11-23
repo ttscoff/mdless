@@ -2,30 +2,7 @@
 : Better highlighting of metadata (both YAML and MMD)
 
 2.0.4
-: Rely on Redcarpet for Markdown parsing, far more accurate with a
-: Config file at ~/.config/mdless/config.yml
-: Allow inlining of footnotes
-: Nested list indentation
 : False MMD metadata detection
-
-2.0.3
-: Rely on Redcarpet for Markdown parsing, far more accurate with a
-: Config file at ~/.config/mdless/config.yml
-: Allow inlining of footnotes
-: Nested list indentation
-: False MMD metadata detection
-
-2.0.2
-: Rely on Redcarpet for Markdown parsing, far more accurate with a
-: Config file at ~/.config/mdless/config.yml
-: Allow inlining of footnotes
-: Nested list indentation
-
-2.0.1
-: Rely on Redcarpet for Markdown parsing, far more accurate with a
-: Config file at ~/.config/mdless/config.yml
-: Allow inlining of footnotes
-: Nested list indentation
 
 2.0.0
 : Rely on Redcarpet for Markdown parsing, far more accurate with a few losses I'll handle over time
