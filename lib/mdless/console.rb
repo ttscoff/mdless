@@ -538,13 +538,13 @@ module Redcarpet
             longest = longest < @cols ? longest + 1 : @cols
             lines.map do |line|
               if line =~ /^[-.]{3}\s*$/
-                line = "#{color('metadata marker')}#{'%' * longest }"
+                line = "#{color('metadata marker')}#{'%' * longest}"
               else
                 line.sub!(/^(.*?:)[ \t]+(\S)/, '\1 \2')
                 line = "#{color('metadata color')}#{line}"
               end
 
-              line += ("\u00A0" * (longest - line.uncolor.strip.length) ) + xc
+              line += "\u00A0" * (longest - line.uncolor.strip.length) + xc
               line
             end.join("\n") + "#{xc}\n"
           end
@@ -559,7 +559,7 @@ module Redcarpet
             lines.map do |line|
               line.sub!(/^(.*?:)[ \t]+(\S)/, '\1 \2')
               line = "#{color('metadata color')}#{line}"
-              line += "\u00A0" * (longest - line.uncolor.strip.length )
+              line += "\u00A0" * (longest - line.uncolor.strip.length)
               line + xc
             end.join("\n") + "#{"\u00A0" * longest}#{xc}\n"
           end
