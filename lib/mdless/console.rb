@@ -530,17 +530,21 @@ module Redcarpet
           @log.info('Found YAML')
           # YAML
           in_yaml = true
-          input.sub!(/(?i-m)^---[ \t]*\n([\s\S]*?)\n[-.]{3}[ \t]*\n/) do
+          input.sub!(/(?i-m)^---[ \t]*\n([\s\S]*?)\n[-.]{3}[ \t]*\n/m) do
             m = Regexp.last_match
             @log.info('Processing YAML Header')
-            m[0].split(/\n/).map do |line|
+            lines = m[0].split(/\n/)
+            longest = lines.inject { |memo, word| memo.length > word.length ? memo : word }.length
+            longest = longest < @cols ? longest + 1 : @cols
+            lines.map do |line|
               if line =~ /^[-.]{3}\s*$/
-                line = "#{color('metadata marker')}%% #{color('metadata border')}#{line}"
+                line = "#{color('metadata marker')}#{'%' * longest }"
               else
                 line.sub!(/^(.*?:)[ \t]+(\S)/, '\1 \2')
-                line = "#{color('metadata marker')}%% #{color('metadata color')}#{line}"
+                line = "#{color('metadata color')}#{line}"
               end
-              line += ' ' * (@cols - line.uncolor.size) if (@cols - line.uncolor.size).positive?
+
+              line += ("\u00A0" * (longest - line.uncolor.strip.length) ) + xc
               line
             end.join("\n") + "#{xc}\n"
           end
@@ -549,12 +553,15 @@ module Redcarpet
         if !in_yaml && input.gsub(/\n/, ' ') =~ /(?i-m)^[\w ]+:\s+\S+/
           @log.info('Found MMD Headers')
           input.sub!(/(?i-m)^([\S ]+:[\s\S]*?)+(?=\n\n)/) do |mmd|
-            mmd.split(/\n/).map do |line|
+            lines = mmd.split(/\n/)
+            longest = lines.inject { |memo, word| memo.length > word.length ? memo : word }.length
+            longest = longest < @cols ? longest + 1 : @cols
+            lines.map do |line|
               line.sub!(/^(.*?:)[ \t]+(\S)/, '\1 \2')
-              line = "#{color('metadata marker')}%% #{color('metadata color')}#{line}"
-              line += ' ' * (@cols - line.uncolor.size) if (@cols - line.uncolor.size).positive?
-              line
-            end.join("\n") + "#{' ' * @cols}#{xc}\n"
+              line = "#{color('metadata color')}#{line}"
+              line += "\u00A0" * (longest - line.uncolor.strip.length )
+              line + xc
+            end.join("\n") + "#{"\u00A0" * longest}#{xc}\n"
           end
 
         end

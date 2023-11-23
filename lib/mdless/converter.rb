@@ -234,9 +234,10 @@ module CLIMarkdown
       end
     end
 
-    def get_headers(input)
+    def get_headers(string)
       unless @headers && !@headers.empty?
         @headers = []
+        input = string.sub(/(?i-m)^---[ \t]*\n([\s\S]*?)\n[-.]{3}[ \t]*\n/m, '')
         headers = input.scan(/^((?!#!)(\#{1,6})\s*([^#]+?)(?: #+)?\s*|(\S.+)\n([=-]+))$/i)
 
         headers.each do |h|
