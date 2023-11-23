@@ -1,3 +1,6 @@
+2.0.5
+: Better highlighting of metadata (both YAML and MMD)
+
 2.0.4
 : Rely on Redcarpet for Markdown parsing, far more accurate with a
 : Config file at ~/.config/mdless/config.yml
