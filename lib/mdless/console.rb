@@ -613,13 +613,14 @@ module Redcarpet
                                  end
         end
 
+        input = color_meta(input)
+
         if @options[:taskpaper]
           input = CLIMarkdown::TaskPaper.highlight(input, @theme)
           input = highlight_tags(input)
           return input
         end
 
-        input = color_meta(input)
 
         ## Replace setex headers with ATX
         input.gsub!(/^([^\n]+)\n={2,}\s*$/m, "# \\1\n")

@@ -1,3 +1,12 @@
+2.0.15
+: Highlight [[wiki links]]
+: TaskPaper rendering refinements
+: Handle TaskPaper tasks without project if --taskpaper is enabled
+: Wiki link highlighting is optional with `--[no-]wiki-links` and can be set in config
+: Nil error on short files
+: Project regex matching `- PROJECT NAME:`
+: If taskpaper is true, avoid all parsing other than tasks, projects, notes, and tags
+
 2.0.8
 : Image rendering with chafa improved, still have to figure out a way to make sure content breaks around the embedded image
 : Only detect mmd headers on first line
