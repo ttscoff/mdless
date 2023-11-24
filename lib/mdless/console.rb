@@ -875,7 +875,7 @@ module Redcarpet
         # lists
         input = fix_lists(input, 0)
         input = render_images(input) if @options[:local_images]
-        input = highlight_tags(input) if @options[:at_tags] || options[:taskpaper]
+        input = highlight_tags(input) if @options[:at_tags] || @options[:taskpaper]
         fix_colors(input)
       end
     end

@@ -105,6 +105,16 @@ module CLIMarkdown
                              end
         end
 
+        @options[:lax_spacing] ||= true
+        opts.on('--[no-]lax-spacing', 'Allow lax spacing') do |opt|
+          @options[:lax_spacing] = opt
+        end
+
+        @options[:intra_emphasis] ||= true
+        opts.on('--[no-]intra-emphasis', 'Parse emphasis inside of words (e.g. Mark_down_)') do |opt|
+          @options[:intra_emphasis] = opt
+        end
+
         @options[:list] ||= false
         opts.on('-l', '--list', 'List headers in document and exit') do
           @options[:list] = true
@@ -189,12 +199,13 @@ module CLIMarkdown
       renderer.options = @options
 
       markdown = Redcarpet::Markdown.new(renderer,
+                                         no_intra_emphasis: !@options[:intra_emphasis],
                                          autolink: true,
                                          fenced_code_blocks: true,
                                          footnotes: true,
                                          hard_wrap: false,
                                          highlight: true,
-                                         lax_spacing: true,
+                                         lax_spacing: @options[:lax_spacing],
                                          quote: false,
                                          space_after_headers: false,
                                          strikethrough: true,
