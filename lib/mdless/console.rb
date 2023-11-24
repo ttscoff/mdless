@@ -613,7 +613,11 @@ module Redcarpet
                                  end
         end
 
-        input = CLIMarkdown::TaskPaper.highlight(input, @theme) if @options[:taskpaper]
+        if @options[:taskpaper]
+          input = CLIMarkdown::TaskPaper.highlight(input, @theme)
+          input = highlight_tags(input)
+          return input
+        end
 
         input = color_meta(input)
 

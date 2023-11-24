@@ -37,7 +37,6 @@ module CLIMarkdown
       end
 
       def is_taskpaper?(input)
-        pp input.to_enum(:scan, PROJECT_RX).map { Regexp.last_match }
         projects = input.split(PROJECT_RX)
         tasks = 0
         if projects.count > 1
