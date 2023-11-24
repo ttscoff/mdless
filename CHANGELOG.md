@@ -1,3 +1,7 @@
+2.0.8
+: Image rendering with chafa improved, still have to figure out a way to make sure content breaks around the embedded image
+: Only detect mmd headers on first line
+
 2.0.7
 : Render links as reference links at the end of the file (`--links ref`) or per-paragraph (`--links para`). Defaults to inline (`--links inline`)
 : Pad numbers on headline listing to preserve indentation

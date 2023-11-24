@@ -47,11 +47,15 @@ module CLIMarkdown
         opts.on('-i', '--images=TYPE',
                 'Include [local|remote (both)] images in output (requires chafa or imgcat, default NONE).') do |type|
           if exec_available('imgcat') || exec_available('chafa')
-            if type =~ /^(r|b|a)/i
+            case type
+            when /^(r|b|a)/i
               @options[:local_images] = true
               @options[:remote_images] = true
-            elsif type =~ /^l/i
+            when /^l/i
               @options[:local_images] = true
+            when /^n/
+              @options[:local_images] = false
+              @options[:remote_images] = false
             end
           else
             @log.warn('images turned on but imgcat/chafa not found')
