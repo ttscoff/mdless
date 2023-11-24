@@ -858,7 +858,7 @@ module Redcarpet
             pre_element,
             color('link brackets'),
             '[[',
-            color('link url'),
+            color('link text'),
             content,
             color('link brackets'),
             ']]',
@@ -871,7 +871,7 @@ module Redcarpet
       def postprocess(input)
         input.scrub!
 
-        input = highlight_wiki_links(input)
+        input = highlight_wiki_links(input) if @options[:wiki_links]
 
         if @options[:inline_footnotes]
           input = insert_footnotes(input)

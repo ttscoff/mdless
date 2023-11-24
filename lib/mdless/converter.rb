@@ -146,6 +146,11 @@ module CLIMarkdown
           @options[:at_tags] = true
         end
 
+        @options[:wiki_links] ||= false
+        opts.on('--[no-]wiki-links', 'Highlight [[wiki links]]') do |opt|
+          @options[:wiki_links] = opt
+        end
+
         opts.on('-v', '--version', 'Display version number') do
           puts version
           exit
