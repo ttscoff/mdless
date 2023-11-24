@@ -348,7 +348,6 @@ module Redcarpet
 
       def color_image_tag(link, title, alt_text)
         [
-          pre_element,
           color('image bang'),
           '!',
           color('image brackets'),
@@ -363,7 +362,6 @@ module Redcarpet
           color('image brackets'),
           ')',
           xc,
-          post_element
         ].join
       end
 
@@ -507,7 +505,7 @@ module Redcarpet
       end
 
       def color_tags(html)
-        html.gsub(%r{(<\S+( .*?)?/?>)}, "#{pre_element}#{color('html brackets')}\\1#{xc}#{post_element}")
+        html.gsub(%r{(<\S+( .*?)?/?>)}, "#{color('html brackets')}\\1#{xc}")
       end
 
       def raw_html(raw_html)
@@ -769,12 +767,12 @@ module Redcarpet
       end
 
       def fix_colors(input)
-        input.gsub(/<<pre(?<id>\d+)>>(?<content>.*?)<<post\k<id>>>/) do
+        input.gsub(/<<pre(?<id>\d+)>>(?<content>.*?)<<post\k<id>>>/m) do
           m = Regexp.last_match
           pre = m.pre_match
           last_color = pre.last_color_code
-          "#{m['content']}#{last_color}"
-        end
+          "#{fix_colors(m['content'])}#{last_color}"
+        end.gsub(/<<(pre|post)\d+>>/, '')
       end
 
       def postprocess(input)
