@@ -45,7 +45,7 @@ module CLIMarkdown
         @options[:local_images] ||= false
         @options[:remote_images] ||= false
         opts.on('-i', '--images=TYPE',
-                'Include [local|remote (both)] images in output (requires chafa or imgcat, default NONE).') do |type|
+                'Include [local|remote (both)|none] images in output (requires chafa or imgcat, default none).') do |type|
           if exec_available('imgcat') || exec_available('chafa')
             case type
             when /^(r|b|a)/i
@@ -75,6 +75,23 @@ module CLIMarkdown
           @options[:syntax_higlight] = p
         end
 
+        @options[:update_config] ||= false
+        opts.on('--update_config', 'Update the configuration file with new keys and current command line options') do
+          @options[:update_config] = true
+        end
+
+        @options[:taskpaper] ||= false
+        opts.on('--taskpaper=OPTION', 'Highlight TaskPaper format (true|false|auto)') do |tp|
+          @options[:taskpaper] = case tp
+                                 when /^[ty1]/
+                                   true
+                                 when /^a/
+                                   :auto
+                                 else
+                                   false
+                                 end
+        end
+
         @options[:links] ||= :inline
         opts.on('--links=FORMAT',
                 'Link style ([inline, reference, paragraph], default inline, "paragraph" will position reference links after each paragraph)') do |fmt|
@@ -88,6 +105,16 @@ module CLIMarkdown
                              end
         end
 
+        @options[:lax_spacing] ||= true
+        opts.on('--[no-]lax-spacing', 'Allow lax spacing') do |opt|
+          @options[:lax_spacing] = opt
+        end
+
+        @options[:intra_emphasis] ||= true
+        opts.on('--[no-]intra-emphasis', 'Parse emphasis inside of words (e.g. Mark_down_)') do |opt|
+          @options[:intra_emphasis] = opt
+        end
+
         @options[:list] ||= false
         opts.on('-l', '--list', 'List headers in document and exit') do
           @options[:list] = true
@@ -98,6 +125,7 @@ module CLIMarkdown
           @options[:pager] = p
         end
 
+        @options[:pager] ||= true
         opts.on('-P', 'Disable pager (same as --no-pager)') do
           @options[:pager] = false
         end
@@ -111,6 +139,11 @@ module CLIMarkdown
         @options[:theme] ||= 'default'
         opts.on('-t', '--theme=THEME_NAME', 'Specify an alternate color theme to load') do |theme|
           @options[:theme] = theme
+        end
+
+        @options[:at_tags] ||= false
+        opts.on('-@', '--at_tags', 'Highlight @tags and values in the document') do
+          @options[:at_tags] = true
         end
 
         opts.on('-v', '--version', 'Display version number') do
@@ -137,12 +170,13 @@ module CLIMarkdown
         exit 1
       end
 
-      unless File.exist?(config)
+      if !File.exist?(config) || @options[:update_config]
         FileUtils.mkdir_p(File.dirname(config))
         File.open(config, 'w') do |f|
           opts = @options.dup
           opts.delete(:list)
           opts.delete(:section)
+          opts.delete(:update_config)
           f.puts YAML.dump(opts)
           warn "Config file saved to #{config}"
         end
@@ -165,12 +199,13 @@ module CLIMarkdown
       renderer.options = @options
 
       markdown = Redcarpet::Markdown.new(renderer,
+                                         no_intra_emphasis: !@options[:intra_emphasis],
                                          autolink: true,
                                          fenced_code_blocks: true,
                                          footnotes: true,
                                          hard_wrap: false,
                                          highlight: true,
-                                         lax_spacing: true,
+                                         lax_spacing: @options[:lax_spacing],
                                          quote: false,
                                          space_after_headers: false,
                                          strikethrough: true,
@@ -189,7 +224,7 @@ module CLIMarkdown
           rescue StandardError
             input = IO.read(file)
           end
-          input.gsub!(/\r?\n/, "\n")
+          input.gsub!(/\r?\n/, "\n").scrub!
           if @options[:list]
             puts list_headers(input)
             Process.exit 0
@@ -200,11 +235,7 @@ module CLIMarkdown
         printout
       elsif !$stdin.isatty
         @file = nil
-        begin
-          input = $stdin.read.force_encoding('utf-8')
-        rescue StandardError
-          input = $stdin.read
-        end
+        input = $stdin.read.scrub
         input.gsub!(/\r?\n/, "\n")
         if @options[:list]
           puts list_headers(input)

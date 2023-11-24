@@ -19,6 +19,7 @@ do_thing()
 
 How about definition lists?
 : Do those work with redcarpet?
+: What about @tags? @tag(value 2o2-3)
 
 Just some text[^fn0] before we get started.
 

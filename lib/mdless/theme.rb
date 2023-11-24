@@ -103,7 +103,17 @@ module CLIMarkdown
         'equation' => 'b blue'
       },
       'super' => 'b green',
-      'text' => 'white'
+      'text' => 'white',
+      'at_tags' => {
+        'tag' => 'magenta',
+        'value' => 'b white'
+      },
+      'taskpaper' => {
+        'marker' => 'b white',
+        'project' => 'b green',
+        'task' => 'white',
+        'note' => 'd white'
+      }
     }
 
     def load_theme_file(theme_file)

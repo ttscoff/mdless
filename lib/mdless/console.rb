@@ -3,6 +3,7 @@ module Redcarpet
     class Console < Base
       include CLIMarkdown::Colors
       include CLIMarkdown::Theme
+
       attr_writer :theme, :cols, :log, :options, :file
 
       @@listitemid = 0
@@ -550,8 +551,8 @@ module Redcarpet
         @@headers
       end
 
-      def preprocess(input)
-        in_yaml = false
+      def color_meta(text)
+        input = text.dup
         first_line = input.split("\n").first
         if first_line =~ /(?i-m)^---[ \t]*?$/
           @log.info('Found YAML')
@@ -592,12 +593,19 @@ module Redcarpet
               line + xc
             end.join("\n") + "#{"\u00A0" * longest}#{xc}\n"
           end
-
         end
 
+        input
+      end
+
+      def preprocess(input)
+        in_yaml = false
+
+        input = color_meta(input)
+
         ## Replace setex headers with ATX
-        input.gsub!(/^([^\n]+)\n={3,}\s*$/m, "# \\1\n")
-        input.gsub!(/^([^\n]+?)\n-{3,}\s*$/m, "## \\1\n")
+        input.gsub!(/^([^\n]+)\n={2,}\s*$/m, "# \\1\n")
+        input.gsub!(/^([^\n]+?)\n-{2,}\s*$/m, "## \\1\n")
 
         @@headers = get_headers(input)
 
@@ -638,6 +646,20 @@ module Redcarpet
           m = Regexp.last_match
           "#{color('dd term')}#{m['term']}#{xc}#{color('dd color')}#{color_dd_def(m['def'])}"
         end
+
+        if @options[:taskpaper] == :auto
+          @options[:taskpaper] = if @file =~ /\.taskpaper/
+                                   @log.info('TaskPaper extension detected')
+                                   true
+                                 elsif CLIMarkdown::TaskPaper.is_taskpaper?(input)
+                                   @log.info('TaskPaper document detected')
+                                   true
+                                 else
+                                   false
+                                 end
+        end
+
+        input = CLIMarkdown::TaskPaper.highlight(input, @theme) if @options[:taskpaper]
 
         input
       end
@@ -808,6 +830,27 @@ module Redcarpet
         end
       end
 
+      def highlight_tags(input)
+        tag_color = color('at_tags tag')
+        value_color = color('at_tags value')
+        input.gsub(/(?<pre>\s|m)(?<tag>@[^ ("']+)(?:(?<lparen>\()(?<value>.*?)(?<rparen>\)))?/) do
+          m = Regexp.last_match
+          last_color = m.pre_match.last_color_code
+          [
+            m['pre'],
+            tag_color,
+            m['tag'],
+            m['lparen'],
+            value_color,
+            m['value'],
+            tag_color,
+            m['rparen'],
+            xc,
+            last_color
+          ].join
+        end
+      end
+
       def postprocess(input)
         input.scrub!
 
@@ -832,6 +875,7 @@ module Redcarpet
         # lists
         input = fix_lists(input, 0)
         input = render_images(input) if @options[:local_images]
+        input = highlight_tags(input) if @options[:at_tags] || @options[:taskpaper]
         fix_colors(input)
       end
     end
