@@ -851,8 +851,27 @@ module Redcarpet
         end
       end
 
+      def highlight_wiki_links(input)
+        input.gsub(/\[\[(.*?)\]\]/) do
+          content = Regexp.last_match(1)
+          [
+            pre_element,
+            color('link brackets'),
+            '[[',
+            color('link url'),
+            content,
+            color('link brackets'),
+            ']]',
+            xc,
+            post_element
+          ].join
+        end
+      end
+
       def postprocess(input)
         input.scrub!
+
+        input = highlight_wiki_links(input)
 
         if @options[:inline_footnotes]
           input = insert_footnotes(input)
