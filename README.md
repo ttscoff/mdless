@@ -94,6 +94,21 @@ Font and color settings are set using a string of color names and modifiers. A t
 
 Some extra (non-color) settings are available for certain keys, e.g. `pad_char` to define the right padding character used on level 1 and 2 headlines. Note that you can change the [Pygments](http://pygments.org/) theme used for syntax highlighting with the code_block.pygments_theme setting. For a list of available styles (assuming you have Pygments installed), use `pygmentize -L styles`.
 
+The display of characters around emphasis and code spans can be configured. By default, the surrounding character for bold is `**`, italic is `_`, and code span is \`. You can leave these keys empty to not display characters at all. For triple-emphasized text, the text will be surrounded by italic and bold characters, in that order.
+
+```yaml
+emphasis:
+  bold: b
+  bold_character: "**"
+  italic: u i
+  italic_character: ""
+  bold-italic: b u i
+code_span:
+  marker: b white
+  color: b white on_intense_black
+  character: ""
+```
+
 *Note:* the ANSI escape codes are reset every time the color changes, so, for example, if you have a key that defines underlines for the url in a link, the underline will automatically be removed when it gets to a bracket. This also means that if you define a background color, you'll need to define it again on all the keys that it should affect.
 
 Base colors:

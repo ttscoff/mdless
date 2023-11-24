@@ -1,6 +1,5 @@
 module CLIMarkdown
   module Theme
-
     THEME_DEFAULTS = {
       'metadata' => {
         'border' => 'd blue on_black',
@@ -9,9 +8,12 @@ module CLIMarkdown
       },
       'emphasis' => {
         'bold' => 'b',
+        'bold_character' => '**',
         'italic' => 'u i',
+        'italic_character' => '_',
         'bold-italic' => 'b u i'
       },
+      'highlight' => 'b black on_yellow',
       'h1' => {
         'color' => 'b intense_black on_white',
         'pad' => 'd black on_white',
@@ -58,7 +60,8 @@ module CLIMarkdown
       },
       'code_span' => {
         'marker' => 'b white',
-        'color' => 'b white on_intense_black'
+        'color' => 'b white on_intense_black',
+        'character' => '`'
       },
       'code_block' => {
         'marker' => 'intense_black',
