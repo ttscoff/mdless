@@ -601,6 +601,20 @@ module Redcarpet
       def preprocess(input)
         in_yaml = false
 
+        if @options[:taskpaper] == :auto
+          @options[:taskpaper] = if @file =~ /\.taskpaper/
+                                   @log.info('TaskPaper extension detected')
+                                   true
+                                 elsif CLIMarkdown::TaskPaper.is_taskpaper?(input)
+                                   @log.info('TaskPaper document detected')
+                                   true
+                                 else
+                                   false
+                                 end
+        end
+
+        input = CLIMarkdown::TaskPaper.highlight(input, @theme) if @options[:taskpaper]
+
         input = color_meta(input)
 
         ## Replace setex headers with ATX
@@ -646,20 +660,6 @@ module Redcarpet
           m = Regexp.last_match
           "#{color('dd term')}#{m['term']}#{xc}#{color('dd color')}#{color_dd_def(m['def'])}"
         end
-
-        if @options[:taskpaper] == :auto
-          @options[:taskpaper] = if @file =~ /\.taskpaper/
-                                   @log.info('TaskPaper extension detected')
-                                   true
-                                 elsif CLIMarkdown::TaskPaper.is_taskpaper?(input)
-                                   @log.info('TaskPaper document detected')
-                                   true
-                                 else
-                                   false
-                                 end
-        end
-
-        input = CLIMarkdown::TaskPaper.highlight(input, @theme) if @options[:taskpaper]
 
         input
       end
@@ -833,7 +833,7 @@ module Redcarpet
       def highlight_tags(input)
         tag_color = color('at_tags tag')
         value_color = color('at_tags value')
-        input.gsub(/(?<pre>\s|m)(?<tag>@[^ ("']+)(?:(?<lparen>\()(?<value>.*?)(?<rparen>\)))?/) do
+        input.gsub(/(?<pre>\s|m)(?<tag>@[^ \].?!,("']+)(?:(?<lparen>\()(?<value>.*?)(?<rparen>\)))?/) do
           m = Regexp.last_match
           last_color = m.pre_match.last_color_code
           [

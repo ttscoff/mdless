@@ -2,8 +2,8 @@
 
 module CLIMarkdown
   module TaskPaper
-    TASK_RX = /^(?<indent>(?:    |\t)+)(?<marker>-)(?<task>\s+\S.*?)$/
-    PROJECT_RX = /^(?<indent>(?:    |\t)*)(?<project>\S.*?:)(?<tags> @\S+)*$/
+    TASK_RX = /^(?<indent>(?:    |\t)*)(?<marker>-)(?<task>\s+\S.*?)$/
+    PROJECT_RX = /^(?<indent>(?:    |\t)*)(?<project>[^-]\S.*?:)(?<tags> @\S+)*$/
     NOTE_RX = /^(?<indent>(?:    |\t)+)(?<note>(?<!- ).*?(?!:))$/
 
     class << self
