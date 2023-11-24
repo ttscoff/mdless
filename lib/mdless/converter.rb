@@ -224,7 +224,10 @@ module CLIMarkdown
           rescue StandardError
             input = IO.read(file)
           end
-          input.gsub!(/\r?\n/, "\n").scrub!
+          raise 'Nil input' if input.nil?
+
+          input.scrub!
+          input.gsub!(/\r?\n/, "\n")
           if @options[:list]
             puts list_headers(input)
             Process.exit 0
