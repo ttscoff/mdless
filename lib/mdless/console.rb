@@ -366,73 +366,7 @@ module Redcarpet
       end
 
       def image(link, title, alt_text)
-        if (exec_available('imgcat') || exec_available('chafa')) && @options[:local_images]
-          if exec_available('imgcat')
-            @log.info('Using imgcat for image rendering')
-          elsif exec_available('chafa')
-            @log.info('Using chafa for image rendering')
-          end
-          img_path = link
-          if img_path =~ /^http/ && @options[:remote_images]
-            if exec_available('imgcat')
-              @log.info('Using imgcat for image rendering')
-              begin
-                res, s = Open3.capture2(%(curl -sS "#{img_path}" 2> /dev/null | imgcat))
-
-                if s.success?
-                  pre = !alt_text.nil? ? "    #{c(%i[d blue])}[#{alt_text.strip}]\n" : ''
-                  post = !title.nil? ? "\n    #{c(%i[b blue])}-- #{title} --" : ''
-                  result = pre + res + post
-                end
-              rescue StandardError => e
-                @log.error(e)
-              end
-            elsif exec_available('chafa')
-              @log.info('Using chafa for image rendering')
-              term = '-f sixels'
-              term = ENV['TERMINAL_PROGRAM'] =~ /iterm/i ? '-f iterm' : term
-              term = ENV['TERMINAL_PROGRAM'] =~ /kitty/i ? '-f kitty' : term
-              FileUtils.rm_r '.mdless_tmp', force: true if File.directory?('.mdless_tmp')
-              Dir.mkdir('.mdless_tmp')
-              Dir.chdir('.mdless_tmp')
-              `curl -SsO #{img_path} 2> /dev/null`
-              tmp_img = File.basename(img_path)
-              img = `chafa #{term} "#{tmp_img}"`
-              pre = alt_text ? "    #{c(%i[d blue])}[#{alt_text.strip}]\n" : ''
-              post = title ? "\n    #{c(%i[b blue])}-- #{tail} --" : ''
-              result = pre + img + post
-              Dir.chdir('..')
-              FileUtils.rm_r '.mdless_tmp', force: true
-            else
-              @log.warn('No viewer for remote images')
-            end
-          else
-            if img_path =~ %r{^[~/]}
-              img_path = File.expand_path(img_path)
-            elsif @file
-              base = File.expand_path(File.dirname(@file))
-              img_path = File.join(base, img_path)
-            end
-            if File.exist?(img_path)
-              pre = !alt_text.nil? ? "    #{c(%i[d blue])}[#{alt_text.strip}]\n" : ''
-              post = !title.nil? ? "\n    #{c(%i[b blue])}-- #{title} --" : ''
-              if exec_available('imgcat')
-                img = `imgcat "#{img_path}"`
-              elsif exec_available('chafa')
-                term = '-f sixels'
-                term = ENV['TERMINAL_PROGRAM'] =~ /iterm/i ? '-f iterm' : term
-                term = ENV['TERMINAL_PROGRAM'] =~ /kitty/i ? '-f kitty' : term
-                img = `chafa #{term} "#{img_path}"`
-              end
-              result = pre + img + post
-            end
-          end
-        end
-        if result.nil?
-          color_image_tag(link, title, alt_text)
-        else
-          "#{pre_element}#{result}#{xc}#{post_element}"
-        end
+        "<<img>>#{link}||#{title}||#{alt_text}<</img>>"
       end
 
       def linebreak
@@ -775,7 +709,108 @@ module Redcarpet
         end.gsub(/<<(pre|post)\d+>>/, '')
       end
 
+      def render_images(input)
+        input.gsub(%r{<<img>>(.*?)<</img>>}) do
+          link, title, alt_text = Regexp.last_match(1).split(/\|\|/)
+
+          if (exec_available('imgcat') || exec_available('chafa')) && @options[:local_images]
+            if exec_available('imgcat')
+              @log.info('Using imgcat for image rendering')
+            elsif exec_available('chafa')
+              @log.info('Using chafa for image rendering')
+            end
+            img_path = link
+            if img_path =~ /^http/ && @options[:remote_images]
+              if exec_available('imgcat')
+                @log.info('Using imgcat for image rendering')
+                begin
+                  res, s = Open3.capture2(%(curl -sS "#{img_path}" 2> /dev/null | imgcat))
+
+                  if s.success?
+                    pre = !alt_text.nil? ? "    #{c(%i[d blue])}[#{alt_text.strip}]\n" : ''
+                    post = !title.nil? ? "\n    #{c(%i[b blue])}-- #{title} --" : ''
+                    result = pre + res + post
+                  end
+                rescue StandardError => e
+                  @log.error(e)
+                end
+              elsif exec_available('chafa')
+                @log.info('Using chafa for image rendering')
+                term = '-f sixels'
+                term = ENV['TERMINAL_PROGRAM'] =~ /iterm/i ? '-f iterm' : term
+                term = ENV['TERMINAL_PROGRAM'] =~ /kitty/i ? '-f kitty' : term
+                FileUtils.rm_r '.mdless_tmp', force: true if File.directory?('.mdless_tmp')
+                Dir.mkdir('.mdless_tmp')
+                Dir.chdir('.mdless_tmp')
+                `curl -SsO #{img_path} 2> /dev/null`
+                tmp_img = File.basename(img_path)
+                img = `chafa #{term} "#{tmp_img}"`
+                pre = alt_text ? "    #{c(%i[d blue])}[#{alt_text.strip}]\n" : ''
+                post = title ? "\n    #{c(%i[b blue])}-- #{tail} --" : ''
+                result = pre + img + post
+                Dir.chdir('..')
+                FileUtils.rm_r '.mdless_tmp', force: true
+              else
+                @log.warn('No viewer for remote images')
+              end
+            else
+              if img_path =~ %r{^[~/]}
+                img_path = File.expand_path(img_path)
+              elsif @file
+                base = File.expand_path(File.dirname(@file))
+                img_path = File.join(base, img_path)
+              end
+              if File.exist?(img_path)
+                pre = !alt_text.nil? ? "    #{c(%i[d blue])}[#{alt_text.strip}]\n" : ''
+                post = !title.nil? ? "\n    #{c(%i[b blue])}-- #{title} --" : ''
+                if exec_available('imgcat')
+                  img = `imgcat "#{img_path}"`
+                elsif exec_available('chafa')
+                  term = '-f sixels'
+                  term = ENV['TERMINAL_PROGRAM'] =~ /iterm/i ? '-f iterm' : term
+                  term = ENV['TERMINAL_PROGRAM'] =~ /kitty/i ? '-f kitty' : term
+                  img = `chafa #{term} "#{img_path}"`
+                end
+                result = pre + img + post
+              end
+            end
+          end
+          if result.nil?
+            color_image_tag(link, title, alt_text)
+          else
+            "#{pre_element}#{result}#{xc}#{post_element}"
+          end
+        end
+      end
+
+      def fix_equations(input)
+        input.gsub(/((\\\\\[|\$\$)(.*?)(\\\\\]|\$\$)|(\\\\\(|\$)(.*?)(\\\\\)|\$))/) do
+          m = Regexp.last_match
+          if m[2]
+            brackets = [m[2], m[4]]
+            equat = m[3]
+          else
+            brackets = [m[5], m[7]]
+            equat = m[6]
+          end
+          [
+            pre_element,
+            color('math brackets'),
+            brackets[0],
+            xc,
+            color('math equation'),
+            equat,
+            color('math brackets'),
+            brackets[1],
+            xc,
+            post_element
+          ].join
+        end
+      end
+
       def postprocess(input)
+        input.scrub!
+
         if @options[:inline_footnotes]
           input = insert_footnotes(input)
         else
@@ -789,26 +824,14 @@ module Redcarpet
         # escaped characters
         input.gsub!(/\\(\S)/, '\1')
         # equations
-        input.gsub!(/((\\\\\[|\$\$)(.*?)(\\\\\]|\$\$)|(\\\\\(|\$)(.*?)(\\\\\)|\$))/) do
-          m = Regexp.last_match
-          if m[2]
-            brackets = [m[2], m[4]]
-            equat = m[3]
-          else
-            brackets = [m[5], m[7]]
-            equat = m[6]
-          end
-          "#{pre_element}#{c(%i[b black])}#{brackets[0]}#{xc}#{c(%i[b blue])}#{equat}#{c(%i[b black])}#{brackets[1]}#{xc}#{post_element}"
-        end
+        input = fix_equations(input)
         # misc html
-        input.gsub!(%r{<br */?>}, "\n")
+        input.gsub!(%r{<br */?>}, "#{pre_element}\n#{post_element}")
         # format links
-        if @options[:links] == :reference || @options[:links] == :paragraph
-          input = reference_links(input)
-        end
+        input = reference_links(input) if @options[:links] == :reference || @options[:links] == :paragraph
         # lists
         input = fix_lists(input, 0)
-
+        input = render_images(input) if @options[:local_images]
         fix_colors(input)
       end
     end

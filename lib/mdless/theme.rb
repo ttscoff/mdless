@@ -72,6 +72,13 @@ module CLIMarkdown
         'eol' => 'intense_black on_black',
         'pygments_theme' => 'monokai'
       },
+      'blockquote' => {
+        'marker' => {
+          'character' => '>',
+          'color' => 'yellow'
+        },
+        'color' => 'b white'
+      },
       'dd' => {
         'term' => 'black on_white',
         'marker' => 'd red',
@@ -90,6 +97,10 @@ module CLIMarkdown
       'html' => {
         'brackets' => 'd yellow on_black',
         'color' => 'yellow on_black'
+      },
+      'math' => {
+        'brackets' => 'b black',
+        'equation' => 'b blue'
       },
       'super' => 'b green',
       'text' => 'white'
