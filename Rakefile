@@ -21,28 +21,29 @@ desc 'Install the gem in the current ruby'
 task :install, :all do |t, args|
   args.with_defaults(:all => false)
   if args[:all]
-    sh "rvm all do gem install pkg/*.gem"
-    sh "sudo gem install pkg/*.gem"
+    sh 'rvm all do gem install pkg/*.gem'
+    sh 'sudo gem install pkg/*.gem'
   else
-    sh "gem install pkg/*.gem"
+    sh 'gem install pkg/*.gem'
   end
 end
 
 desc 'Development version check'
-task :ver do |t|
-  system "grep VERSION lib/mdless/version.rb"
+task :ver do
+  system 'grep VERSION lib/mdless/version.rb'
 end
 
 desc 'Bump incremental version number'
 task :bump, :type do |t, args|
-  args.with_defaults(:type => "inc")
-  version_file = "lib/mdless/version.rb"
+  args.with_defaults(type: 'inc')
+  version_file = 'lib/mdless/version.rb'
   content = IO.read(version_file)
-  content.sub!(/VERSION = '(\d+)\.(\d+)\.(\d+)(\S+)?'/) {|m|
-    major = $1.to_i
-    minor = $2.to_i
-    inc = $3.to_i
-    pre = $4
+  content.sub!(/VERSION = '(?<maj>\d+)\.(?<min>\d+)\.(?<pat>\d+)(?<pre>\S+)?'/) do
+    m = Regexp.last_match
+    major = m['maj'].to_i
+    minor = m['min'].to_i
+    inc = m['pat'].to_i
+    pre = m['pre']
 
     case args[:type]
     when /^maj/
@@ -58,12 +59,10 @@ task :bump, :type do |t, args|
 
     $stdout.print "#{major}.#{minor}.#{inc}#{pre}"
     "VERSION = '#{major}.#{minor}.#{inc}#{pre}'"
-  }
-  File.open(version_file, 'w+') {|f|
-    f.puts content
-  }
+  end
+
+  File.open(version_file, 'w+') { |f| f.puts content }
 end
 
-task :default => [:test,:features]
-task :build => [:clobber,:rdoc,:package]
-
+task default: %i[test features]
+task build: %i[clobber rdoc package]

@@ -114,62 +114,6 @@ module CLIMarkdown
       escape + "\e[#{[fg, bg].delete_if(&:nil?).join(';')}m"
     end
 
-    # Get the calculated ANSI color at the end of the
-    # string
-    #
-    # @return     ANSI escape sequence to match color
-    #
-    def last_color_code
-      m = scan(ESCAPE_REGEX)
-
-      em = ['0']
-      fg = nil
-      bg = nil
-      rgbf = nil
-      rgbb = nil
-
-      m.each do |c|
-        case c
-        when '0'
-          em = ['0']
-          fg, bg, rgbf, rgbb = nil
-        when /^[34]8/
-          case c
-          when /^3/
-            fg = nil
-            rgbf = c
-          when /^4/
-            bg = nil
-            rgbb = c
-          end
-        else
-          c.split(/;/).each do |i|
-            x = i.to_i
-            if x <= 9
-              em << x
-            elsif x >= 30 && x <= 39
-              rgbf = nil
-              fg = x
-            elsif x >= 40 && x <= 49
-              rgbb = nil
-              bg = x
-            elsif x >= 90 && x <= 97
-              rgbf = nil
-              fg = x
-            elsif x >= 100 && x <= 107
-              rgbb = nil
-              bg = x
-            end
-          end
-        end
-      end
-
-      escape = "\e[#{em.join(';')}m"
-      escape += "\e[#{rgbb}m" if rgbb
-      escape += "\e[#{rgbf}m" if rgbf
-      escape + "\e[#{[fg, bg].delete_if(&:nil?).join(';')}m"
-    end
-
     def blackout(bgcolor)
       key = bgcolor.to_sym
       bg = COLORS.key?(key) ? COLORS[key] : 40

@@ -58,15 +58,16 @@ The pager used is determined by system configuration in this order of preference
     -c, --[no-]color                 Colorize output (default on)
     -d, --debug LEVEL                Level of debug messages to output (1-4, 4 to see all messages)
     -h, --help                       Display this screen
-    -i, --images=TYPE                Include [local|remote (both)] images in output (requires chafa or imgcat, default NONE).
+    -i, --images=TYPE                Include [local|remote (both)|none] images in output (requires chafa or imgcat, default none).
     -I, --all-images                 Include local and remote images in output (requires imgcat or chafa)
         --syntax                     Syntax highlight code blocks
-        --links=FORMAT               Link style ([inline, reference], default inline) [NOT CURRENTLY IMPLEMENTED]
+        --links=FORMAT               Link style ([inline, reference, paragraph], default inline, "paragraph" will position reference links after each paragraph)
     -l, --list                       List headers in document and exit
     -p, --[no-]pager                 Formatted output to pager (default on)
     -P                               Disable pager (same as --no-pager)
     -s, --section=NUMBER[,NUMBER]    Output only a headline-based section of the input (numeric from --list)
     -t, --theme=THEME_NAME           Specify an alternate color theme to load
+    -@, --at_tags                    Highlight @tags and values in the document
     -v, --version                    Display version number
     -w, --width=COLUMNS              Column width to format for (default: terminal width)
         --[no-]inline_footnotes      Display footnotes immediately after the paragraph that references them
