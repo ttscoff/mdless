@@ -294,26 +294,52 @@ module Redcarpet
         [
           pre_element,
           color('code_span marker'),
-          '`',
+          @theme['code_span']['character'],
           color('code_span color'),
           code,
           color('code_span marker'),
-          '`',
+          @theme['code_span']['character'],
           xc,
           post_element
         ].join('')
       end
 
       def double_emphasis(text)
-        "#{pre_element}#{color('emphasis bold')}#{text}#{xc}#{post_element}"
+        [
+          pre_element,
+          color('emphasis bold'),
+          @theme['emphasis']['bold_character'],
+          text,
+          @theme['emphasis']['bold_character'],
+          xc,
+          post_element
+        ].join
       end
 
       def emphasis(text)
-        "#{pre_element}#{color('emphasis italic')}#{text}#{xc}#{post_element}"
+        [
+          pre_element,
+          color('emphasis italic'),
+          @theme['emphasis']['italic_character'],
+          text,
+          @theme['emphasis']['italic_character'],
+          xc,
+          post_element
+        ].join
       end
 
       def triple_emphasis(text)
-        "#{pre_element}#{color('emphasis bold-italic')}#{text}#{xc}#{post_element}"
+        [
+          pre_element,
+          color('emphasis bold-italic'),
+          @theme['emphasis']['italic_character'],
+          @theme['emphasis']['bold_character'],
+          text,
+          @theme['emphasis']['bold_character'],
+          @theme['emphasis']['italic_character'],
+          xc,
+          post_element
+        ].join
       end
 
       def highlight(text)
