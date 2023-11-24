@@ -7,10 +7,20 @@ module Redcarpet
 
       @@listitemid = 0
       @@listid = 0
+      @@elementid = 0
       @@footnotes = []
       @@headers = []
       @@links = []
       @@footer_links = []
+
+      def pre_element
+        @@elementid += 1
+        "<<pre#{@@elementid}>>"
+      end
+
+      def post_element
+        "<<post#{@@elementid}>>"
+      end
 
       def xc
         x + color('text')
@@ -268,46 +278,51 @@ module Redcarpet
 
       def autolink(link, _)
         [
+          pre_element,
           color('link brackets'),
           '<',
           color('link url'),
           link,
           color('link brackets'),
           '>',
-          xc
+          xc,
+          post_element
         ].join('')
       end
 
       def codespan(code)
         [
+          pre_element,
           color('code_span marker'),
           '`',
           color('code_span color'),
           code,
           color('code_span marker'),
           '`',
-          xc
+          xc,
+          post_element
         ].join('')
       end
 
       def double_emphasis(text)
-        "#{color('emphasis bold')}#{text}#{xc}"
+        "#{pre_element}#{color('emphasis bold')}#{text}#{xc}#{post_element}"
       end
 
       def emphasis(text)
-        "#{color('emphasis italic')}#{text}#{xc}"
+        "#{pre_element}#{color('emphasis italic')}#{text}#{xc}#{post_element}"
       end
 
       def triple_emphasis(text)
-        "#{color('emphasis bold-italic')}#{text}#{xc}"
+        "#{pre_element}#{color('emphasis bold-italic')}#{text}#{xc}#{post_element}"
       end
 
       def highlight(text)
-        "#{color('highlight')}#{text}#{xc}"
+        "#{pre_element}#{color('highlight')}#{text}#{xc}#{post_element}"
       end
 
       def color_image_tag(link, title, alt_text)
         [
+          pre_element,
           color('image bang'),
           '!',
           color('image brackets'),
@@ -321,7 +336,8 @@ module Redcarpet
           title.nil? ? '' : %( "#{title}"),
           color('image brackets'),
           ')',
-          xc
+          xc,
+          post_element
         ].join
       end
 
@@ -391,7 +407,7 @@ module Redcarpet
         if result.nil?
           color_image_tag(link, title, alt_text)
         else
-          result + xc
+          "#{pre_element}#{result}#{xc}#{post_element}"
         end
       end
 
@@ -401,6 +417,7 @@ module Redcarpet
 
       def color_link(link, title, content)
         [
+          pre_element,
           color('link brackets'),
           '[',
           color('link text'),
@@ -412,12 +429,14 @@ module Redcarpet
           title.nil? ? '' : %( "#{title}"),
           color('link brackets'),
           ')',
-          xc
+          xc,
+          post_element
         ].join
       end
 
       def color_link_reference(link, idx, content)
         [
+          pre_element,
           color('link brackets'),
           '[',
           color('link text'),
@@ -428,7 +447,8 @@ module Redcarpet
           idx,
           color('link brackets'),
           ']',
-          xc
+          xc,
+          post_element
         ].join
       end
 
@@ -461,19 +481,19 @@ module Redcarpet
       end
 
       def color_tags(html)
-        html.gsub(%r{(<\S+( .*?)?/?>)}, "#{color('html brackets')}\\1#{xc}")
+        html.gsub(%r{(<\S+( .*?)?/?>)}, "#{pre_element}#{color('html brackets')}\\1#{xc}#{post_element}")
       end
 
       def raw_html(raw_html)
-        "#{color('html color')}#{color_tags(raw_html)}#{xc}"
+        "#{pre_element}#{color('html color')}#{color_tags(raw_html)}#{xc}#{post_element}"
       end
 
       def strikethrough(text)
-        "#{color('strikethrough')}#{text}#{xc}"
+        "#{pre_element}#{color('strikethrough')}#{text}#{xc}#{post_element}"
       end
 
       def superscript(text)
-        "#{color('super')}^#{text}#{xc}"
+        "#{pre_element}#{color('super')}^#{text}#{xc}#{post_element}"
       end
 
       def footnotes(text)
@@ -511,9 +531,11 @@ module Redcarpet
 
       def footnote_ref(text)
         [
+          pre_element,
           color('footnote title'),
           "[^#{text}]",
-          xc
+          xc,
+          post_element
         ].join('')
       end
 
@@ -720,6 +742,15 @@ module Redcarpet
         end
       end
 
+      def fix_colors(input)
+        input.gsub(/<<pre(?<id>\d+)>>(?<content>.*?)<<post\k<id>>>/) do
+          m = Regexp.last_match
+          pre = m.pre_match
+          last_color = pre.last_color_code
+          "#{m['content']}#{last_color}"
+        end
+      end
+
       def postprocess(input)
         if @options[:inline_footnotes]
           input = insert_footnotes(input)
@@ -743,7 +774,7 @@ module Redcarpet
             brackets = [m[5], m[7]]
             equat = m[6]
           end
-          "#{c(%i[b black])}#{brackets[0]}#{xc}#{c(%i[b blue])}#{equat}#{c(%i[b black])}#{brackets[1]}" + xc
+          "#{pre_element}#{c(%i[b black])}#{brackets[0]}#{xc}#{c(%i[b blue])}#{equat}#{c(%i[b black])}#{brackets[1]}#{xc}#{post_element}"
         end
         # misc html
         input.gsub!(%r{<br */?>}, "\n")
@@ -752,7 +783,9 @@ module Redcarpet
           input = reference_links(input)
         end
         # lists
-        fix_lists(input, 0)
+        input = fix_lists(input, 0)
+
+        fix_colors(input)
       end
     end
   end

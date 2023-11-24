@@ -14,7 +14,7 @@ module CLIMarkdown
 
     def initialize(args)
       @log = Logger.new($stderr)
-      @log.level = Logger::ERROR
+      @log.level = Logger::WARN
 
       @options = {}
       config = File.expand_path('~/.config/mdless/config.yml')
