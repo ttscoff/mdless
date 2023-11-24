@@ -349,9 +349,9 @@ module Redcarpet
               end
             elsif exec_available('chafa')
               @log.info('Using chafa for image rendering')
-              term = '-f sixels'
-              term = ENV['TERMINAL_PROGRAM'] =~ /iterm/i ? '-f iterm' : term
-              term = ENV['TERMINAL_PROGRAM'] =~ /kitty/i ? '-f kitty' : term
+              term = ''
+              term = ENV['TERM_PROGRAM'] =~ /iterm/i ? '-f iterm' : term
+              term = ENV['TERM_PROGRAM'] =~ /kitty/i ? '-f kitty' : term
               FileUtils.rm_r '.mdless_tmp', force: true if File.directory?('.mdless_tmp')
               Dir.mkdir('.mdless_tmp')
               Dir.chdir('.mdless_tmp')
@@ -377,11 +377,13 @@ module Redcarpet
               pre = !alt_text.nil? ? "    #{c(%i[d blue])}[#{alt_text.strip}]\n" : ''
               post = !title.nil? ? "\n    #{c(%i[b blue])}-- #{title} --" : ''
               if exec_available('imgcat')
-                img = `imgcat "#{img_path}"`
+                img = `imgcat -p "#{img_path}"`
+                @log.info("Rendering image with `imgcat -p #{img_path}`")
               elsif exec_available('chafa')
-                term = '-f sixels'
-                term = ENV['TERMINAL_PROGRAM'] =~ /iterm/i ? '-f iterm' : term
-                term = ENV['TERMINAL_PROGRAM'] =~ /kitty/i ? '-f kitty' : term
+                term = ''
+                term = ENV['TERM_PROGRAM'] =~ /iterm/i ? '-f iterm' : term
+                term = ENV['TERM_PROGRAM'] =~ /kitty/i ? '-f kitty' : term
+                @log.info("Rendering image with `chafa #{term} #{img_path}`")
                 img = `chafa #{term} "#{img_path}"`
               end
               result = pre + img + post
@@ -572,7 +574,8 @@ module Redcarpet
 
       def preprocess(input)
         in_yaml = false
-        if input.split("\n")[0] =~ /(?i-m)^---[ \t]*?(\n|$)/
+        first_line = input.split("\n").first
+        if first_line =~ /(?i-m)^---[ \t]*?$/
           @log.info('Found YAML')
           # YAML
           in_yaml = true
@@ -596,7 +599,6 @@ module Redcarpet
           end
         end
 
-        first_line = input.split("\n").first
         if !in_yaml && first_line =~ /(?i-m)^[\w ]+:\s+\S+/
           @log.info('Found MMD Headers')
           input.sub!(/(?i-m)^([\S ]+:[\s\S]*?)+(?=\n\n)/) do |mmd|
