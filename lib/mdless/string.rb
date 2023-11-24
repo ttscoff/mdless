@@ -3,7 +3,7 @@
 # String helpers
 class ::String
   def scrub
-    encode('utf-16', :invalid=>:replace).encode('utf-8')
+    encode('utf-16', invalid: :replace).encode('utf-8')
   end
 
   def scrub!

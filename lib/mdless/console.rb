@@ -367,74 +367,6 @@ module Redcarpet
 
       def image(link, title, alt_text)
         "<<img>>#{link}||#{title}||#{alt_text}<</img>>"
-          if exec_available('imgcat')
-            @log.info('Using imgcat for image rendering')
-          elsif exec_available('chafa')
-            @log.info('Using chafa for image rendering')
-          end
-          img_path = link
-          if img_path =~ /^http/ && @options[:remote_images]
-            if exec_available('imgcat')
-              @log.info('Using imgcat for image rendering')
-              begin
-                res, s = Open3.capture2(%(curl -sS "#{img_path}" 2> /dev/null | imgcat))
-
-                if s.success?
-                  pre = !alt_text.nil? ? "    #{c(%i[d blue])}[#{alt_text.strip}]\n" : ''
-                  post = !title.nil? ? "\n    #{c(%i[b blue])}-- #{title} --" : ''
-                  result = pre + res + post
-                end
-              rescue StandardError => e
-                @log.error(e)
-              end
-            elsif exec_available('chafa')
-              @log.info('Using chafa for image rendering')
-              term = ''
-              term = ENV['TERM_PROGRAM'] =~ /iterm/i ? '-f iterm' : term
-              term = ENV['TERM_PROGRAM'] =~ /kitty/i ? '-f kitty' : term
-              FileUtils.rm_r '.mdless_tmp', force: true if File.directory?('.mdless_tmp')
-              Dir.mkdir('.mdless_tmp')
-              Dir.chdir('.mdless_tmp')
-              `curl -SsO #{img_path} 2> /dev/null`
-              tmp_img = File.basename(img_path)
-              img = `chafa #{term} "#{tmp_img}"`
-              pre = alt_text ? "    #{c(%i[d blue])}[#{alt_text.strip}]\n" : ''
-              post = title ? "\n    #{c(%i[b blue])}-- #{tail} --" : ''
-              result = pre + img + post
-              Dir.chdir('..')
-              FileUtils.rm_r '.mdless_tmp', force: true
-            else
-              @log.warn('No viewer for remote images')
-            end
-          else
-            if img_path =~ %r{^[~/]}
-              img_path = File.expand_path(img_path)
-            elsif @file
-              base = File.expand_path(File.dirname(@file))
-              img_path = File.join(base, img_path)
-            end
-            if File.exist?(img_path)
-              pre = !alt_text.nil? ? "    #{c(%i[d blue])}[#{alt_text.strip}]\n" : ''
-              post = !title.nil? ? "\n    #{c(%i[b blue])}-- #{title} --" : ''
-              if exec_available('imgcat')
-                img = `imgcat -p "#{img_path}"`
-                @log.info("Rendering image with `imgcat -p #{img_path}`")
-              elsif exec_available('chafa')
-                term = ''
-                term = ENV['TERM_PROGRAM'] =~ /iterm/i ? '-f iterm' : term
-                term = ENV['TERM_PROGRAM'] =~ /kitty/i ? '-f kitty' : term
-                @log.info("Rendering image with `chafa #{term} #{img_path}`")
-                img = `chafa #{term} "#{img_path}"`
-              end
-              result = pre + img + post
-            end
-          end
-        end
-        if result.nil?
-          color_image_tag(link, title, alt_text)
-        else
-          result + xc
-        end
       end
 
       def linebreak
@@ -507,7 +439,7 @@ module Redcarpet
       end
 
       def color_tags(html)
-        html.gsub(%r{(<\S+( .*?)?/?>)}, "#{color('html brackets')}\\1#{xc}")
+        html.gsub(%r{(<\S+( [^>]+)?>)}, "#{color('html brackets')}\\1#{xc}")
       end
 
       def raw_html(raw_html)
