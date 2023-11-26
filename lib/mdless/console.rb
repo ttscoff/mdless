@@ -676,28 +676,7 @@ module Redcarpet
       end
 
       def preprocess(input)
-        in_yaml = false
-
-        if @options[:taskpaper] == :auto
-          @options[:taskpaper] = if @file =~ /\.taskpaper/
-                                   @log.info('TaskPaper extension detected')
-                                   true
-                                 elsif CLIMarkdown::TaskPaper.is_taskpaper?(input)
-                                   @log.info('TaskPaper document detected')
-                                   true
-                                 else
-                                   false
-                                 end
-        end
-
         input = color_meta(input)
-
-        if @options[:taskpaper]
-          input = CLIMarkdown::TaskPaper.highlight(input, @theme)
-          input = highlight_tags(input)
-          return input
-        end
-
 
         ## Replace setex headers with ATX
         input.gsub!(/^([^\n]+)\n={2,}\s*$/m, "# \\1\n")

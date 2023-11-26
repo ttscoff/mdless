@@ -38,6 +38,59 @@ class ::String
     end
   end
 
+  def color_meta(theme, log, cols)
+    @theme = theme
+    @log = log
+    @cols = cols
+    input = dup
+    input.clean_empty_lines!
+
+    in_yaml = false
+    first_line = input.split("\n").first
+    if first_line =~ /(?i-m)^---[ \t]*?$/
+      @log.info('Found YAML')
+      # YAML
+      in_yaml = true
+      input.sub!(/(?i-m)^---[ \t]*\n([\s\S]*?)\n[-.]{3}[ \t]*\n/m) do
+        m = Regexp.last_match
+        @log.info('Processing YAML Header')
+        lines = m[0].split(/\n/)
+        longest = lines.inject { |memo, word| memo.length > word.length ? memo : word }.length
+        longest = longest < @cols ? longest + 1 : @cols
+        lines.map do |line|
+          if line =~ /^[-.]{3}\s*$/
+            line = "#{color('metadata marker', @theme, @log)}#{'%' * longest}"
+          else
+            line.sub!(/^(.*?:)[ \t]+(\S)/, '\1 \2')
+            line = "#{color('metadata color', @theme, @log)}#{line}"
+          end
+
+          line += "\u00A0" * (longest - line.uncolor.strip.length) + xc
+          line
+        end.join("\n") + "#{xc}\n"
+      end
+    end
+
+    if !in_yaml && first_line =~ /(?i-m)^[\w ]+:\s+\S+/
+      @log.info('Found MMD Headers')
+      input.sub!(/(?i-m)^([\S ]+:[\s\S]*?)+(?=\n\n)/) do |mmd|
+        lines = mmd.split(/\n/)
+        return mmd if lines.count > 20
+
+        longest = lines.inject { |memo, word| memo.length > word.length ? memo : word }.length
+        longest = longest < @cols ? longest + 1 : @cols
+        lines.map do |line|
+          line.sub!(/^(.*?:)[ \t]+(\S)/, '\1 \2')
+          line = "#{color('metadata color', @theme, @log)}#{line}"
+          line += "\u00A0" * (longest - line.uncolor.strip.length)
+          line + xc
+        end.join("\n") + "#{"\u00A0" * longest}#{xc}\n"
+      end
+    end
+
+    input
+  end
+
   def highlight_tags(theme, log)
     tag_color = color('at_tags tag', theme, log)
     value_color = color('at_tags value', theme, log)

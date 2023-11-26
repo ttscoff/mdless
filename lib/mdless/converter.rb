@@ -279,6 +279,7 @@ module CLIMarkdown
             end
 
             if @options[:taskpaper]
+              input = input.color_meta(@theme, @log, @cols)
               input = CLIMarkdown::TaskPaper.highlight(input, @theme)
               @output = input.highlight_tags(@theme, @log)
             else
