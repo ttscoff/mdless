@@ -146,6 +146,11 @@ module CLIMarkdown
           @options[:at_tags] = true
         end
 
+        @options[:wiki_links] ||= false
+        opts.on('--[no-]wiki-links', 'Highlight [[wiki links]]') do |opt|
+          @options[:wiki_links] = opt
+        end
+
         opts.on('-v', '--version', 'Display version number') do
           puts version
           exit
@@ -224,12 +229,33 @@ module CLIMarkdown
           rescue StandardError
             input = IO.read(file)
           end
-          input.gsub!(/\r?\n/, "\n").scrub!
+          raise 'Nil input' if input.nil?
+
+          input.scrub!
+          input.gsub!(/\r?\n/, "\n")
+
           if @options[:list]
             puts list_headers(input)
             Process.exit 0
           else
-            @output = markdown.render(input)
+            if @options[:taskpaper] == :auto
+              @options[:taskpaper] = if file =~ /\.taskpaper/
+                                       @log.info('TaskPaper extension detected')
+                                       true
+                                     elsif CLIMarkdown::TaskPaper.is_taskpaper?(input)
+                                       @log.info('TaskPaper document detected')
+                                       true
+                                     else
+                                       false
+                                     end
+            end
+
+            if @options[:taskpaper]
+              input = CLIMarkdown::TaskPaper.highlight(input, @theme)
+              @output = input.highlight_tags(@theme, @log)
+            else
+              @output = markdown.render(input)
+            end
           end
         end
         printout

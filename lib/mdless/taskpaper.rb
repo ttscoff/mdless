@@ -2,8 +2,8 @@
 
 module CLIMarkdown
   module TaskPaper
-    TASK_RX = /^(?<indent>(?:    |\t)+)(?<marker>-)(?<task>\s+\S.*?)$/
-    PROJECT_RX = /^(?<indent>(?:    |\t)*)(?<project>\S.*?:)(?<tags> @\S+)*$/
+    TASK_RX = /^(?<indent>(?:    |\t)*?)(?<marker>-)(?<task>\s+\S.*?)$/
+    PROJECT_RX = /^(?<indent>(?:    |\t)*?)(?<project>[^- \t].*?:)(?<tags> @\S+)*$/
     NOTE_RX = /^(?<indent>(?:    |\t)+)(?<note>(?<!- ).*?(?!:))$/
 
     class << self
@@ -39,8 +39,10 @@ module CLIMarkdown
       def is_taskpaper?(input)
         projects = input.split(PROJECT_RX)
         tasks = 0
-        projects.each do |proj|
-          tasks += proj.scan(TASK_RX).count
+        if projects.count > 1
+          projects.each do |proj|
+            tasks += proj.scan(TASK_RX).count
+          end
         end
 
         tasks >= 6
