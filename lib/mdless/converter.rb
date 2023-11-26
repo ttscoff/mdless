@@ -61,6 +61,7 @@ module CLIMarkdown
             @log.warn('images turned on but imgcat/chafa not found')
           end
         end
+
         opts.on('-I', '--all-images', 'Include local and remote images in output (requires imgcat or chafa)') do
           if exec_available('imgcat') || exec_available('chafa') # && ENV['TERM_PROGRAM'] == 'iTerm.app'
             @options[:local_images] = true
@@ -68,51 +69,6 @@ module CLIMarkdown
           else
             @log.warn('images turned on but imgcat/chafa not found')
           end
-        end
-
-        @options[:syntax_higlight] ||= false
-        opts.on('--syntax', 'Syntax highlight code blocks') do |p|
-          @options[:syntax_higlight] = p
-        end
-
-        @options[:update_config] ||= false
-        opts.on('--update_config', 'Update the configuration file with new keys and current command line options') do
-          @options[:update_config] = true
-        end
-
-        @options[:taskpaper] ||= false
-        opts.on('--taskpaper=OPTION', 'Highlight TaskPaper format (true|false|auto)') do |tp|
-          @options[:taskpaper] = case tp
-                                 when /^[ty1]/
-                                   true
-                                 when /^a/
-                                   :auto
-                                 else
-                                   false
-                                 end
-        end
-
-        @options[:links] ||= :inline
-        opts.on('--links=FORMAT',
-                'Link style ([inline, reference, paragraph], default inline, "paragraph" will position reference links after each paragraph)') do |fmt|
-          @options[:links] = case fmt
-                             when /^:?r/i
-                               :reference
-                             when /^:?p/i
-                               :paragraph
-                             else
-                               :inline
-                             end
-        end
-
-        @options[:lax_spacing] ||= true
-        opts.on('--[no-]lax-spacing', 'Allow lax spacing') do |opt|
-          @options[:lax_spacing] = opt
-        end
-
-        @options[:intra_emphasis] ||= true
-        opts.on('--[no-]intra-emphasis', 'Parse emphasis inside of words (e.g. Mark_down_)') do |opt|
-          @options[:intra_emphasis] = opt
         end
 
         @options[:list] ||= false
@@ -146,11 +102,6 @@ module CLIMarkdown
           @options[:at_tags] = true
         end
 
-        @options[:wiki_links] ||= false
-        opts.on('--[no-]wiki-links', 'Highlight [[wiki links]]') do |opt|
-          @options[:wiki_links] = opt
-        end
-
         opts.on('-v', '--version', 'Display version number') do
           puts version
           exit
@@ -165,6 +116,68 @@ module CLIMarkdown
         opts.on('--[no-]inline_footnotes',
                 'Display footnotes immediately after the paragraph that references them') do |p|
           @options[:inline_footnotes] = p
+        end
+
+        @options[:intra_emphasis] ||= true
+        opts.on('--[no-]intra-emphasis', 'Parse emphasis inside of words (e.g. Mark_down_)') do |opt|
+          @options[:intra_emphasis] = opt
+        end
+
+        @options[:lax_spacing] ||= true
+        opts.on('--[no-]lax-spacing', 'Allow lax spacing') do |opt|
+          @options[:lax_spacing] = opt
+        end
+
+        @options[:links] ||= :inline
+        opts.on('--links=FORMAT',
+                'Link style ([inline, reference, paragraph], default inline,
+                "paragraph" will position reference links after each paragraph)') do |fmt|
+          @options[:links] = case fmt
+                             when /^:?r/i
+                               :reference
+                             when /^:?p/i
+                               :paragraph
+                             else
+                               :inline
+                             end
+        end
+
+        @options[:syntax_higlight] ||= false
+        opts.on('--[no-]syntax', 'Syntax highlight code blocks') do |p|
+          @options[:syntax_higlight] = p
+        end
+
+        @options[:taskpaper] = if @options[:taskpaper]
+                                 case @options[:taskpaper].to_s
+                                 when /^[ty1]/
+                                   true
+                                 when /^a/
+                                   :auto
+                                 else
+                                   false
+                                 end
+                               else
+                                 false
+                               end
+        opts.on('--taskpaper=OPTION', 'Highlight TaskPaper format (true|false|auto)') do |tp|
+          @options[:taskpaper] = case tp
+                                 when /^[ty1]/
+                                   true
+                                 when /^a/
+                                   :auto
+                                 else
+                                   false
+                                 end
+        end
+
+        @options[:update_config] ||= false
+        opts.on('--update_config', 'Update the configuration file with new keys and current command line options') do
+          @options[:update_config] = true
+        end
+
+        @options[:wiki_links] ||= false
+        opts.on('--[no-]wiki-links', 'Highlight [[wiki links]]') do |opt|
+          @options[:wiki_links] = opt
         end
       end
 

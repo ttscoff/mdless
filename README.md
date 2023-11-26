@@ -60,8 +60,6 @@ The pager used is determined by system configuration in this order of preference
     -h, --help                       Display this screen
     -i, --images=TYPE                Include [local|remote (both)|none] images in output (requires chafa or imgcat, default none).
     -I, --all-images                 Include local and remote images in output (requires imgcat or chafa)
-        --syntax                     Syntax highlight code blocks
-        --links=FORMAT               Link style ([inline, reference, paragraph], default inline, "paragraph" will position reference links after each paragraph)
     -l, --list                       List headers in document and exit
     -p, --[no-]pager                 Formatted output to pager (default on)
     -P                               Disable pager (same as --no-pager)
@@ -71,6 +69,14 @@ The pager used is determined by system configuration in this order of preference
     -v, --version                    Display version number
     -w, --width=COLUMNS              Column width to format for (default: terminal width)
         --[no-]inline_footnotes      Display footnotes immediately after the paragraph that references them
+        --[no-]intra-emphasis        Parse emphasis inside of words (e.g. Mark_down_)
+        --[no-]lax-spacing           Allow lax spacing
+        --links=FORMAT               Link style ([inline, reference, paragraph], default inline,
+                "paragraph" will position reference links after each paragraph)
+        --[no-]syntax                Syntax highlight code blocks
+        --taskpaper=OPTION           Highlight TaskPaper format (true|false|auto)
+        --update_config              Update the configuration file with new keys and current command line options
+        --[no-]wiki-links            Highlight [[wiki links]]
 
 ## Configuration
 
