@@ -1,0 +1,17 @@
+Inbox:
+	- @bug a # inside a code block gets interpreted as an h1 and makes a mess @priority(4) @na @done(2023-11-26 13:18)
+	- Allow multiple sections @priority(3) @na
+mdless:
+	New Features:
+		- find indented code blocks and prevent highlighting
+			Needs to miss block indented 1 level in lists
+			Needs to catch lists in code
+			Needs to avoid within fenced code blocks
+		- Fix ordered list numbering
+		- pad numbers based on total number of list items
+	Ideas:
+	Bugs:
+Archive:
+
+Searches:
+	Next @search(@na and not @done and not project = "Archive")

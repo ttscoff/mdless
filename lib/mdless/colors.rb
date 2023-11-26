@@ -55,7 +55,11 @@ module CLIMarkdown
           }
 
     def uncolor
-      self.gsub(/\e\[[\d;]+m/,'')
+      self.unpad.gsub(/\e\[[\d;]+m/,'')
+    end
+
+    def unpad
+      self.gsub(/\u00A0/, ' ')
     end
 
     # Get the calculated ANSI color at the end of the

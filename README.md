@@ -31,12 +31,6 @@ If you run into errors, try `gem install --user-install mdless`, or `sudo gem in
 
 ### Dependencies
 
-Some OSs are missing `tput`, which is necessary for mdless.
-
-    apt update
-    apt install ruby ncurses-utils
-    gem install mdless
-
 To render images, you need `imgcat` or `chafa` installed (`brew install chafa`).
 
 For syntax highlighting, the `pygmentize` command must be available, part of the [Pygments](http://pygments.org/) package (`brew install pygments`).

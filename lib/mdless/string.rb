@@ -119,4 +119,23 @@ class ::String
   def scrub!
     replace scrub
   end
+
+  def valid_pygments_theme?
+    return false unless TTY::Which.exist?('pygmentize')
+    pyg = TTY::Which.which('pygmentize')
+    res = `#{pyg} -L styles`
+    styles = res.scan(/\* ([\w-]+):/).map { |l| l[0] }
+    styles.include?(self)
+  end
+
+  def valid_lexer?
+    return false unless TTY::Which.exist?('pygmentize')
+    pyg = TTY::Which.which('pygmentize')
+    res = `#{pyg} -L lexers`
+    lexers = res.scan(/\* ([\w-]+(?:, [\w-]+)*):/).map { |l| l[0] }
+    lexers_a = []
+    lexers.each { |l| lexers_a.concat(l.split(/, /)) }
+
+    lexers_a.include?(self.downcase)
+  end
 end

@@ -58,20 +58,36 @@ module Redcarpet
         end
       end
 
-      def valid_lexer?(language)
-        lexers = %w(Clipper XBase Cucumber cucumber Gherkin gherkin RobotFramework robotframework abap ada ada95ada2005 ahk antlr-as antlr-actionscript antlr-cpp antlr-csharp antlr-c# antlr-java antlr-objc antlr-perl antlr-python antlr-ruby antlr-rb antlr apacheconf aconf apache applescript as actionscript as3 actionscript3 aspectj aspx-cs aspx-vb asy asymptote autoit Autoit awk gawk mawk nawk basemake bash sh ksh bat bbcode befunge blitzmax bmax boo brainfuck bf bro bugs winbugs openbugs c-objdump c ca65 cbmbas ceylon cfengine3 cf3 cfm cfs cheetah spitfire clojure clj cmake cobol cobolfree coffee-script coffeescript common-lisp cl console control coq cpp c++ cpp-objdump c++-objdumb cxx-objdump croc csharp c# css+django css+jinja css+erb css+ruby css+genshitext css+genshi css+lasso css+mako css+myghty css+php css+smarty css cuda cu cython pyx d-objdump d dart delphi pas pascal objectpascal dg diff udiff django jinja dpatch dtd duel Duel Engine Duel View JBST jbst JsonML+BST dylan-console dylan-repl dylan-lid lid dylan ec ecl elixir ex exs erb erl erlang evoque factor fan fancy fy felix flx fortran fsharp gas genshi kid xml+genshi xml+kid genshitext glsl gnuplot go gooddata-cl gosu groff nroff man groovy gst haml HAML haskell hs haxeml hxml html+cheetah html+spitfire html+django html+jinja html+evoque html+genshi html+kid html+lasso html+mako html+myghty html+php html+smarty html+velocity html http hx haXe hybris hy idl iex ini cfg io ioke ik irc jade JADE jags java jlcon js+cheetah javascript+cheetah js+spitfire javascript+spitfire js+django javascript+django js+jinja javascript+jinja js+erb javascript+erb js+ruby javascript+ruby js+genshitext js+genshi javascript+genshitext javascript+genshi js+lasso javascript+lasso js+mako javascript+mako js+myghty javascript+myghty js+php javascript+php js+smarty javascript+smarty js javascript json jsp julia jl kconfig menuconfig linux-config kernel-config koka kotlin lasso lassoscript lhs literate-haskell lighty lighttpd live-script livescript llvm logos logtalk lua make makefile mf bsdmake mako maql mason matlab matlabsession minid modelica modula2 m2 monkey moocode moon moonscript mscgen msc mupad mxml myghty mysql nasm nemerle newlisp newspeak nginx nimrod nim nsis nsi nsh numpy objdump objective-c++ objectivec++ obj-c++ objc++ objective-c objectivec obj-c objc objective-j objectivej obj-j objj ocaml octave ooc opa openedge abl progress perl pl php php3 php4 php5 plpgsql postgresql postgres postscript pot po pov powershell posh ps1 prolog properties protobuf psql postgresql-console postgres-console puppet py3tb pycon pypylog pypy pytb python py sage python3 py3 qml Qt Meta Language Qt modeling Language racket rkt ragel-c ragel-cpp ragel-d ragel-em ragel-java ragel-objc ragel-ruby ragel-rb ragel raw rb ruby duby rbcon irb rconsole rout rd rebol redcode registry rhtml html+erb html+ruby rst rest restructuredtext rust sass SASS scala scaml SCAML scheme scm scilab scss shell-session smali smalltalk squeak smarty sml snobol sourceslist sources.list sp spec splus s r sql sqlite3 squidconf squid.conf squid ssp stan systemverilog sv tcl tcsh csh tea tex latex text trac-wiki moin treetop ts urbiscript vala vapi vb.net vbnet velocity verilog v vgl vhdl vim xml+cheetah xml+spitfire xml+django xml+jinja xml+erb xml+ruby xml+evoque xml+lasso xml+mako xml+myghty xml+php xml+smarty xml+velocity xml xquery xqy xq xql xqm xslt xtend yaml)
-        lexers.include? language.strip
+      def code_bg(input, width)
+        input.split(/\n/).map do |line|
+          tail = line.uncolor.length < width ? "\u00A0" * (width - line.uncolor.length) : ''
+          "#{x}#{line}#{tail}#{x}"
+        end.join("\n")
       end
 
       def hilite_code(code_block, language)
-        @log.error('Syntax highlighting requested by pygmentize is not available') if @options[:syntax_higlight] && !exec_available('pygmentize')
+        if @options[:syntax_higlight] && !exec_available('pygmentize')
+          @log.error('Syntax highlighting requested by pygmentize is not available')
+          @options[:syntax_higlight] = false
+        end
 
-        if @options[:syntax_higlight] && exec_available('pygmentize')
-          lexer = language && valid_lexer?(language) ? "-l #{language}" : '-g'
+        longest_line = code_block.uncolor.split(/\n/).longest_element.length + 4
+        longest_line = longest_line > @cols ? @cols : longest_line
+
+        if @options[:syntax_higlight]
+          pyg = TTY::Which.which('pygmentize')
+          lexer = language&.valid_lexer? ? "-l #{language}" : '-g'
           begin
+            pygments_theme = @options[:pygments_theme] || @theme['code_block']['pygments_theme']
+
+            unless pygments_theme.valid_pygments_theme?
+              @log.error("Invalid Pygments theme #{pygments_theme}, defaulting to 'default' for highlighting")
+              pygments_theme = 'default'
+            end
+
             cmd = [
-              'pygmentize -f terminal256',
-              "-O style=#{@theme['code_block']['pygments_theme']}",
+              "#{pyg} -f terminal256",
+              "-O style=#{pygments_theme}",
               lexer,
               '2> /dev/null'
             ].join(' ')
@@ -102,17 +118,23 @@ module Redcarpet
           end.join("\n").blackout(@theme['code_block']['bg']) + "#{xc}\n"
         end
 
+        top_border = if language.nil? || language.empty?
+                       '-' * longest_line
+                     else
+                       "--[ #{language} ]#{'-' * (longest_line - 6 - language.length)}"
+                     end
+
         [
           xc,
           color('code_block border'),
-          '-' * 20,
+          top_border,
           xc,
           "\n",
           color('code_block color'),
-          hilite.chomp,
+          code_bg(hilite.chomp, longest_line),
           "\n",
           color('code_block border'),
-          '-' * 20,
+          '-' * longest_line,
           xc
         ].join
       end
@@ -505,7 +527,9 @@ module Redcarpet
 
         lines = input.split(/\n/)
         line1 = lines.shift
-        body = lines.map { |l| "#{'  ' * (indent + 1)}#{l}" }.join("\n")
+        pre = '  ' * (indent + 1)
+        cols = @cols - pre.length
+        body = lines.map { |l| "#{pre}#{l}" }.join("\n")
         "#{line1}\n#{body}"
       end
 
@@ -639,7 +663,7 @@ module Redcarpet
             m = Regexp.last_match
             @log.info('Processing YAML Header')
             lines = m[0].split(/\n/)
-            longest = lines.inject { |memo, word| memo.length > word.length ? memo : word }.length
+            longest = lines.longest_element.length
             longest = longest < @cols ? longest + 1 : @cols
             lines.map do |line|
               if line =~ /^[-.]{3}\s*$/
