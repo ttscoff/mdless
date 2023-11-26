@@ -12,6 +12,12 @@ module CLIMarkdown
       "#{CLIMarkdown::EXECUTABLE_NAME} #{CLIMarkdown::VERSION}"
     end
 
+    def default(option, default)
+      if @options[option].nil?
+        @options[option] = default
+      end
+    end
+
     def initialize(args)
       @log = Logger.new($stderr)
       @log.level = Logger::WARN
@@ -23,7 +29,7 @@ module CLIMarkdown
       optparse = OptionParser.new do |opts|
         opts.banner = "#{version} by Brett Terpstra\n\n> Usage: #{CLIMarkdown::EXECUTABLE_NAME} [options] [path]\n\n"
 
-        @options[:color] ||= true
+        default(:color, true)
         opts.on('-c', '--[no-]color', 'Colorize output (default on)') do |c|
           @options[:color] = c
         end
@@ -42,8 +48,8 @@ module CLIMarkdown
           exit
         end
 
-        @options[:local_images] ||= false
-        @options[:remote_images] ||= false
+        default(:local_images, false)
+        default(:remote_images, false)
         opts.on('-i', '--images=TYPE',
                 'Include [local|remote (both)|none] images in output (requires chafa or imgcat, default none).') do |type|
           if exec_available('imgcat') || exec_available('chafa')
@@ -71,33 +77,34 @@ module CLIMarkdown
           end
         end
 
-        @options[:list] ||= false
+
+        default(:list, false)
         opts.on('-l', '--list', 'List headers in document and exit') do
           @options[:list] = true
         end
 
-        @options[:pager] ||= true
+        default(:pager, true)
         opts.on('-p', '--[no-]pager', 'Formatted output to pager (default on)') do |p|
           @options[:pager] = p
         end
 
-        @options[:pager] ||= true
+        default(:pager, true)
         opts.on('-P', 'Disable pager (same as --no-pager)') do
           @options[:pager] = false
         end
 
-        @options[:section] ||= nil
+        default(:section, nil)
         opts.on('-s', '--section=NUMBER[,NUMBER]',
                 'Output only a headline-based section of the input (numeric from --list)') do |section|
           @options[:section] = section.split(/ *, */).map(&:strip).map(&:to_i)
         end
 
-        @options[:theme] ||= 'default'
+        default(:theme, 'default')
         opts.on('-t', '--theme=THEME_NAME', 'Specify an alternate color theme to load') do |theme|
           @options[:theme] = theme
         end
 
-        @options[:at_tags] ||= false
+        default(:at_tags, false)
         opts.on('-@', '--at_tags', 'Highlight @tags and values in the document') do
           @options[:at_tags] = true
         end
@@ -107,28 +114,35 @@ module CLIMarkdown
           exit
         end
 
-        @options[:width] = `tput cols`.strip.to_i
+        default(:width, TTY::Screen.cols)
         opts.on('-w', '--width=COLUMNS', 'Column width to format for (default: terminal width)') do |columns|
           @options[:width] = columns.to_i
         end
+        cols = TTY::Screen.cols
+        @options[:width] = cols if @options[:width] > cols
 
-        @options[:inline_footnotes] ||= false
+        default(:autolink, true)
+        opts.on('--[no-]autolink', 'Convert bare URLs and emails to <links>') do |p|
+          @options[:autolink] = p
+        end
+
+        default(:inline_footnotes, false)
         opts.on('--[no-]inline_footnotes',
                 'Display footnotes immediately after the paragraph that references them') do |p|
           @options[:inline_footnotes] = p
         end
 
-        @options[:intra_emphasis] ||= true
+        default(:intra_emphasis, true)
         opts.on('--[no-]intra-emphasis', 'Parse emphasis inside of words (e.g. Mark_down_)') do |opt|
           @options[:intra_emphasis] = opt
         end
 
-        @options[:lax_spacing] ||= true
+        default(:lax_spacing, true)
         opts.on('--[no-]lax-spacing', 'Allow lax spacing') do |opt|
           @options[:lax_spacing] = opt
         end
 
-        @options[:links] ||= :inline
+        default(:links, :inline)
         opts.on('--links=FORMAT',
                 'Link style ([inline, reference, paragraph], default inline,
                 "paragraph" will position reference links after each paragraph)') do |fmt|
@@ -142,7 +156,7 @@ module CLIMarkdown
                              end
         end
 
-        @options[:syntax_higlight] ||= false
+        default(:syntax_higlight, false)
         opts.on('--[no-]syntax', 'Syntax highlight code blocks') do |p|
           @options[:syntax_higlight] = p
         end
@@ -170,12 +184,12 @@ module CLIMarkdown
                                  end
         end
 
-        @options[:update_config] ||= false
+        default(:update_config, false)
         opts.on('--update_config', 'Update the configuration file with new keys and current command line options') do
           @options[:update_config] = true
         end
 
-        @options[:wiki_links] ||= false
+        default(:wiki_links, false)
         opts.on('--[no-]wiki-links', 'Highlight [[wiki links]]') do |opt|
           @options[:wiki_links] = opt
         end
@@ -202,6 +216,7 @@ module CLIMarkdown
 
       @theme = load_theme(@options[:theme])
       @cols = @options[:width] - 2
+
       @output = ''
       @headers = []
       @setheaders = []
@@ -218,7 +233,7 @@ module CLIMarkdown
 
       markdown = Redcarpet::Markdown.new(renderer,
                                          no_intra_emphasis: !@options[:intra_emphasis],
-                                         autolink: true,
+                                         autolink: @options[:autolink],
                                          fenced_code_blocks: true,
                                          footnotes: true,
                                          hard_wrap: false,

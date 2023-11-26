@@ -628,6 +628,8 @@ module Redcarpet
 
       def color_meta(text)
         input = text.dup
+        input.clean_empty_lines!
+
         first_line = input.split("\n").first
         if first_line =~ /(?i-m)^---[ \t]*?$/
           @log.info('Found YAML')

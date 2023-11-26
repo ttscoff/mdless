@@ -4,6 +4,14 @@
 class ::String
   include CLIMarkdown::Colors
 
+  def clean_empty_lines
+    gsub(/^[ \t]+$/, '')
+  end
+
+  def clean_empty_lines!
+    replace clean_empty_lines
+  end
+
   def color(key, theme, log)
     val = nil
     keys = key.split(/[ ,>]/)
