@@ -105,14 +105,14 @@ module Redcarpet
         [
           xc,
           color('code_block border'),
-          '-' * @cols,
+          '-' * 20,
           xc,
           "\n",
           color('code_block color'),
           hilite.chomp,
           "\n",
           color('code_block border'),
-          '-' * @cols,
+          '-' * 20,
           xc
         ].join
       end
@@ -505,7 +505,7 @@ module Redcarpet
 
         lines = input.split(/\n/)
         line1 = lines.shift
-        body = lines.map { |l| "#{'    ' * (indent + 1)}#{l}" }.join("\n")
+        body = lines.map { |l| "#{'  ' * (indent + 1)}#{l}" }.join("\n")
         "#{line1}\n#{body}"
       end
 
@@ -515,7 +515,7 @@ module Redcarpet
           [
             indent,
             color('list bullet'),
-            "• ",
+            "* ",
             color('list color'),
             indent_lines(content, indent).strip,
             xc
@@ -532,21 +532,15 @@ module Redcarpet
         end
       end
 
-      #-----------------------------------------------------
-      ## gsub with a block to isolate parent lists and
-      ## reindent, then parse them line by line to determine
-      ## indentation and counting. All the pieces are here,
-      ## just needs to be done in phases and line-by-line is
-      ## the only way to get them in order (gsub with a
-      ## recursive replace goes inside out).
-      ##
-      ## @param      input  The input
-      ##
-
       def fix_lists(input)
         input = nest_lists(input)
+        input = fix_list_spacing(input)
         pp input
-        input
+        fix_list_items(input)
+      end
+
+      def fix_list_spacing(input)
+        input.gsub(/( *\n)+( *)<<listitem/, "\n\\2<<listitem").gsub(/\n{2,}/, "\n\n")
       end
 
       def nest_lists(input, indent = 0)
@@ -561,7 +555,12 @@ module Redcarpet
           end.join("\n"), indent)
           next if list.nil?
 
-          fix_list_items(list)
+          "<<main#{m['id']}>>#{list}<</main#{m['id']}>>"
+        end
+
+        input.gsub(/^(?<indent> +)<<main(?<id>\d+)>>(?<content>.*?)<<\/main\k<id>>>/m) do
+          m = Regexp.last_match
+          "#{m['indent']}#{m['content']}"
         end
       end
 
@@ -571,8 +570,8 @@ module Redcarpet
         end
       end
 
-      def fix_list_items(input, last_indent = 0, levels = [0])
-        input.gsub(%r{^(?<indent> *)<<listitem(?<id>\d+)-(?<type>.*?)>>(?<content>.*?)<</listitem\k<id>>>}m) do
+      def fix_items(content, last_indent = 0, levels = [0])
+        content.gsub(%r{^(?<indent> *)<<listitem(?<id>\d+)-(?<type>(?:un)?ordered)>>(?<content>.*?)<</listitem\k<id>>>}m) do
           m = Regexp.last_match
           indent = m['indent'].length
           if indent == last_indent
@@ -587,9 +586,15 @@ module Redcarpet
             last_indent = indent
           end
 
-          # content = m['content'] =~/<<listitem/ ? fix_list_items(m['content'], indent, levels) : m['content']
-          content = m['content']
+          content = m['content'] =~/<<listitem/ ? fix_items(m['content'], indent, levels) : m['content']
           color_list_item(' ' * indent, content, m['type'].to_sym, levels[indent])
+        end
+      end
+
+      def fix_list_items(input)
+        input.gsub(%r{<<main(?<id>\d+)>>(?<content>.*?)<</main\k<id>>>}m) do
+          m = Regexp.last_match
+          fix_items(m['content'])
         end
       end
 

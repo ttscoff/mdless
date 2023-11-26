@@ -13,8 +13,18 @@
 7. This contains
     1. ordered list
     2. items
-        1. Further nested
-        2. And again
+      1. Further nested
+
+        ```ruby
+        def code_block
+            puts "hello world"
+        end
+
+        def second
+            puts "goodbye world"
+        end
+        ```
+      2. And again
 8. End of list
 
 ---
