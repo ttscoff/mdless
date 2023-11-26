@@ -1,3 +1,6 @@
+2.0.17
+: Re-order command line options for more readable help output (`mdless -h`)
+
 2.0.15
 : Highlight [[wiki links]]
 : TaskPaper rendering refinements
