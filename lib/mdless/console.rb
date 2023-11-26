@@ -105,14 +105,14 @@ module Redcarpet
         [
           xc,
           color('code_block border'),
-          '-' * @cols,
+          '-' * 20,
           xc,
           "\n",
           color('code_block color'),
           hilite.chomp,
           "\n",
           color('code_block border'),
-          '-' * @cols,
+          '-' * 20,
           xc
         ].join
       end
@@ -202,33 +202,6 @@ module Redcarpet
 
       def hrule()
         "\n\n#{color('hr color')}#{'_' * @cols}#{xc}\n\n"
-      end
-
-      def list(contents, list_type)
-        @@listitemid = 0
-        @@listid += 1
-        "<<list#{@@listid}>>#{contents}<</list#{@@listid}>>"
-      end
-
-      def list_item(text, list_type)
-        case list_type
-        when :unordered
-          [
-            "#{color('list bullet')}• ",
-            color('list color'),
-            text,
-            xc
-          ].join('')
-        when :ordered
-          @@listitemid += 1
-          [
-            color('list number'),
-            "#{@@listitemid}. ",
-            color('list color'),
-            text,
-            xc
-          ].join('')
-        end
       end
 
       def paragraph(text)
@@ -510,16 +483,119 @@ module Redcarpet
         end.join("\n")
       end
 
-      def fix_lists(input, indent = 0)
-        input.gsub(%r{(?<line><<list(?<id>\d+)>>(?<content>.*?)<</list\k<id>>>)}m) do
+      def list(contents, list_type)
+        @@listid += 1
+        "<<list#{@@listid}-#{list_type}>>#{contents}<</list#{@@listid}>>"
+      end
+
+      def list_item(text, list_type)
+        @@listitemid += 1
+        case list_type
+        when :unordered
+          "<<listitem#{@@listitemid}-#{list_type}>>#{text.strip}<</listitem#{@@listitemid}>>\n"
+        when :ordered
+          "<<listitem#{@@listitemid}-#{list_type}>>#{text.strip}<</listitem#{@@listitemid}>>\n"
+        end
+      end
+
+      def indent_lines(input, spaces)
+        return nil if input.nil?
+
+        indent = spaces.scan(/ /).count
+
+        lines = input.split(/\n/)
+        line1 = lines.shift
+        body = lines.map { |l| "#{'  ' * (indent + 1)}#{l}" }.join("\n")
+        "#{line1}\n#{body}"
+      end
+
+      def color_list_item(indent, content, type, counter)
+        case type
+        when :unordered
+          [
+            indent,
+            color('list bullet'),
+            "* ",
+            color('list color'),
+            indent_lines(content, indent).strip,
+            xc
+          ].join
+        when :ordered
+          [
+            indent,
+            color('list number'),
+            "#{counter}. ",
+            color('list color'),
+            indent_lines(content, indent).strip,
+            xc
+          ].join
+        end
+      end
+
+      def fix_lists(input)
+        input = nest_lists(input)
+        input = fix_list_spacing(input)
+        pp input
+        fix_list_items(input)
+      end
+
+      def fix_list_spacing(input)
+        input.gsub(/( *\n)+( *)<<listitem/, "\n\\2<<listitem").gsub(/\n{2,}/, "\n\n")
+      end
+
+      def nest_lists(input, indent = 0)
+        input.gsub!(%r{<<list(?<id>\d+)-(?<type>.*?)>>(?<content>.*?)<</list\k<id>>>}m) do
           m = Regexp.last_match
-          fix_lists(m['content'].split(/\n/).map do |l|
+          lines = m['content'].split(/\n/)
+          list = nest_lists(lines.map do |l|
             outdent = l.scan(%r{<</list\d+>>}).count
-            indent += l.scan(/<<list\d+>>/).count
+            indent += l.scan(/<<list\d+-.*?>>/).count
             indent -= outdent
             "#{' ' * indent}#{l}"
           end.join("\n"), indent)
-        end + "\n"
+          next if list.nil?
+
+          "<<main#{m['id']}>>#{list}<</main#{m['id']}>>"
+        end
+
+        input.gsub(/^(?<indent> +)<<main(?<id>\d+)>>(?<content>.*?)<<\/main\k<id>>>/m) do
+          m = Regexp.last_match
+          "#{m['indent']}#{m['content']}"
+        end
+      end
+
+      def normalize_indentation(line)
+        line.gsub(/^([ \t]+)/) do |pre|
+          pre.gsub(/\t/, ' ')
+        end
+      end
+
+      def fix_items(content, last_indent = 0, levels = [0])
+        content.gsub(%r{^(?<indent> *)<<listitem(?<id>\d+)-(?<type>(?:un)?ordered)>>(?<content>.*?)<</listitem\k<id>>>}m) do
+          m = Regexp.last_match
+          indent = m['indent'].length
+          if indent == last_indent
+            levels[indent] ||= 0
+            levels[indent] += 1
+          elsif indent < last_indent
+            levels[last_indent] = 0
+            levels[indent] += 1
+            last_indent = indent
+          else
+            levels[indent] = 1
+            last_indent = indent
+          end
+
+          content = m['content'] =~/<<listitem/ ? fix_items(m['content'], indent, levels) : m['content']
+          color_list_item(' ' * indent, content, m['type'].to_sym, levels[indent])
+        end
+      end
+
+      def fix_list_items(input)
+        input.gsub(%r{<<main(?<id>\d+)>>(?<content>.*?)<</main\k<id>>>}m) do
+          m = Regexp.last_match
+          fix_items(m['content'])
+        end
       end
 
       def get_headers(input)
@@ -897,7 +973,7 @@ module Redcarpet
         # format links
         input = reference_links(input) if @options[:links] == :reference || @options[:links] == :paragraph
         # lists
-        input = fix_lists(input, 0)
+        input = fix_lists(input)
         input = render_images(input) if @options[:local_images]
         input = highlight_tags(input) if @options[:at_tags] || @options[:taskpaper]
         fix_colors(input)
