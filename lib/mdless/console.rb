@@ -535,7 +535,6 @@ module Redcarpet
       def fix_lists(input)
         input = nest_lists(input)
         input = fix_list_spacing(input)
-        pp input
         fix_list_items(input)
       end
 
