@@ -1,3 +1,12 @@
+2.0.18
+: Better handling of default options set in config
+: More expansive detection of screen width, no longer just dependent on `tput` being available
+: Only extend borders and backgrounds on code blocks to the length of the longest line
+: Include the language in the top border of code blocks, if available
+: Validate themes and lexers using `pygmentize` output, with fallbacks
+: If width specified in config is greater than display columns, fall back to display columns as max width
+: Metadata (MMD/YAML) handling on TaskPaper files
+
 2.0.17
 : Re-order command line options for more readable help output (`mdless -h`)
 
