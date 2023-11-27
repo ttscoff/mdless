@@ -1,3 +1,6 @@
+2.0.21
+: When converting to reference links, catch links that have been wrapped
+
 2.0.20
 : Subsequent tables inheriting first table's column count
 
