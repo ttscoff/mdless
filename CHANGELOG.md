@@ -1,3 +1,5 @@
+2.0.22
+
 2.0.21
 : When converting to reference links, catch links that have been wrapped
 
