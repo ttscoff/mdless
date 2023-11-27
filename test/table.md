@@ -11,3 +11,10 @@ This is a nifty little table
 | an empty row |
 | this | should | benefit | all humanity|
 | where would | I be | without | you? |
+
+Here's another table with fewer columns
+
+| Key | Value |
+|:----|:------|
+|name |action |
+|other| row   |
