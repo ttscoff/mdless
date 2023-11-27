@@ -1,3 +1,14 @@
+2.0.19
+: `--section` can take string arguments to be fuzzy matched against headlines
+: Code refactoring
+: TaskPaper formatting now responds to --section with string matches
+: TaskPaper formatting now responds to --list to list projects
+: TaskPaper auto detection double checks content by removing all projects and tasks and seeing if there's anything left before deciding it's not TaskPaper content
+: Extra line break before headers
+: Wrap block quotes to max width
+: Missing first headline in output
+: Long links that were wrapped were not being replaced when converting to reference links
+
 2.0.18
 : Better handling of default options set in config
 : More expansive detection of screen width, no longer just dependent on `tput` being available
