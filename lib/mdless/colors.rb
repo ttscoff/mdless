@@ -133,7 +133,6 @@ module CLIMarkdown
     end
 
     def wrap(width=78,foreground=:x)
-
       if self.uncolor =~ /(^([%~] |\s*>)| +[=\-]{5,})/
         return self
       end
@@ -145,7 +144,9 @@ module CLIMarkdown
 
       line += self.match(/^\s*/)[0].gsub(/\t/,'    ')
       input = self.dup # .gsub(/(\w-)(\w)/,'\1 \2')
-
+      input.gsub!(/\[.*?\]\(.*?\)/) do |link|
+        link.gsub(/ /, "\u00A0")
+      end
       input.split(/\s+/).each do |word|
         last_ansi = line.scan(/\e\[[\d;]+m/)[-1] || ''
         if visible_width + word.size_clean >= width
@@ -160,8 +161,10 @@ module CLIMarkdown
           line << " " << last_ansi + word
         end
       end
-      lines << line + self.match(/\s*$/)[0] + xc(foreground) if line
-      return lines.join("\n") # .gsub(/\- (\S)/,'-\1')
+      lines << line + match(/\s*$/)[0] + xc(foreground) if line
+      lines.join("\n").gsub(/\[.*?\]\(.*?\)/) do |link|
+        link.gsub(/\u00A0/, ' ')
+      end
     end
 
     def c(args)

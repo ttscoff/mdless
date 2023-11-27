@@ -427,8 +427,8 @@ module CLIMarkdown
 
     def clean_markers(input)
       input.gsub!(/^(\e\[[\d;]+m)?[%~] ?/, '\1')
-      input.gsub!(/^(\e\[[\d;]+m)*>(\e\[[\d;]+m)?( +)/, ' \3\1\2')
-      input.gsub!(/^(\e\[[\d;]+m)*>(\e\[[\d;]+m)?/, '\1\2')
+      # input.gsub!(/^(\e\[[\d;]+m)*>(\e\[[\d;]+m)?( +)/, ' \3\1\2')
+      # input.gsub!(/^(\e\[[\d;]+m)*>(\e\[[\d;]+m)?/, '\1\2')
       input.gsub!(/(\e\[[\d;]+m)?@@@(\e\[[\d;]+m)?$/, '')
       input
     end

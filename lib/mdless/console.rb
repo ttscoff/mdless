@@ -171,11 +171,12 @@ module Redcarpet
 
       def block_quote(quote)
         ret = "\n\n"
-        quote.split("\n").each do |line|
+        quote.wrap(MDLess.cols, color('blockquote color')).split(/\n/).each do |line|
           ret += [
             color('blockquote marker color'),
             MDLess.theme['blockquote']['marker']['character'],
             color('blockquote color'),
+            ' ',
             line,
             "\n"
           ].join('')
@@ -190,6 +191,7 @@ module Redcarpet
       def header(text, header_level)
         pad = ''
         ansi = ''
+        text.clean_header_ids!
         case header_level
         when 1
           ansi = color('h1 color')

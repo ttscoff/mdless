@@ -44,6 +44,14 @@ class ::String
     /#{pre}#{chars.join(".{,#{distance}}")}.*?$/
   end
 
+  def clean_header_ids!
+    replace clean_header_ids
+  end
+
+  def clean_header_ids
+    gsub(/ +\[.*?\] *$/, '').gsub(/ *\{#.*?\} *$/, '').strip
+  end
+
   def color_meta(cols)
     @cols = cols
     input = dup
