@@ -8,6 +8,10 @@ Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor 
 
 It has a lot less content.
 
+### This is section 2b
+
+Well, neato, it works.
+
 ## This is section 3
 
 When will it end?

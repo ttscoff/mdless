@@ -1,7 +1,6 @@
 Title:   Byword MultiMarkdown Guide 
 Author:  The Byword Team  
 Email:   byword@metaclassy.com
-  
 Date:    May 29, 2011
   
 # Byword MultiMarkdown Guide
@@ -22,6 +21,8 @@ Date:    May 29, 2011
 <div class="source">
 Written and generated with <strong>Byword</strong> (<a href="guide.md">view source</a>)
 </div>
+
+byword@metaclassy.com
 
 ---
 

@@ -4,33 +4,33 @@ require 'yaml'
 module CLIMarkdown
   class Converter
     include Colors
-    include Theme
-
-    attr_reader :helpers, :log
 
     def version
       "#{CLIMarkdown::EXECUTABLE_NAME} #{CLIMarkdown::VERSION}"
     end
 
-    def initialize(args)
-      @log = Logger.new($stderr)
-      @log.level = Logger::WARN
+    def default(option, default)
+      MDLess.options[option] = default if MDLess.options[option].nil?
+    end
 
-      @options = {}
+    def initialize(args)
+      MDLess.log.level = Logger::WARN
+
+      MDLess.options = {}
       config = File.expand_path('~/.config/mdless/config.yml')
-      @options = YAML.load(IO.read(config)) if File.exist?(config)
+      MDLess.options = YAML.load(IO.read(config)) if File.exist?(config)
 
       optparse = OptionParser.new do |opts|
         opts.banner = "#{version} by Brett Terpstra\n\n> Usage: #{CLIMarkdown::EXECUTABLE_NAME} [options] [path]\n\n"
 
-        @options[:color] ||= true
+        default(:color, true)
         opts.on('-c', '--[no-]color', 'Colorize output (default on)') do |c|
-          @options[:color] = c
+          MDLess.options[:color] = c
         end
 
         opts.on('-d', '--debug LEVEL', 'Level of debug messages to output (1-4, 4 to see all messages)') do |level|
           if level.to_i.positive? && level.to_i < 5
-            @log.level = 5 - level.to_i
+            MDLess.log.level = 5 - level.to_i
           else
             puts 'Error: Debug level out of range (1-4)'
             Process.exit 1
@@ -42,60 +42,111 @@ module CLIMarkdown
           exit
         end
 
-        @options[:local_images] ||= false
-        @options[:remote_images] ||= false
+        default(:local_images, false)
+        default(:remote_images, false)
         opts.on('-i', '--images=TYPE',
                 'Include [local|remote (both)|none] images in output (requires chafa or imgcat, default none).') do |type|
           if exec_available('imgcat') || exec_available('chafa')
             case type
             when /^(r|b|a)/i
-              @options[:local_images] = true
-              @options[:remote_images] = true
+              MDLess.options[:local_images] = true
+              MDLess.options[:remote_images] = true
             when /^l/i
-              @options[:local_images] = true
+              MDLess.options[:local_images] = true
             when /^n/
-              @options[:local_images] = false
-              @options[:remote_images] = false
+              MDLess.options[:local_images] = false
+              MDLess.options[:remote_images] = false
             end
           else
-            @log.warn('images turned on but imgcat/chafa not found')
+            MDLess.log.warn('images turned on but imgcat/chafa not found')
           end
         end
+
         opts.on('-I', '--all-images', 'Include local and remote images in output (requires imgcat or chafa)') do
           if exec_available('imgcat') || exec_available('chafa') # && ENV['TERM_PROGRAM'] == 'iTerm.app'
-            @options[:local_images] = true
-            @options[:remote_images] = true
+            MDLess.options[:local_images] = true
+            MDLess.options[:remote_images] = true
           else
-            @log.warn('images turned on but imgcat/chafa not found')
+            MDLess.log.warn('images turned on but imgcat/chafa not found')
           end
         end
 
-        @options[:syntax_higlight] ||= false
-        opts.on('--syntax', 'Syntax highlight code blocks') do |p|
-          @options[:syntax_higlight] = p
+        default(:list, false)
+        opts.on('-l', '--list', 'List headers in document and exit') do
+          MDLess.options[:list] = true
         end
 
-        @options[:update_config] ||= false
-        opts.on('--update_config', 'Update the configuration file with new keys and current command line options') do
-          @options[:update_config] = true
+        default(:pager, true)
+        opts.on('-p', '--[no-]pager', 'Formatted output to pager (default on)') do |p|
+          MDLess.options[:pager] = p
         end
 
-        @options[:taskpaper] ||= false
-        opts.on('--taskpaper=OPTION', 'Highlight TaskPaper format (true|false|auto)') do |tp|
-          @options[:taskpaper] = case tp
-                                 when /^[ty1]/
-                                   true
-                                 when /^a/
-                                   :auto
-                                 else
-                                   false
-                                 end
+        default(:pager, true)
+        opts.on('-P', 'Disable pager (same as --no-pager)') do
+          MDLess.options[:pager] = false
         end
 
-        @options[:links] ||= :inline
+        default(:section, nil)
+        opts.on('-s', '--section=NUMBER[,NUMBER]',
+                'Output only a headline-based section of the input (numeric from --list)') do |section|
+          sections = section.split(/ *, */).map(&:strip)
+          MDLess.options[:section] = sections.map do |sect|
+            if sect =~ /^\d+$/
+              sect.to_i
+            else
+              sect
+            end
+          end
+        end
+
+        default(:theme, 'default')
+        opts.on('-t', '--theme=THEME_NAME', 'Specify an alternate color theme to load') do |theme|
+          MDLess.options[:theme] = theme
+        end
+
+        default(:at_tags, false)
+        opts.on('-@', '--at_tags', 'Highlight @tags and values in the document') do
+          MDLess.options[:at_tags] = true
+        end
+
+        opts.on('-v', '--version', 'Display version number') do
+          puts version
+          exit
+        end
+
+        default(:width, TTY::Screen.cols)
+        opts.on('-w', '--width=COLUMNS', 'Column width to format for (default: terminal width)') do |columns|
+          MDLess.options[:width] = columns.to_i
+        end
+        cols = TTY::Screen.cols
+        MDLess.options[:width] = cols if MDLess.options[:width] > cols
+
+        default(:autolink, true)
+        opts.on('--[no-]autolink', 'Convert bare URLs and emails to <links>') do |p|
+          MDLess.options[:autolink] = p
+        end
+
+        default(:inline_footnotes, false)
+        opts.on('--[no-]inline_footnotes',
+                'Display footnotes immediately after the paragraph that references them') do |p|
+          MDLess.options[:inline_footnotes] = p
+        end
+
+        default(:intra_emphasis, true)
+        opts.on('--[no-]intra-emphasis', 'Parse emphasis inside of words (e.g. Mark_down_)') do |opt|
+          MDLess.options[:intra_emphasis] = opt
+        end
+
+        default(:lax_spacing, true)
+        opts.on('--[no-]lax-spacing', 'Allow lax spacing') do |opt|
+          MDLess.options[:lax_spacing] = opt
+        end
+
+        default(:links, :inline)
         opts.on('--links=FORMAT',
-                'Link style ([inline, reference, paragraph], default inline, "paragraph" will position reference links after each paragraph)') do |fmt|
-          @options[:links] = case fmt
+                'Link style ([inline, reference, paragraph], default inline,
+                "paragraph" will position reference links after each paragraph)') do |fmt|
+          MDLess.options[:links] = case fmt
                              when /^:?r/i
                                :reference
                              when /^:?p/i
@@ -105,66 +156,47 @@ module CLIMarkdown
                              end
         end
 
-        @options[:lax_spacing] ||= true
-        opts.on('--[no-]lax-spacing', 'Allow lax spacing') do |opt|
-          @options[:lax_spacing] = opt
+        default(:preserve_linebreaks, false)
+        opts.on('--[no-]linebreaks', 'Preserve line breaks') do |opt|
+          MDLess.options[:preserve_linebreaks] = opt
         end
 
-        @options[:intra_emphasis] ||= true
-        opts.on('--[no-]intra-emphasis', 'Parse emphasis inside of words (e.g. Mark_down_)') do |opt|
-          @options[:intra_emphasis] = opt
+        default(:syntax_higlight, false)
+        opts.on('--[no-]syntax', 'Syntax highlight code blocks') do |opt|
+          MDLess.options[:syntax_higlight] = opt
         end
 
-        @options[:list] ||= false
-        opts.on('-l', '--list', 'List headers in document and exit') do
-          @options[:list] = true
+        MDLess.options[:taskpaper] = if MDLess.options[:taskpaper]
+                                 case MDLess.options[:taskpaper].to_s
+                                 when /^[ty1]/
+                                   true
+                                 when /^a/
+                                   :auto
+                                 else
+                                   false
+                                 end
+                               else
+                                 false
+                               end
+        opts.on('--taskpaper=OPTION', 'Highlight TaskPaper format (true|false|auto)') do |tp|
+          MDLess.options[:taskpaper] = case tp
+                                 when /^[ty1]/
+                                   true
+                                 when /^a/
+                                   :auto
+                                 else
+                                   false
+                                 end
         end
 
-        @options[:pager] ||= true
-        opts.on('-p', '--[no-]pager', 'Formatted output to pager (default on)') do |p|
-          @options[:pager] = p
+        default(:update_config, false)
+        opts.on('--update_config', 'Update the configuration file with new keys and current command line options') do
+          MDLess.options[:update_config] = true
         end
 
-        @options[:pager] ||= true
-        opts.on('-P', 'Disable pager (same as --no-pager)') do
-          @options[:pager] = false
-        end
-
-        @options[:section] ||= nil
-        opts.on('-s', '--section=NUMBER[,NUMBER]',
-                'Output only a headline-based section of the input (numeric from --list)') do |section|
-          @options[:section] = section.split(/ *, */).map(&:strip).map(&:to_i)
-        end
-
-        @options[:theme] ||= 'default'
-        opts.on('-t', '--theme=THEME_NAME', 'Specify an alternate color theme to load') do |theme|
-          @options[:theme] = theme
-        end
-
-        @options[:at_tags] ||= false
-        opts.on('-@', '--at_tags', 'Highlight @tags and values in the document') do
-          @options[:at_tags] = true
-        end
-
-        @options[:wiki_links] ||= false
+        default(:wiki_links, false)
         opts.on('--[no-]wiki-links', 'Highlight [[wiki links]]') do |opt|
-          @options[:wiki_links] = opt
-        end
-
-        opts.on('-v', '--version', 'Display version number') do
-          puts version
-          exit
-        end
-
-        @options[:width] = `tput cols`.strip.to_i
-        opts.on('-w', '--width=COLUMNS', 'Column width to format for (default: terminal width)') do |columns|
-          @options[:width] = columns.to_i
-        end
-
-        @options[:inline_footnotes] ||= false
-        opts.on('--[no-]inline_footnotes',
-                'Display footnotes immediately after the paragraph that references them') do |p|
-          @options[:inline_footnotes] = p
+          MDLess.options[:wiki_links] = opt
         end
       end
 
@@ -175,20 +207,21 @@ module CLIMarkdown
         exit 1
       end
 
-      if !File.exist?(config) || @options[:update_config]
+      if !File.exist?(config) || MDLess.options[:update_config]
         FileUtils.mkdir_p(File.dirname(config))
         File.open(config, 'w') do |f|
-          opts = @options.dup
+          opts = MDLess.options.dup
           opts.delete(:list)
           opts.delete(:section)
           opts.delete(:update_config)
+          opts = opts.keys.map(&:to_s).sort.map { |k| [k.to_sym, opts[k.to_sym]] }.to_h
           f.puts YAML.dump(opts)
           warn "Config file saved to #{config}"
         end
       end
 
-      @theme = load_theme(@options[:theme])
-      @cols = @options[:width] - 2
+      MDLess.cols = MDLess.options[:width] - 2
+
       @output = ''
       @headers = []
       @setheaders = []
@@ -198,19 +231,15 @@ module CLIMarkdown
       @footnotes = {}
 
       renderer = Redcarpet::Render::Console.new
-      renderer.theme = @theme
-      renderer.cols = @cols
-      renderer.log = @log
-      renderer.options = @options
 
       markdown = Redcarpet::Markdown.new(renderer,
-                                         no_intra_emphasis: !@options[:intra_emphasis],
-                                         autolink: true,
+                                         no_intra_emphasis: !MDLess.options[:intra_emphasis],
+                                         autolink: MDLess.options[:autolink],
                                          fenced_code_blocks: true,
                                          footnotes: true,
                                          hard_wrap: false,
                                          highlight: true,
-                                         lax_spacing: @options[:lax_spacing],
+                                         lax_spacing: MDLess.options[:lax_spacing],
                                          quote: false,
                                          space_after_headers: false,
                                          strikethrough: true,
@@ -221,9 +250,9 @@ module CLIMarkdown
       if !args.empty?
         files = args.delete_if { |f| !File.exist?(f) }
         files.each do |file|
-          @log.info(%(Processing "#{file}"))
-          @file = file
-          renderer.file = @file
+          MDLess.log.info(%(Processing "#{file}"))
+          MDLess.file = file
+
           begin
             input = IO.read(file).force_encoding('utf-8')
           rescue StandardError
@@ -234,25 +263,27 @@ module CLIMarkdown
           input.scrub!
           input.gsub!(/\r?\n/, "\n")
 
-          if @options[:list]
-            puts list_headers(input)
+          if MDLess.options[:taskpaper] == :auto
+            MDLess.options[:taskpaper] = if CLIMarkdown::TaskPaper.is_taskpaper?(input)
+                                           MDLess.log.info('TaskPaper detected')
+                                           true
+                                         else
+                                           false
+                                         end
+          end
+
+          if MDLess.options[:list]
+            if MDLess.options[:taskpaper]
+              puts CLIMarkdown::TaskPaper.list_projects(input)
+            else
+              puts list_headers(input)
+            end
             Process.exit 0
           else
-            if @options[:taskpaper] == :auto
-              @options[:taskpaper] = if file =~ /\.taskpaper/
-                                       @log.info('TaskPaper extension detected')
-                                       true
-                                     elsif CLIMarkdown::TaskPaper.is_taskpaper?(input)
-                                       @log.info('TaskPaper document detected')
-                                       true
-                                     else
-                                       false
-                                     end
-            end
-
-            if @options[:taskpaper]
-              input = CLIMarkdown::TaskPaper.highlight(input, @theme)
-              @output = input.highlight_tags(@theme, @log)
+            if MDLess.options[:taskpaper]
+              input = input.color_meta(MDLess.cols)
+              input = CLIMarkdown::TaskPaper.highlight(input)
+              @output = input.highlight_tags
             else
               @output = markdown.render(input)
             end
@@ -260,14 +291,34 @@ module CLIMarkdown
         end
         printout
       elsif !$stdin.isatty
-        @file = nil
+        MDLess.file = nil
         input = $stdin.read.scrub
         input.gsub!(/\r?\n/, "\n")
-        if @options[:list]
-          puts list_headers(input)
+
+        if MDLess.options[:taskpaper] == :auto
+          MDLess.options[:taskpaper] = if CLIMarkdown::TaskPaper.is_taskpaper?(input)
+                                         MDLess.log.info('TaskPaper detected')
+                                         true
+                                       else
+                                         false
+                                       end
+        end
+
+        if MDLess.options[:list]
+          if MDLess.options[:taskpaper]
+            puts CLIMarkdown::TaskPaper.list_projects(input)
+          else
+            puts list_headers(input)
+          end
           Process.exit 0
         else
-          @output = markdown.render(input)
+          if MDLess.options[:taskpaper]
+            input = input.color_meta(MDLess.cols)
+            input = CLIMarkdown::TaskPaper.highlight(input)
+            @output = input.highlight_tags
+          else
+            @output = markdown.render(input)
+          end
         end
         printout
       else
@@ -279,17 +330,17 @@ module CLIMarkdown
     def color(key)
       val = nil
       keys = key.split(/[ ,>]/)
-      if @theme.key?(keys[0])
-        val = @theme[keys.shift]
+      if MDLess.theme.key?(keys[0])
+        val = MDLess.theme[keys.shift]
       else
-        @log.error("Invalid theme key: #{key}") unless keys[0] =~ /^text/
+        MDLess.log.error("Invalid theme key: #{key}") unless keys[0] =~ /^text/
         return c([:reset])
       end
       keys.each do |k|
         if val.key?(k)
           val = val[k]
         else
-          @log.error("Invalid theme key: #{k}")
+          MDLess.log.error("Invalid theme key: #{k}")
           return c([:reset])
         end
       end
@@ -381,8 +432,8 @@ module CLIMarkdown
 
     def clean_markers(input)
       input.gsub!(/^(\e\[[\d;]+m)?[%~] ?/, '\1')
-      input.gsub!(/^(\e\[[\d;]+m)*>(\e\[[\d;]+m)?( +)/, ' \3\1\2')
-      input.gsub!(/^(\e\[[\d;]+m)*>(\e\[[\d;]+m)?/, '\1\2')
+      # input.gsub!(/^(\e\[[\d;]+m)*>(\e\[[\d;]+m)?( +)/, ' \3\1\2')
+      # input.gsub!(/^(\e\[[\d;]+m)*>(\e\[[\d;]+m)?/, '\1\2')
       input.gsub!(/(\e\[[\d;]+m)?@@@(\e\[[\d;]+m)?$/, '')
       input
     end
@@ -411,7 +462,7 @@ module CLIMarkdown
       block.split(/\n/).map do |l|
         new_code_line = l.gsub(/\t/, '    ')
         orig_length = new_code_line.size + 8 + eol.size
-        pad_count = [@cols - orig_length, 0].max
+        pad_count = [MDLess.cols - orig_length, 0].max
 
         [
           new_code_line,
@@ -435,11 +486,11 @@ module CLIMarkdown
         IO.select [input]
 
         pager = which_pager
-        @log.info("Using #{pager} as pager")
+        MDLess.log.info("Using #{pager} as pager")
         begin
           exec(pager.join(' '))
         rescue SystemCallError => e
-          @log.error(e)
+          MDLess.log.error(e)
           exit 1
         end
       end
@@ -457,21 +508,25 @@ module CLIMarkdown
     end
 
     def printout
-      out = @output.rstrip.split(/\n/).map do |p|
-        p.wrap(@cols, color('text'))
-      end.join("\n")
+      if MDLess.options[:taskpaper]
+        out = @output
+      else
+        out = @output.rstrip.split(/\n/).map do |p|
+          p.wrap(MDLess.cols, color('text'))
+        end.join("\n")
+      end
 
       unless out.size&.positive?
-        @log.warn 'No results'
+        MDLess.log.warn 'No results'
         Process.exit
       end
 
       out = clean_markers(out)
       out = "#{out.gsub(/\n{2,}/m, "\n\n")}#{xc}"
 
-      out.uncolor! unless @options[:color]
+      out.uncolor! unless MDLess.options[:color]
 
-      if @options[:pager]
+      if MDLess.options[:pager]
         page(out)
       else
         $stdout.print out.rstrip
@@ -494,7 +549,7 @@ module CLIMarkdown
           if f.strip =~ /[ |]/
             f
           elsif f == 'most'
-            @log.warn('most not allowed as pager')
+            MDLess.log.warn('most not allowed as pager')
             false
           else
             system "which #{f}", out: File::NULL, err: File::NULL

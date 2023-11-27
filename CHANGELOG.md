@@ -1,3 +1,32 @@
+2.0.21
+: When converting to reference links, catch links that have been wrapped
+
+2.0.20
+: Subsequent tables inheriting first table's column count
+
+2.0.19
+: `--section` can take string arguments to be fuzzy matched against headlines
+: Code refactoring
+: TaskPaper formatting now responds to --section with string matches
+: TaskPaper formatting now responds to --list to list projects
+: TaskPaper auto detection double checks content by removing all projects and tasks and seeing if there's anything left before deciding it's not TaskPaper content
+: Extra line break before headers
+: Wrap block quotes to max width
+: Missing first headline in output
+: Long links that were wrapped were not being replaced when converting to reference links
+
+2.0.18
+: Better handling of default options set in config
+: More expansive detection of screen width, no longer just dependent on `tput` being available
+: Only extend borders and backgrounds on code blocks to the length of the longest line
+: Include the language in the top border of code blocks, if available
+: Validate themes and lexers using `pygmentize` output, with fallbacks
+: If width specified in config is greater than display columns, fall back to display columns as max width
+: Metadata (MMD/YAML) handling on TaskPaper files
+
+2.0.17
+: Re-order command line options for more readable help output (`mdless -h`)
+
 2.0.15
 : Highlight [[wiki links]]
 : TaskPaper rendering refinements
