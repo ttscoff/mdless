@@ -229,7 +229,11 @@ module Redcarpet
       end
 
       def paragraph(text)
-        "#{xc}#{text}#{xc}#{x}\n\n"
+        if MDLess.options[:preserve_linebreaks]
+          "#{xc}#{text.gsub(/ +/, ' ').strip}#{xc}#{x}\n\n"
+        else
+          "#{xc}#{text.gsub(/ +/, ' ').gsub(/\n+/, ' ').strip}#{xc}#{x}\n\n"
+        end
       end
 
       @table_cols = nil
@@ -427,7 +431,7 @@ module Redcarpet
       end
 
       def link(link, title, content)
-        res = color_link(link, title, content)
+        res = color_link(link, title&.strip, content&.strip)
         @@links << {
           link: res,
           url: link,
@@ -581,7 +585,7 @@ module Redcarpet
           end.join("\n"), indent)
           next if list.nil?
 
-          "<<main#{m['id']}>>#{list}<</main#{m['id']}>>"
+          "<<main#{m['id']}>>#{list}<</main#{m['id']}>>\n\n"
         end
 
         input.gsub(/^(?<indent> +)<<main(?<id>\d+)>>(?<content>.*?)<<\/main\k<id>>>/m) do
@@ -786,11 +790,11 @@ module Redcarpet
           links_added = false
 
           @@links.each do |link|
-            if graf =~ /#{Regexp.escape(link[:link])}/
+            if graf =~ /#{Regexp.escape(link[:link].gsub(/\n/, ' '))}/
               url = link[:url].uncolor
               content = link[:content]
               title = link[:title]&.uncolor
-              graf.gsub!(/#{Regexp.escape(link[:link])}/, color_link_reference(url, counter, content))
+              graf.gsub!(/#{Regexp.escape(link[:link].gsub(/\n/, ' '))}/, color_link_reference(url, counter, content))
               if MDLess.options[:links] == :paragraph
                 if links_added
                   graf += "\n#{color_reference_link(url, title, counter)}"

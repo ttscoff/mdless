@@ -156,9 +156,14 @@ module CLIMarkdown
                              end
         end
 
+        default(:preserve_linebreaks, false)
+        opts.on('--[no-]linebreaks', 'Preserve line breaks') do |opt|
+          MDLess.options[:preserve_linebreaks] = opt
+        end
+
         default(:syntax_higlight, false)
-        opts.on('--[no-]syntax', 'Syntax highlight code blocks') do |p|
-          MDLess.options[:syntax_higlight] = p
+        opts.on('--[no-]syntax', 'Syntax highlight code blocks') do |opt|
+          MDLess.options[:syntax_higlight] = opt
         end
 
         MDLess.options[:taskpaper] = if MDLess.options[:taskpaper]
