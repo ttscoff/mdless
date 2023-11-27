@@ -12,20 +12,20 @@ class ::String
     replace clean_empty_lines
   end
 
-  def color(key, theme, log)
+  def color(key)
     val = nil
     keys = key.split(/[ ,>]/)
-    if theme.key?(keys[0])
-      val = theme[keys.shift]
+    if MDLess.theme.key?(keys[0])
+      val = MDLess.theme[keys.shift]
     else
-      log.error("Invalid theme key: #{key}") unless keys[0] =~ /^text/
+      MDLess.log.error("Invalid theme key: #{key}") unless keys[0] =~ /^text/
       return c([:reset])
     end
     keys.each do |k|
       if val.key?(k)
         val = val[k]
       else
-        log.error("Invalid theme key: #{k}")
+        MDLess.log.error("Invalid theme key: #{k}")
         return c([:reset])
       end
     end
@@ -38,9 +38,13 @@ class ::String
     end
   end
 
-  def color_meta(theme, log, cols)
-    @theme = theme
-    @log = log
+  def to_rx(distance: 2, string_start: false)
+    chars = downcase.split(//)
+    pre = string_start ? '^' : '^.*?'
+    "#{pre}#{chars.join(".{,#{distance}}")}.*?$"
+  end
+
+  def color_meta(cols)
     @cols = cols
     input = dup
     input.clean_empty_lines!
@@ -48,21 +52,21 @@ class ::String
     in_yaml = false
     first_line = input.split("\n").first
     if first_line =~ /(?i-m)^---[ \t]*?$/
-      @log.info('Found YAML')
+      MDLess.log.info('Found YAML')
       # YAML
       in_yaml = true
       input.sub!(/(?i-m)^---[ \t]*\n([\s\S]*?)\n[-.]{3}[ \t]*\n/m) do
         m = Regexp.last_match
-        @log.info('Processing YAML Header')
+        MDLess.log.info('Processing YAML Header')
         lines = m[0].split(/\n/)
         longest = lines.inject { |memo, word| memo.length > word.length ? memo : word }.length
         longest = longest < @cols ? longest + 1 : @cols
         lines.map do |line|
           if line =~ /^[-.]{3}\s*$/
-            line = "#{color('metadata marker', @theme, @log)}#{'%' * longest}"
+            line = "#{color('metadata marker')}#{'%' * longest}"
           else
             line.sub!(/^(.*?:)[ \t]+(\S)/, '\1 \2')
-            line = "#{color('metadata color', @theme, @log)}#{line}"
+            line = "#{color('metadata color')}#{line}"
           end
 
           line += "\u00A0" * (longest - line.uncolor.strip.length) + xc
@@ -72,7 +76,7 @@ class ::String
     end
 
     if !in_yaml && first_line =~ /(?i-m)^[\w ]+:\s+\S+/
-      @log.info('Found MMD Headers')
+      MDLess.log.info('Found MMD Headers')
       input.sub!(/(?i-m)^([\S ]+:[\s\S]*?)+(?=\n\n)/) do |mmd|
         lines = mmd.split(/\n/)
         return mmd if lines.count > 20
@@ -81,7 +85,7 @@ class ::String
         longest = longest < @cols ? longest + 1 : @cols
         lines.map do |line|
           line.sub!(/^(.*?:)[ \t]+(\S)/, '\1 \2')
-          line = "#{color('metadata color', @theme, @log)}#{line}"
+          line = "#{color('metadata color')}#{line}"
           line += "\u00A0" * (longest - line.uncolor.strip.length)
           line + xc
         end.join("\n") + "#{"\u00A0" * longest}#{xc}\n"
@@ -91,9 +95,10 @@ class ::String
     input
   end
 
-  def highlight_tags(theme, log)
-    tag_color = color('at_tags tag', theme, log)
-    value_color = color('at_tags value', theme, log)
+  def highlight_tags
+    log = MDLess.log
+    tag_color = color('at_tags tag')
+    value_color = color('at_tags value')
     gsub(/(?<pre>\s|m)(?<tag>@[^ \].?!,("']+)(?:(?<lparen>\()(?<value>.*?)(?<rparen>\)))?/) do
       m = Regexp.last_match
       last_color = m.pre_match.last_color_code
@@ -122,20 +127,13 @@ class ::String
 
   def valid_pygments_theme?
     return false unless TTY::Which.exist?('pygmentize')
-    pyg = TTY::Which.which('pygmentize')
-    res = `#{pyg} -L styles`
-    styles = res.scan(/\* ([\w-]+):/).map { |l| l[0] }
-    styles.include?(self)
+
+    MDLess.pygments_styles.include?(self)
   end
 
   def valid_lexer?
     return false unless TTY::Which.exist?('pygmentize')
-    pyg = TTY::Which.which('pygmentize')
-    res = `#{pyg} -L lexers`
-    lexers = res.scan(/\* ([\w-]+(?:, [\w-]+)*):/).map { |l| l[0] }
-    lexers_a = []
-    lexers.each { |l| lexers_a.concat(l.split(/, /)) }
 
-    lexers_a.include?(self.downcase)
+    MDLess.pygments_lexers.include?(self.downcase)
   end
 end

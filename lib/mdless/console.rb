@@ -4,13 +4,13 @@ module Redcarpet
       include CLIMarkdown::Colors
       include CLIMarkdown::Theme
 
-      attr_writer :theme, :cols, :log, :options, :file
+      attr_accessor :headers
+      attr_writer :file
 
       @@listitemid = 0
       @@listid = 0
       @@elementid = 0
       @@footnotes = []
-      @@headers = []
       @@links = []
       @@footer_links = []
 
@@ -66,22 +66,22 @@ module Redcarpet
       end
 
       def hilite_code(code_block, language)
-        if @options[:syntax_higlight] && !exec_available('pygmentize')
-          @log.error('Syntax highlighting requested by pygmentize is not available')
-          @options[:syntax_higlight] = false
+        if MDLess.options[:syntax_higlight] && !exec_available('pygmentize')
+          MDLess.log.error('Syntax highlighting requested by pygmentize is not available')
+          MDLess.options[:syntax_higlight] = false
         end
 
         longest_line = code_block.uncolor.split(/\n/).longest_element.length + 4
-        longest_line = longest_line > @cols ? @cols : longest_line
+        longest_line = longest_line > MDLess.cols ? MDLess.cols : longest_line
 
-        if @options[:syntax_higlight]
+        if MDLess.options[:syntax_higlight]
           pyg = TTY::Which.which('pygmentize')
           lexer = language&.valid_lexer? ? "-l #{language}" : '-g'
           begin
-            pygments_theme = @options[:pygments_theme] || @theme['code_block']['pygments_theme']
+            pygments_theme = MDLess.options[:pygments_theme] || MDLess.theme['code_block']['pygments_theme']
 
             unless pygments_theme.valid_pygments_theme?
-              @log.error("Invalid Pygments theme #{pygments_theme}, defaulting to 'default' for highlighting")
+              MDLess.log.error("Invalid Pygments theme #{pygments_theme}, defaulting to 'default' for highlighting")
               pygments_theme = 'default'
             end
 
@@ -100,10 +100,10 @@ module Redcarpet
                   '> ',
                   "#{color('code_block bg')}#{l.strip}#{xc}"
                 ].join
-              end.join("\n").blackout(@theme['code_block']['bg']) + "#{xc}\n"
+              end.join("\n").blackout(MDLess.theme['code_block']['bg']) + "#{xc}\n"
             end
           rescue StandardError => e
-            @log.error(e)
+            MDLess.log.error(e)
             hilite = code_block
           end
         else
@@ -115,7 +115,7 @@ module Redcarpet
               line,
               xc
             ].join
-          end.join("\n").blackout(@theme['code_block']['bg']) + "#{xc}\n"
+          end.join("\n").blackout(MDLess.theme['code_block']['bg']) + "#{xc}\n"
         end
 
         top_border = if language.nil? || language.empty?
@@ -142,17 +142,17 @@ module Redcarpet
       def color(key)
         val = nil
         keys = key.split(/[ ,>]/)
-        if @theme.key?(keys[0])
-          val = @theme[keys.shift]
+        if MDLess.theme.key?(keys[0])
+          val = MDLess.theme[keys.shift]
         else
-          @log.error("Invalid theme key: #{key}") unless keys[0] =~ /^text/
+          MDLess.log.error("Invalid theme key: #{key}") unless keys[0] =~ /^text/
           return c([:reset])
         end
         keys.each do |k|
           if val.key?(k)
             val = val[k]
           else
-            @log.error("Invalid theme key: #{k}")
+            MDLess.log.error("Invalid theme key: #{k}")
             return c([:reset])
           end
         end
@@ -174,7 +174,7 @@ module Redcarpet
         quote.split("\n").each do |line|
           ret += [
             color('blockquote marker color'),
-            @theme['blockquote']['marker']['character'],
+            MDLess.theme['blockquote']['marker']['character'],
             color('blockquote color'),
             line,
             "\n"
@@ -194,13 +194,13 @@ module Redcarpet
         when 1
           ansi = color('h1 color')
           pad = color('h1 pad')
-          char = @theme['h1']['pad_char'] || '='
-          pad += text.length + 2 > @cols ? char * text.length : char * (@cols - (text.length + 1))
+          char = MDLess.theme['h1']['pad_char'] || '='
+          pad += text.length + 2 > MDLess.cols ? char * text.length : char * (MDLess.cols - (text.length + 1))
         when 2
           ansi = color('h2 color')
           pad = color('h2 pad')
-          char = @theme['h2']['pad_char'] || '-'
-          pad += text.length + 2 > @cols ? char * text.length : char * (@cols - (text.length + 1))
+          char = MDLess.theme['h2']['pad_char'] || '-'
+          pad += text.length + 2 > MDLess.cols ? char * text.length : char * (MDLess.cols - (text.length + 1))
         when 3
           ansi = color('h3 color')
         when 4
@@ -215,7 +215,7 @@ module Redcarpet
         # iTerm Marks for navigation on h1-3
         if header_level < 4 &&
            ENV['TERM_PROGRAM'] =~ /^iterm/i &&
-           @options[:pager] == false
+           MDLess.options[:pager] == false
           ansi = "\e]1337;SetMark\a#{ansi}"
         end
 
@@ -223,7 +223,7 @@ module Redcarpet
       end
 
       def hrule()
-        "\n\n#{color('hr color')}#{'_' * @cols}#{xc}\n\n"
+        "\n\n#{color('hr color')}#{'_' * MDLess.cols}#{xc}\n\n"
       end
 
       def paragraph(text)
@@ -290,11 +290,11 @@ module Redcarpet
         [
           pre_element,
           color('code_span marker'),
-          @theme['code_span']['character'],
+          MDLess.theme['code_span']['character'],
           color('code_span color'),
           code,
           color('code_span marker'),
-          @theme['code_span']['character'],
+          MDLess.theme['code_span']['character'],
           xc,
           post_element
         ].join('')
@@ -304,9 +304,9 @@ module Redcarpet
         [
           pre_element,
           color('emphasis bold'),
-          @theme['emphasis']['bold_character'],
+          MDLess.theme['emphasis']['bold_character'],
           text,
-          @theme['emphasis']['bold_character'],
+          MDLess.theme['emphasis']['bold_character'],
           xc,
           post_element
         ].join
@@ -316,9 +316,9 @@ module Redcarpet
         [
           pre_element,
           color('emphasis italic'),
-          @theme['emphasis']['italic_character'],
+          MDLess.theme['emphasis']['italic_character'],
           text,
-          @theme['emphasis']['italic_character'],
+          MDLess.theme['emphasis']['italic_character'],
           xc,
           post_element
         ].join
@@ -328,11 +328,11 @@ module Redcarpet
         [
           pre_element,
           color('emphasis bold-italic'),
-          @theme['emphasis']['italic_character'],
-          @theme['emphasis']['bold_character'],
+          MDLess.theme['emphasis']['italic_character'],
+          MDLess.theme['emphasis']['bold_character'],
           text,
-          @theme['emphasis']['bold_character'],
-          @theme['emphasis']['italic_character'],
+          MDLess.theme['emphasis']['bold_character'],
+          MDLess.theme['emphasis']['italic_character'],
           xc,
           post_element
         ].join
@@ -528,7 +528,7 @@ module Redcarpet
         lines = input.split(/\n/)
         line1 = lines.shift
         pre = '  ' * (indent + 1)
-        cols = @cols - pre.length
+        cols = MDLess.cols - pre.length
         body = lines.map { |l| "#{pre}#{l}" }.join("\n")
         "#{line1}\n#{body}"
       end
@@ -622,8 +622,8 @@ module Redcarpet
       end
 
       def get_headers(input)
-        unless @@headers && !@@headers.empty?
-          @@headers = []
+        unless @headers && !@headers.empty?
+          @headers = []
           headers = input.scan(/^((?!#!)(\#{1,6})\s*([^#]+?)(?: #+)?\s*|(\S.+)\n([=-]+))$/i)
 
           headers.each do |h|
@@ -639,7 +639,7 @@ module Redcarpet
               hlevel = h[1].length
               title = h[2]
             end
-            @@headers << [
+            @headers << [
               '#' * hlevel,
               title,
               h[0]
@@ -647,7 +647,7 @@ module Redcarpet
           end
         end
 
-        @@headers
+        @headers
       end
 
       def color_meta(text)
@@ -656,15 +656,15 @@ module Redcarpet
 
         first_line = input.split("\n").first
         if first_line =~ /(?i-m)^---[ \t]*?$/
-          @log.info('Found YAML')
+          MDLess.log.info('Found YAML')
           # YAML
           in_yaml = true
           input.sub!(/(?i-m)^---[ \t]*\n([\s\S]*?)\n[-.]{3}[ \t]*\n/m) do
             m = Regexp.last_match
-            @log.info('Processing YAML Header')
+            MDLess.log.info('Processing YAML Header')
             lines = m[0].split(/\n/)
             longest = lines.longest_element.length
-            longest = longest < @cols ? longest + 1 : @cols
+            longest = longest < MDLess.cols ? longest + 1 : MDLess.cols
             lines.map do |line|
               if line =~ /^[-.]{3}\s*$/
                 line = "#{color('metadata marker')}#{'%' * longest}"
@@ -680,13 +680,13 @@ module Redcarpet
         end
 
         if !in_yaml && first_line =~ /(?i-m)^[\w ]+:\s+\S+/
-          @log.info('Found MMD Headers')
+          MDLess.log.info('Found MMD Headers')
           input.sub!(/(?i-m)^([\S ]+:[\s\S]*?)+(?=\n\n)/) do |mmd|
             lines = mmd.split(/\n/)
             return mmd if lines.count > 20
 
             longest = lines.inject { |memo, word| memo.length > word.length ? memo : word }.length
-            longest = longest < @cols ? longest + 1 : @cols
+            longest = longest < MDLess.cols ? longest + 1 : MDLess.cols
             lines.map do |line|
               line.sub!(/^(.*?:)[ \t]+(\S)/, '\1 \2')
               line = "#{color('metadata color')}#{line}"
@@ -706,14 +706,17 @@ module Redcarpet
         input.gsub!(/^([^\n]+)\n={2,}\s*$/m, "# \\1\n")
         input.gsub!(/^([^\n]+?)\n-{2,}\s*$/m, "## \\1\n")
 
-        @@headers = get_headers(input)
+        @headers = get_headers(input)
 
-        if @options[:section]
+        if MDLess.options[:section]
           new_content = []
-          @options[:section].each do |sect|
+          MDLess.log.info("Matching section(s) #{MDLess.options[:section].join(', ')}")
+          MDLess.options[:section].each do |sect|
+            comparison = MDLess.options[:section][0].is_a?(String) ? :regex : :numeric
+
             in_section = false
             top_level = 1
-            input.split(/\n/).each do |graf|
+            input.split(/\n/).each_with_index do |graf, idx|
               if graf =~ /^(#+) *(.*?)( *#+)?$/
                 m = Regexp.last_match
                 level = m[1].length
@@ -725,7 +728,8 @@ module Redcarpet
                     in_section = false
                     break
                   end
-                elsif title.downcase == @@headers[sect - 1][1].downcase
+                elsif (comparison == :regex && title.downcase =~ /#{sect.downcase.to_rx}/) ||
+                      (comparison == :numeric && title.downcase == @headers[sect - 1][1].downcase)
                   in_section = true
                   top_level = level + 1
                   new_content.push(graf)
@@ -774,7 +778,7 @@ module Redcarpet
         counter = 1
 
         grafs.map! do |graf|
-          next if graf =~ /^$/
+          return "\n" if graf =~ /^ *\n$/
 
           links_added = false
 
@@ -784,7 +788,7 @@ module Redcarpet
               content = link[:content]
               title = link[:title]&.uncolor
               graf.gsub!(/#{Regexp.escape(link[:link])}/, color_link_reference(url, counter, content))
-              if @options[:links] == :paragraph
+              if MDLess.options[:links] == :paragraph
                 if links_added
                   graf += "\n#{color_reference_link(url, title, counter)}"
                 else
@@ -800,7 +804,7 @@ module Redcarpet
           "\n#{graf}\n"
         end
 
-        if @options[:links] == :paragraph
+        if MDLess.options[:links] == :paragraph
           grafs.join("\n")
         else
           grafs.join("\n") + "\n#{@@footer_links.join("\n")}\n"
@@ -820,16 +824,16 @@ module Redcarpet
         input.gsub(%r{<<img>>(.*?)<</img>>}) do
           link, title, alt_text = Regexp.last_match(1).split(/\|\|/)
 
-          if (exec_available('imgcat') || exec_available('chafa')) && @options[:local_images]
+          if (exec_available('imgcat') || exec_available('chafa')) && MDLess.options[:local_images]
             if exec_available('imgcat')
-              @log.info('Using imgcat for image rendering')
+              MDLess.log.info('Using imgcat for image rendering')
             elsif exec_available('chafa')
-              @log.info('Using chafa for image rendering')
+              MDLess.log.info('Using chafa for image rendering')
             end
             img_path = link
-            if img_path =~ /^http/ && @options[:remote_images]
+            if img_path =~ /^http/ && MDLess.options[:remote_images]
               if exec_available('imgcat')
-                @log.info('Using imgcat for image rendering')
+                MDLess.log.info('Using imgcat for image rendering')
                 begin
                   res, s = Open3.capture2(%(curl -sS "#{img_path}" 2> /dev/null | imgcat))
 
@@ -839,10 +843,10 @@ module Redcarpet
                     result = pre + res + post
                   end
                 rescue StandardError => e
-                  @log.error(e)
+                  MDLess.log.error(e)
                 end
               elsif exec_available('chafa')
-                @log.info('Using chafa for image rendering')
+                MDLess.log.info('Using chafa for image rendering')
                 term = '-f sixels'
                 term = ENV['TERMINAL_PROGRAM'] =~ /iterm/i ? '-f iterm' : term
                 term = ENV['TERMINAL_PROGRAM'] =~ /kitty/i ? '-f kitty' : term
@@ -858,13 +862,13 @@ module Redcarpet
                 Dir.chdir('..')
                 FileUtils.rm_r '.mdless_tmp', force: true
               else
-                @log.warn('No viewer for remote images')
+                MDLess.log.warn('No viewer for remote images')
               end
             else
               if img_path =~ %r{^[~/]}
                 img_path = File.expand_path(img_path)
-              elsif @file
-                base = File.expand_path(File.dirname(@file))
+              elsif MDLess.file
+                base = File.expand_path(File.dirname(MDLess.file))
                 img_path = File.join(base, img_path)
               end
               if File.exist?(img_path)
@@ -956,9 +960,9 @@ module Redcarpet
       def postprocess(input)
         input.scrub!
 
-        input = highlight_wiki_links(input) if @options[:wiki_links]
+        input = highlight_wiki_links(input) if MDLess.options[:wiki_links]
 
-        if @options[:inline_footnotes]
+        if MDLess.options[:inline_footnotes]
           input = insert_footnotes(input)
         else
           footnotes = @@footnotes.map.with_index do |fn, i|
@@ -975,11 +979,11 @@ module Redcarpet
         # misc html
         input.gsub!(%r{<br */?>}, "#{pre_element}\n#{post_element}")
         # format links
-        input = reference_links(input) if @options[:links] == :reference || @options[:links] == :paragraph
+        input = reference_links(input) if MDLess.options[:links] == :reference || MDLess.options[:links] == :paragraph
         # lists
         input = fix_lists(input)
-        input = render_images(input) if @options[:local_images]
-        input = highlight_tags(input) if @options[:at_tags] || @options[:taskpaper]
+        input = render_images(input) if MDLess.options[:local_images]
+        input = highlight_tags(input) if MDLess.options[:at_tags] || MDLess.options[:taskpaper]
         fix_colors(input)
       end
     end

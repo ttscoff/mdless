@@ -13,8 +13,8 @@ module CLIMarkdown
       def color(key)
         val = nil
         keys = key.split(/[ ,>]/)
-        if @theme.key?(keys[0])
-          val = @theme[keys.shift]
+        if MDLess.theme.key?(keys[0])
+          val = MDLess.theme[keys.shift]
         else
           @log.error("Invalid theme key: #{key}") unless keys[0] =~ /^text/
           return c([:reset])
@@ -37,6 +37,8 @@ module CLIMarkdown
       end
 
       def is_taskpaper?(input)
+        return true if MDLess.file =~ /\.taskpaper$/
+
         projects = input.split(PROJECT_RX)
         tasks = 0
         if projects.count > 1
@@ -48,8 +50,7 @@ module CLIMarkdown
         tasks >= 6
       end
 
-      def highlight(input, theme)
-        @theme = theme
+      def highlight(input)
         mc = color('taskpaper marker')
         tc = color('taskpaper task')
         pc = color('taskpaper project')
