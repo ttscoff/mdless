@@ -219,7 +219,7 @@ module Redcarpet
           ansi = "\e]1337;SetMark\a#{ansi}"
         end
 
-        "\n#{xc}#{ansi}#{text} #{pad}#{xc}\n\n"
+        "\n\n#{xc}#{ansi}#{text} #{pad}#{xc}\n\n"
       end
 
       def hrule()
