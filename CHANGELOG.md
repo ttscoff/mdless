@@ -1,3 +1,6 @@
+2.0.20
+: Subsequent tables inheriting first table's column count
+
 2.0.19
 : `--section` can take string arguments to be fuzzy matched against headlines
 : Code refactoring
