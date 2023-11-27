@@ -41,7 +41,7 @@ class ::String
   def to_rx(distance: 2, string_start: false)
     chars = downcase.split(//)
     pre = string_start ? '^' : '^.*?'
-    "#{pre}#{chars.join(".{,#{distance}}")}.*?$"
+    /#{pre}#{chars.join(".{,#{distance}}")}.*?$/
   end
 
   def color_meta(cols)

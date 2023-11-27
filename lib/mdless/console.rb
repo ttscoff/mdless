@@ -728,7 +728,7 @@ module Redcarpet
                     in_section = false
                     break
                   end
-                elsif (comparison == :regex && title.downcase =~ /#{sect.downcase.to_rx}/) ||
+                elsif (comparison == :regex && title.downcase =~ sect.downcase.to_rx) ||
                       (comparison == :numeric && title.downcase == @headers[sect - 1][1].downcase)
                   in_section = true
                   top_level = level + 1

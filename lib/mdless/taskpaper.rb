@@ -3,7 +3,7 @@
 module CLIMarkdown
   module TaskPaper
     TASK_RX = /^(?<indent>(?:    |\t)*?)(?<marker>-)(?<task>\s+\S.*?)$/
-    PROJECT_RX = /^(?<indent>(?:    |\t)*?)(?<project>[^- \t].*?:)(?<tags> @\S+)*$/
+    PROJECT_RX = /^(?<indent>(?:    |\t)*?)(?<project>[^- \t].*?:)(?<tags> +@\S+)*$/
     NOTE_RX = /^(?<indent>(?:    |\t)+)(?<note>(?<!- ).*?(?!:))$/
 
     class << self
@@ -36,18 +36,77 @@ module CLIMarkdown
         end
       end
 
+      def remove_meta(input)
+        first_line = input.split("\n").first
+        if first_line =~ /(?i-m)^---[ \t]*?$/
+          input.sub!(/(?im)^---[ \t]*\n([\s\S]*?)\n[-.]{3}[ \t]*\n/, '')
+        elsif first_line =~ /(?i-m)^[\w ]+:\s+\S+/
+          input.sub!(/(?im)^([\S ]+:[\s\S]*?)+(?=\n\n)/, '')
+        end
+        input
+      end
+
       def is_taskpaper?(input)
         return true if MDLess.file =~ /\.taskpaper$/
 
-        projects = input.split(PROJECT_RX)
+        projects = sections(input)
+
         tasks = 0
         if projects.count > 1
-          projects.each do |proj|
-            tasks += proj.scan(TASK_RX).count
+          projects.each do |proj, content|
+            tasks += content['content'].scan(TASK_RX).count
           end
         end
 
-        tasks >= 6
+        if tasks >= 6
+          return true
+        else
+          tst = remove_meta(input)
+          tst = tst.gsub(PROJECT_RX, '')
+          tst = tst.gsub(TASK_RX, '')
+          tst = tst.gsub(/^ *\n$/, '')
+          return tst.strip.length == 0
+        end
+      end
+
+      def section(input, string)
+        sects = sections(input)
+        sects_to_s(sects.filter { |k, _| k.downcase =~ string.downcase.to_rx })
+      end
+
+      def sects_to_s(sects)
+        sects.map do |k, v|
+          "#{k}#{v['content']}"
+        end.join("\n")
+      end
+
+      def indent(input, idnt)
+        input.split(/\n/).map do |line|
+          line.sub(/^#{idnt}/, '')
+        end.join("\n")
+      end
+
+      def sections(input)
+        heirarchy = {}
+        sects = input.to_enum(:scan, /(?mix)
+                                      (?<=\n|\A)(?<indent>(?:    |\t)*?)
+                                      (?<project>[^- \t\n].*?:)\s*(?=\n)
+                                      (?<content>.*?)
+                                      (?=\n\k<indent>\S.*?:|\Z)$/).map { Regexp.last_match }
+        sects.each do |sect|
+          heirarchy[sect['project']] = {}
+          heirarchy[sect['project']]['content'] = indent(sect['content'], sect['indent'])
+          heirarchy = heirarchy.merge(sections(sect['content']))
+        end
+
+        heirarchy
+      end
+
+      def list_projects(input)
+        projects = input.to_enum(:scan, PROJECT_RX).map { Regexp.last_match }
+        projects.delete_if { |proj| proj['project'] =~ /^[ \n]*$/ }
+        projects.map! { |proj| "#{color('taskpaper marker')}#{proj['indent']}- #{color('taskpaper project')}#{proj['project'].sub(/:$/, '')}" }
+        projects.join("\n")
       end
 
       def highlight(input)
@@ -55,6 +114,16 @@ module CLIMarkdown
         tc = color('taskpaper task')
         pc = color('taskpaper project')
         nc = color('taskpaper note')
+
+        if MDLess.options[:section]
+          matches = []
+          MDLess.options[:section].each do |sect|
+            matches << section(input, sect)
+          end
+          input = matches.join("\n")
+        end
+
+        input.gsub!(/\t/, '    ')
 
         input.gsub!(PROJECT_RX) do
           m = Regexp.last_match

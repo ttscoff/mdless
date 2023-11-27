@@ -145,6 +145,7 @@ module CLIMarkdown
 
       line += self.match(/^\s*/)[0].gsub(/\t/,'    ')
       input = self.dup # .gsub(/(\w-)(\w)/,'\1 \2')
+
       input.split(/\s+/).each do |word|
         last_ansi = line.scan(/\e\[[\d;]+m/)[-1] || ''
         if visible_width + word.size_clean >= width
@@ -158,8 +159,8 @@ module CLIMarkdown
           visible_width += word.size_clean + 1
           line << " " << last_ansi + word
         end
-       end
-       lines << line + self.match(/\s*$/)[0] + xc(foreground) if line
+      end
+      lines << line + self.match(/\s*$/)[0] + xc(foreground) if line
       return lines.join("\n") # .gsub(/\- (\S)/,'-\1')
     end
 

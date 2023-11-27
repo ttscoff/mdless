@@ -258,22 +258,23 @@ module CLIMarkdown
           input.scrub!
           input.gsub!(/\r?\n/, "\n")
 
+          if MDLess.options[:taskpaper] == :auto
+            MDLess.options[:taskpaper] = if CLIMarkdown::TaskPaper.is_taskpaper?(input)
+                                           MDLess.log.info('TaskPaper detected')
+                                           true
+                                         else
+                                           false
+                                         end
+          end
+
           if MDLess.options[:list]
-            puts list_headers(input)
+            if MDLess.options[:taskpaper]
+              puts CLIMarkdown::TaskPaper.list_projects(input)
+            else
+              puts list_headers(input)
+            end
             Process.exit 0
           else
-            if MDLess.options[:taskpaper] == :auto
-              MDLess.options[:taskpaper] = if file =~ /\.taskpaper/
-                                       MDLess.log.info('TaskPaper extension detected')
-                                       true
-                                     elsif CLIMarkdown::TaskPaper.is_taskpaper?(input)
-                                       MDLess.log.info('TaskPaper document detected')
-                                       true
-                                     else
-                                       false
-                                     end
-            end
-
             if MDLess.options[:taskpaper]
               input = input.color_meta(MDLess.cols)
               input = CLIMarkdown::TaskPaper.highlight(input)
@@ -288,11 +289,31 @@ module CLIMarkdown
         MDLess.file = nil
         input = $stdin.read.scrub
         input.gsub!(/\r?\n/, "\n")
+
+        if MDLess.options[:taskpaper] == :auto
+          MDLess.options[:taskpaper] = if CLIMarkdown::TaskPaper.is_taskpaper?(input)
+                                         MDLess.log.info('TaskPaper detected')
+                                         true
+                                       else
+                                         false
+                                       end
+        end
+
         if MDLess.options[:list]
-          puts list_headers(input)
+          if MDLess.options[:taskpaper]
+            puts CLIMarkdown::TaskPaper.list_projects(input)
+          else
+            puts list_headers(input)
+          end
           Process.exit 0
         else
-          @output = markdown.render(input)
+          if MDLess.options[:taskpaper]
+            input = input.color_meta(MDLess.cols)
+            input = CLIMarkdown::TaskPaper.highlight(input)
+            @output = input.highlight_tags
+          else
+            @output = markdown.render(input)
+          end
         end
         printout
       else
@@ -482,9 +503,13 @@ module CLIMarkdown
     end
 
     def printout
-      out = @output.rstrip.split(/\n/).map do |p|
-        p.wrap(MDLess.cols, color('text'))
-      end.join("\n")
+      if MDLess.options[:taskpaper]
+        out = @output
+      else
+        out = @output.rstrip.split(/\n/).map do |p|
+          p.wrap(MDLess.cols, color('text'))
+        end.join("\n")
+      end
 
       unless out.size&.positive?
         MDLess.log.warn 'No results'
