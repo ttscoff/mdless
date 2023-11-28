@@ -17,17 +17,28 @@ I often use iTerm2 in visor mode, so `qlmanage -p` is annoying. I still wanted a
 - Normalize spacing and link formatting
 - Display footnotes after each paragraph
 - Inline image display (local, optionally remote) (with compatible tools like imgcat or chafa)
-- Syntax highlighting when [Pygments](http://pygments.org/) is installed
+- Syntax highlighting of code blocks when [Pygments](http://pygments.org/) is installed
 - List headlines in document
     - Display single section of the document based on headlines
+- Configurable Markdown options
 - Customizable colors
 - Add iTerm marks for h1-3 navigation when pager is disabled
+- TaskPaper syntax detection and highlighting
 
 ## Installation
+
+### Gem install
 
     gem install mdless
 
 If you run into errors, try `gem install --user-install mdless`, or `sudo gem install mdless` (in that order).
+
+### Homebrew
+
+mdless is also available via Homebrew (directly).
+
+    brew install mdless
+
 
 ### Dependencies
 
