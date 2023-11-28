@@ -30,7 +30,10 @@ end
 
 desc 'Development version check'
 task :ver do
-  system 'grep VERSION lib/mdless/version.rb'
+  version_file = 'lib/mdless/version.rb'
+  content = IO.read(version_file)
+  m = content.match(/VERSION *= *(?<quot>['"])(?<maj>\d+)\.(?<min>\d+)\.(?<pat>\d+)(?<pre>\S+)?\k<quot>/)
+  puts "#{m['maj']}.#{m['min']}.#{m['pat']}#{m['pre']}"
 end
 
 desc 'Bump incremental version number'
@@ -38,7 +41,7 @@ task :bump, :type do |t, args|
   args.with_defaults(type: 'inc')
   version_file = 'lib/mdless/version.rb'
   content = IO.read(version_file)
-  content.sub!(/VERSION = '(?<maj>\d+)\.(?<min>\d+)\.(?<pat>\d+)(?<pre>\S+)?'/) do
+  content.sub!(/VERSION *= *(?<quot>['"])(?<maj>\d+)\.(?<min>\d+)\.(?<pat>\d+)(?<pre>\S+)?\k<quot>/) do
     m = Regexp.last_match
     major = m['maj'].to_i
     minor = m['min'].to_i
