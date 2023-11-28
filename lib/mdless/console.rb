@@ -232,7 +232,7 @@ module Redcarpet
         if MDLess.options[:preserve_linebreaks]
           "#{xc}#{text.gsub(/ +/, ' ').strip}#{xc}#{x}\n\n"
         else
-          "#{xc}#{text.gsub(/ +/, ' ').gsub(/\n+/, ' ').strip}#{xc}#{x}\n\n"
+          "#{xc}#{text.gsub(/ +/, ' ').gsub(/\n+(?![:-])/, ' ').strip}#{xc}#{x}\n\n"
         end
       end
 
