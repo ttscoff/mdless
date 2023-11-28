@@ -107,7 +107,7 @@ class ::String
     log = MDLess.log
     tag_color = color('at_tags tag')
     value_color = color('at_tags value')
-    gsub(/(?<pre>\s|m)(?<tag>@[^ \].?!,("']+)(?:(?<lparen>\()(?<value>.*?)(?<rparen>\)))?/) do
+    gsub(/(?<pre>\s|m)(?<tag>@[^ \].?!,("'\n]+)(?:(?<lparen>\()(?<value>.*?)(?<rparen>\)))?/) do
       m = Regexp.last_match
       last_color = m.pre_match.last_color_code
       [

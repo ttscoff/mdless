@@ -126,6 +126,22 @@ module CLIMarkdown
           MDLess.options[:autolink] = p
         end
 
+        opts.on('--config', "Open the config file in #{ENV['EDITOR'] || 'default editor'}") do
+          raise 'No $EDITOR defined' unless ENV['EDITOR']
+
+          `#{ENV['EDITOR']} '#{File.expand_path('~/.config/mdless/config.yml')}'`
+        end
+
+        opts.on('--edit-theme', ["Open the default or specified theme file in #{ENV['EDITOR'] || 'default editor'}. ",
+                                 "If theme doesn't exist, a new theme file will be populated and opened."].join) do
+          raise 'No $EDITOR defined' unless ENV['EDITOR']
+
+          theme = MDLess.options[:theme] =~ /default/ ? 'mdless' : MDLess.options[:theme]
+          theme = File.expand_path("~/.config/mdless/#{theme}.theme")
+          File.open(theme, 'w') { |f| f.puts(YAML.dump(MDLess.theme)) } unless File.exist?(theme)
+          `#{ENV['EDITOR']} '#{theme}'`
+        end
+
         default(:inline_footnotes, false)
         opts.on('--[no-]inline_footnotes',
                 'Display footnotes immediately after the paragraph that references them') do |p|

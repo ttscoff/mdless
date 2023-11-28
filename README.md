@@ -234,7 +234,7 @@ end
 function cat -d "Use bat instead of cat unless it's a Markdown file, then use mdless"
     set -l exts md markdown txt taskpaper
 
-    if not test -f $argv
+    if not test -f $argv[-1]
         echo "File not found: $argv"
         return 0
     end
@@ -246,5 +246,7 @@ function cat -d "Use bat instead of cat unless it's a Markdown file, then use md
     end
 end
 ```
+
+Note that if you do this, and you need uncolored output to pipe somewhere, you'll need to use `command cat FILE` to revert to the built-in `cat`. Otherwise your text will be full of the escape codes that `mdless` uses to colorize the output.
 
 <!--END README-->
