@@ -117,9 +117,9 @@ module CLIMarkdown
         default(:width, TTY::Screen.cols)
         opts.on('-w', '--width=COLUMNS', 'Column width to format for (default: terminal width)') do |columns|
           MDLess.options[:width] = columns.to_i
+          cols = TTY::Screen.cols
+          MDLess.options[:width] = cols if MDLess.options[:width] > cols
         end
-        cols = TTY::Screen.cols
-        MDLess.options[:width] = cols if MDLess.options[:width] > cols
 
         default(:autolink, true)
         opts.on('--[no-]autolink', 'Convert bare URLs and emails to <links>') do |p|
