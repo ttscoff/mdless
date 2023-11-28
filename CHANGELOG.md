@@ -1,3 +1,6 @@
+2.1.3
+: Respect :width setting in config
+
 2.0.24
 : Update readme with config descriptions
 : Code blocks containing YAML with `---` as the first line were being interpreted as Setext headers
