@@ -132,6 +132,12 @@ module CLIMarkdown
           `#{ENV['EDITOR']} '#{File.expand_path('~/.config/mdless/config.yml')}'`
         end
 
+        opts.on('--changes', 'Open the changelog to see recent updates') do
+          changelog = File.join(File.dirname(__FILE__), '..', '..', 'CHANGELOG.md')
+          system "mdless --linebreaks '#{changelog}'"
+          Process.exit 0
+        end
+
         opts.on('--edit-theme', ["Open the default or specified theme file in #{ENV['EDITOR'] || 'default editor'}. ",
                                  "If theme doesn't exist, a new theme file will be populated and opened."].join) do
           raise 'No $EDITOR defined' unless ENV['EDITOR']
@@ -172,7 +178,7 @@ module CLIMarkdown
                              end
         end
 
-        default(:preserve_linebreaks, false)
+        default(:preserve_linebreaks, true)
         opts.on('--[no-]linebreaks', 'Preserve line breaks') do |opt|
           MDLess.options[:preserve_linebreaks] = opt
         end
