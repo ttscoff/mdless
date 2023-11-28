@@ -11,6 +11,8 @@ spec = Gem::Specification.new do |s|
   s.description = 'A CLI that provides a formatted and highlighted view of Markdown files in a terminal'
   s.license = 'MIT'
   s.files = Dir['lib/**/*.rb'] + Dir['bin/*']
+  s.files << 'CHANGELOG.md'
+  s.files << 'README.md'
   s.require_paths << 'lib'
   s.extra_rdoc_files = ['README.md']
   s.rdoc_options << '--title' << 'mdless' << '--main' << 'README.md' << '--markup' << 'markdown' << '-ri'
