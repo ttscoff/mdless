@@ -62,11 +62,13 @@ The pager used is determined by system configuration in this order of preference
     -@, --at_tags                    Highlight @tags and values in the document
     -v, --version                    Display version number
     -w, --width=COLUMNS              Column width to format for (default: terminal width)
+        --[no-]autolink              Convert bare URLs and emails to <links>
         --[no-]inline_footnotes      Display footnotes immediately after the paragraph that references them
         --[no-]intra-emphasis        Parse emphasis inside of words (e.g. Mark_down_)
         --[no-]lax-spacing           Allow lax spacing
         --links=FORMAT               Link style ([inline, reference, paragraph], default inline,
                 "paragraph" will position reference links after each paragraph)
+        --[no-]linebreaks            Preserve line breaks
         --[no-]syntax                Syntax highlight code blocks
         --taskpaper=OPTION           Highlight TaskPaper format (true|false|auto)
         --update_config              Update the configuration file with new keys and current command line options
@@ -75,6 +77,43 @@ The pager used is determined by system configuration in this order of preference
 ## Configuration
 
 The first time mdless is run, a config file will be written to `~/.config/mdless/config.yml`, based on the command line options used on the first run. Update that file to make any options permanent (config options will always be overridden by command line flags).
+
+```
+---
+:at_tags: true
+:autolink: true
+:color: true
+:inline_footnotes: true
+:intra_emphasis: false
+:lax_spacing: true
+:links: :paragraph
+:local_images: true
+:pager: true
+:preserve_linebreaks: false
+:remote_images: false
+:syntax_higlight: true
+:taskpaper: :auto
+:theme: default
+:width: 120
+:wiki_links: true
+```
+
+- The `:at_tags` setting determines whether @tags will be highlighted. If this is enabled, colors will be pulled from the `at_tags` settings in the theme.
+- `:autolink` will determine whether bare urls are turned into `<self-linking>` urls.
+- `:color` will enable or disable all coloring.
+- `:inline_footnotes` will determine the placement of footnotes. If true, footnotes will be added directly after the element that refers to them.
+- `:intra_emphasis` will determine whether words containing underscores are rendered as italics or not.
+- `:lax_spacing` determines whether a blank line is required around HTML elements.
+- `:links` can be `inline`, `reference`, or `paragraph`. Paragraph puts reference links directly after the graf that refers to them.
+- `:local_images` determines whether local images are processed using `chafa` or `imgcat` (whichever is available). `:remote_images` does the same for images referenced with web urls. If `:remote_images` is true, then `:local_images` is automatically enabled.
+- `:pager` turns on or off pagination using `less` or closest available substitute.
+- `:preserve_linebreaks` determines whether hard breaks within paragraphs are preserved. When converting to HTML, most Markdown processors will cause consecutive lines to be merged together, which is the default behavior for `mdless`. Turning this option on will cause lines to remain hard wrapped.
+- `:syntax_highlight` will turn on/off syntax highlighting of code blocks (requires Pygments)
+- `:taskpaper` determines whether a file is rendered as a TaskPaper document. This can be set to `:auto` to have TaskPaper detected from extension or content.
+- `:theme` allows you to specify an alternate theme. See Customization below.
+- `:width` allows you to permanantly set a width for wrapping of lines. If the width specified is greater than the available columns of the display, the display columns will be used instead.
+- `:wiki_links` determines whether `[[wiki links]]` will be highlighted. If highlighted, colors are pulled from the `link` section of the theme.
+
 
 ## Customization
 
@@ -138,5 +177,74 @@ Use 'r' to reverse foreground and background colors. `r white on_black` would di
 To set a background color, use `on_[color]` with one of the 8 colors. This can be used with foreground colors in the same setting, e.g. `white on_black`.
 
 Use 'd' (dark) to indicate the darker version of a foreground color. On macOS (and possibly other systems) you can use the brighter version of a color by prefixing with "intense", e.g. `intense_red` or `on_intense_black`.
+
+## Integrations
+
+### Ranger
+
+[Ranger](https://ranger.github.io) is a file manager that allows for quick navigation in the file hierarchy. A preview can be displayed for various file types. See docs at <https://github.com/ranger/ranger/wiki>.
+
+mdless can be used in Ranger to preview Markdown and Taskpaper.
+
+Ranger is installed with `brew install ranger`.
+
+With `ranger --copy-config=scope` the configuration file for previews `scope.sh` is created in the directory `~/.config/ranger`.
+
+The configuration file is already preconfigured. The following can be inserted above html to use mdless.
+
+```
+## Markdown
+md|taskpaper)
+mdless --taskpaper=auto -@ "${FILE_PATH}" && exit 5
+;;
+```
+
+### Gather
+
+[Gather](https://brettterpstra.com/projects/gather-cli/) is a tool for converting web pages to Markdown. You can use it with mdless to create a Lynx-style web browser:
+
+```bash
+$ gather https://brettterpstra.com/projects/gather-cli/ | mdless
+```
+
+### fzf
+
+[fzf](https://github.com/junegunn/fzf) is a tool for selecting files and other menu options with typeahead fuzzy matching. You can set up `mdless` as a previewer when selecting Markdown or TaskPaper files.
+
+```
+$ ls *.md | fzf --preview 'mdless --taskpaper auto --linebreaks {}'
+```
+
+### Fish
+
+You can replace the cat command in Fish by creating the following functions in `~/.config/fish/functions`
+
+`get_ext.fish`
+
+```fish
+function get_ext -d 'Get the file extension from the argument'
+    set -l splits (string split "." $argv)
+    echo $splits[-1]
+end
+```
+
+`cat.fish`
+
+```fish
+function cat -d "Use bat instead of cat unless it's a Markdown file, then use mdless"
+    set -l exts md markdown txt taskpaper
+
+    if not test -f $argv
+        echo "File not found: $argv"
+        return 0
+    end
+
+    if contains (get_ext $argv) $exts
+        mdless $argv
+    else
+        command bat --style plain --theme OneHalfDark $argv
+    end
+end
+```
 
 <!--END README-->

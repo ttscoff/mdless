@@ -709,11 +709,12 @@ module Redcarpet
       def preprocess(input)
         input = color_meta(input)
 
+        replaced_input = input.clone
         ## Replace setex headers with ATX
-        input.gsub!(/^([^\n]+)\n={2,}\s*$/m, "# \\1\n")
-        input.gsub!(/^([^\n]+?)\n-{2,}\s*$/m, "## \\1\n")
+        replaced_input.gsub!(/^([^\n]+)\n={2,}\s*$/m, "# \\1\n")
+        replaced_input.gsub!(/^([^\n]+?)\n-{2,}\s*$/m, "## \\1\n")
 
-        @headers = get_headers(input)
+        @headers = get_headers(replaced_input)
 
         if MDLess.options[:section]
           new_content = []

@@ -88,7 +88,7 @@ module CLIMarkdown
 
         default(:section, nil)
         opts.on('-s', '--section=NUMBER[,NUMBER]',
-                'Output only a headline-based section of the input (numeric from --list)') do |section|
+                'Output only a headline-based section of the input (numeric from --list or text match)') do |section|
           sections = section.split(/ *, */).map(&:strip)
           MDLess.options[:section] = sections.map do |sect|
             if sect =~ /^\d+$/
