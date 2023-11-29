@@ -192,17 +192,21 @@ module Redcarpet
         pad = ''
         ansi = ''
         text.clean_header_ids!
+        uncolored = text.uncolor.gsub(/<<(pre|post)\d+>>/, '')
+        uncolored.sub!(/\[(.*?)\]\(.*?\)/, '[\1][xxx]') if MDLess.options[:links] != :inline
+
+        text_length = uncolored.length
         case header_level
         when 1
           ansi = color('h1 color')
           pad = color('h1 pad')
           char = MDLess.theme['h1']['pad_char'] || '='
-          pad += text.length + 2 > MDLess.cols ? char * text.length : char * (MDLess.cols - (text.length + 1))
+          pad += text_length + 2 > MDLess.cols ? char * text_length : char * (MDLess.cols - (text_length + 1))
         when 2
           ansi = color('h2 color')
           pad = color('h2 pad')
           char = MDLess.theme['h2']['pad_char'] || '-'
-          pad += text.length + 2 > MDLess.cols ? char * text.length : char * (MDLess.cols - (text.length + 1))
+          pad += text_length + 2 > MDLess.cols ? char * text_length : char * (MDLess.cols - (text_length + 1))
         when 3
           ansi = color('h3 color')
         when 4

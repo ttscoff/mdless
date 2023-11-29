@@ -210,6 +210,8 @@ mdless --taskpaper=auto -@ "${FILE_PATH}" && exit 5
 ;;
 ```
 
+Thanks to Ralf Hülsmann for contributing!
+
 ### Gather
 
 [Gather](https://brettterpstra.com/projects/gather-cli/) is a tool for converting web pages to Markdown. You can use it with mdless to create a Lynx-style web browser:
