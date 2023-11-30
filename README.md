@@ -17,17 +17,28 @@ I often use iTerm2 in visor mode, so `qlmanage -p` is annoying. I still wanted a
 - Normalize spacing and link formatting
 - Display footnotes after each paragraph
 - Inline image display (local, optionally remote) (with compatible tools like imgcat or chafa)
-- Syntax highlighting when [Pygments](http://pygments.org/) is installed
+- Syntax highlighting of code blocks when [Pygments](http://pygments.org/) is installed
 - List headlines in document
     - Display single section of the document based on headlines
+- Configurable Markdown options
 - Customizable colors
 - Add iTerm marks for h1-3 navigation when pager is disabled
+- TaskPaper syntax detection and highlighting
 
 ## Installation
+
+### Gem install
 
     gem install mdless
 
 If you run into errors, try `gem install --user-install mdless`, or `sudo gem install mdless` (in that order).
+
+### Homebrew
+
+mdless is also available via Homebrew (directly).
+
+    brew install mdless
+
 
 ### Dependencies
 
@@ -132,6 +143,8 @@ h1:
 
 Font and color settings are set using a string of color names and modifiers. A typical string looks like `b red on_white`, which would give you a bold red font on a white background. In the YAML settings file there's no need for quotes, just put the string following the colon for the setting.
 
+You can also use 3 or 6-digit hex codes in place of color names. These can be prefixed with `bg` or `on_` to affect background colors, e.g. `bgFF0ACC`. The codes are case-insensitive and can be combined with emphasis modifiers like `b` or `u`.
+
 Some extra (non-color) settings are available for certain keys, e.g. `pad_char` to define the right padding character used on level 1 and 2 headlines. Note that you can change the [Pygments](http://pygments.org/) theme used for syntax highlighting with the code_block.pygments_theme setting. For a list of available styles (assuming you have Pygments installed), use `pygmentize -L styles`.
 
 The display of characters around emphasis and code spans can be configured. By default, the surrounding character for bold is `**`, italic is `_`, and code span is \`. You can leave these keys empty to not display characters at all. For triple-emphasized text, the text will be surrounded by italic and bold characters, in that order.
@@ -198,6 +211,8 @@ md|taskpaper)
 mdless --taskpaper=auto -@ "${FILE_PATH}" && exit 5
 ;;
 ```
+
+Thanks to Ralf Hülsmann for contributing!
 
 ### Gather
 

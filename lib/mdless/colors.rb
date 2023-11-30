@@ -70,7 +70,7 @@ module CLIMarkdown
     def last_color_code
       m = scan(ESCAPE_REGEX)
 
-      em = ['0']
+      em = []
       fg = nil
       bg = nil
       rgbf = nil
@@ -81,15 +81,12 @@ module CLIMarkdown
         when '0'
           em = ['0']
           fg, bg, rgbf, rgbb = nil
-        when /^[34]8/
-          case c
-          when /^3/
-            fg = nil
-            rgbf = c
-          when /^4/
-            bg = nil
-            rgbb = c
-          end
+        when /;38;/
+          fg = nil
+          rgbf = c
+        when /;48;/
+          bg = nil
+          rgbb = c
         else
           c.split(/;/).each do |i|
             x = i.to_i
@@ -144,9 +141,9 @@ module CLIMarkdown
 
       line += self.match(/^\s*/)[0].gsub(/\t/,'    ')
       input = self.dup # .gsub(/(\w-)(\w)/,'\1 \2')
-      input.gsub!(/\[.*?\]\(.*?\)/) do |link|
-        link.gsub(/ /, "\u00A0")
-      end
+      # input.gsub!(/\[.*?\]\(.*?\)/) do |link|
+      #   link.gsub(/ /, "\u00A0")
+      # end
       input.split(/\s+/).each do |word|
         last_ansi = line.scan(/\e\[[\d;]+m/)[-1] || ''
         if visible_width + word.size_clean >= width
@@ -170,20 +167,35 @@ module CLIMarkdown
     def c(args)
       out = []
 
-      args.each {|arg|
-        if COLORS.key? arg
+      args.each do |arg|
+        if arg.to_s =~ /^([bf]g|on_)?([a-f0-9]{3}|[a-f0-9]{6})$/i
+          out.concat(rgb(arg.to_s))
+        elsif COLORS.key? arg
           out << COLORS[arg]
         end
-      }
-
-      if out.size > 0
-        "\e[#{out.sort.join(';')}m"
+      end
+      if !out.empty?
+        "\e[#{out.join(';')}m"
       else
         ''
       end
     end
 
     private
+
+    def rgb(hex)
+      is_bg = hex.match(/^(bg|on_)/) ? true : false
+      hex_string = hex.sub(/^(bg|on_)?(.{3}|.{6})/, '\2')
+      hex_string.gsub!(/(.)/, '\1\1') if hex_string.length == 3
+
+      parts = hex_string.match(/(?<r>..)(?<g>..)(?<b>..)/)
+      t = []
+      %w[r g b].each do |e|
+        t << parts[e].hex
+      end
+
+      [is_bg ? 48 : 38, 2].concat(t)
+    end
 
     def xc(foreground=:x)
       c([foreground])

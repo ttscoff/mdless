@@ -142,6 +142,7 @@ module Redcarpet
       def color(key)
         val = nil
         keys = key.split(/[ ,>]/)
+
         if MDLess.theme.key?(keys[0])
           val = MDLess.theme[keys.shift]
         else
@@ -192,17 +193,21 @@ module Redcarpet
         pad = ''
         ansi = ''
         text.clean_header_ids!
+        uncolored = text.uncolor.gsub(/<<(pre|post)\d+>>/, '')
+        uncolored.sub!(/\[(.*?)\]\(.*?\)/, '[\1][xxx]') if MDLess.options[:links] != :inline
+
+        text_length = uncolored.length
         case header_level
         when 1
           ansi = color('h1 color')
           pad = color('h1 pad')
           char = MDLess.theme['h1']['pad_char'] || '='
-          pad += text.length + 2 > MDLess.cols ? char * text.length : char * (MDLess.cols - (text.length + 1))
+          pad += text_length + 2 > MDLess.cols ? char * text_length : char * (MDLess.cols - (text_length + 1))
         when 2
           ansi = color('h2 color')
           pad = color('h2 pad')
           char = MDLess.theme['h2']['pad_char'] || '-'
-          pad += text.length + 2 > MDLess.cols ? char * text.length : char * (MDLess.cols - (text.length + 1))
+          pad += text_length + 2 > MDLess.cols ? char * text_length : char * (MDLess.cols - (text_length + 1))
         when 3
           ansi = color('h3 color')
         when 4
@@ -234,6 +239,10 @@ module Redcarpet
         else
           "#{xc}#{text.gsub(/ +/, ' ').gsub(/\n+(?![:-])/, ' ').strip}#{xc}#{x}\n\n"
         end
+      end
+
+      def uncolor_grafs(text)
+        text.gsub(/#{Regexp.escape(color('text'))}/, color('list color'))
       end
 
       @table_cols = nil
@@ -294,7 +303,7 @@ module Redcarpet
       end
 
       def codespan(code)
-        [
+        out = [
           pre_element,
           color('code_span marker'),
           MDLess.theme['code_span']['character'],
@@ -304,7 +313,7 @@ module Redcarpet
           MDLess.theme['code_span']['character'],
           xc,
           post_element
-        ].join('')
+        ].join
       end
 
       def double_emphasis(text)
@@ -617,7 +626,7 @@ module Redcarpet
           end
 
           content = m['content'] =~/<<listitem/ ? fix_items(m['content'], indent, levels) : m['content']
-          color_list_item(' ' * indent, content, m['type'].to_sym, levels[indent])
+          color_list_item(' ' * indent, uncolor_grafs(content), m['type'].to_sym, levels[indent])
         end
       end
 
@@ -822,8 +831,9 @@ module Redcarpet
       def fix_colors(input)
         input.gsub(/<<pre(?<id>\d+)>>(?<content>.*?)<<post\k<id>>>/m) do
           m = Regexp.last_match
-          pre = m.pre_match
+          pre = m.pre_match.gsub(/<<pre(?<id>\d+)>>.*?<<post\k<id>>>/m, '')
           last_color = pre.last_color_code
+
           "#{fix_colors(m['content'])}#{last_color}"
         end.gsub(/<<(pre|post)\d+>>/, '')
       end
