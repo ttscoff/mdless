@@ -3,7 +3,7 @@
 set -l ver (rake bump[inc])
 changelog -f markdown > current_changelog.md
 changelog -u
-git commit -a -m "v$ver" -F current_changelog.md
+git commit -a -F current_changelog.md
 git push
 rake clobber package
 gem push pkg/mdless-$ver.gem

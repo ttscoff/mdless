@@ -1,3 +1,18 @@
+2.1.6
+: In addition to color names, you can now use 3 or 6-digit hex codes, prefix with "bg" or "on_" to affect background color
+: Better highlighting of h1/h2 when header contains a link
+: List items with multiple paragraphs incorrectly highlighted
+
+2.1.5
+: In addition to color names, you can now use 3 or 6-digit hex codes, prefix with "bg" or "on_" to affect background color
+: Better highlighting of h1/h2 when header contains a link
+: List items with multiple paragraphs incorrectly highlighted
+
+2.1.4
+: In addition to color names, you can now use 3 or 6-digit hex codes, prefix with "bg" or "on_" to affect background color
+: Better highlighting of h1/h2 when header contains a link
+: List items with multiple paragraphs incorrectly highlighted
+
 2.1.3
 : Respect :width setting in config
 
