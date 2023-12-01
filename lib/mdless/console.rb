@@ -248,7 +248,6 @@ module Redcarpet
       @table_cols = nil
 
       def table_header_row
-        pp @header_row
         @header_row.map do |alignment|
           case alignment
           when :left
