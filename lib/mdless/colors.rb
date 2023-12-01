@@ -155,10 +155,13 @@ module CLIMarkdown
           line = last_ansi + word
         else
           visible_width += word.size_clean + 1
-          line << " " << last_ansi + word
+          line << ' ' << last_ansi + word
         end
       end
       lines << line + match(/\s*$/)[0] + xc(foreground) if line
+      lines.map!.with_index do |l, i|
+        (i.positive? ? l[i - 1].last_color_code : '') + l
+      end
       lines.join("\n").gsub(/\[.*?\]\(.*?\)/) do |link|
         link.gsub(/\u00A0/, ' ')
       end

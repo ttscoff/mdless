@@ -48,6 +48,7 @@ module CLIMarkdown
         'url' => 'u yellow'
       },
       'list' => {
+        'ul_char' => '*',
         'bullet' => 'b intense_red',
         'number' => 'b intense_blue',
         'color' => 'intense_white'
