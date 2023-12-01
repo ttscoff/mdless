@@ -560,7 +560,7 @@ module CLIMarkdown
       out = clean_markers(out)
       out = clean_escapes(out)
       out = "#{out.gsub(/\n{2,}/m, "\n\n")}#{xc}"
-      pp out
+
       out.uncolor! unless MDLess.options[:color]
 
       if MDLess.options[:pager]

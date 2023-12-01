@@ -58,6 +58,10 @@ module CLIMarkdown
       self.unpad.gsub(/\e\[[\d;]+m/,'')
     end
 
+    def remove_pre_post
+      gsub(/<<(pre|post)\d+>>/, '')
+    end
+
     def unpad
       self.gsub(/\u00A0/, ' ')
     end

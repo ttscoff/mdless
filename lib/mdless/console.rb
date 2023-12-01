@@ -248,6 +248,7 @@ module Redcarpet
       @table_cols = nil
 
       def table_header_row
+        pp @header_row
         @header_row.map do |alignment|
           case alignment
           when :left
@@ -263,7 +264,6 @@ module Redcarpet
       end
 
       def table(header, body)
-        @header_row = []
         formatted = CLIMarkdown::MDTableCleanup.new([
           "#{header}",
           table_header_row,
@@ -271,6 +271,7 @@ module Redcarpet
           "#{body}\n\n"
         ].join(''))
         res = formatted.to_md
+        @header_row = []
         "#{color_table(res)}\n\n"
         # res
       end
