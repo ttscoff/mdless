@@ -1,3 +1,7 @@
+2.1.8
+: --update-theme option to add any missing keys to your theme file
+: Strip ul_char of any spaces before inserting
+
 2.1.7
 : Dedup and remove empty escape codes before output
 : Tables losing column alignment
