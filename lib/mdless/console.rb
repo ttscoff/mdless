@@ -269,8 +269,8 @@ module Redcarpet
           "|\n",
           "#{body}\n\n"
         ].join(''))
-        res = formatted.to_md
         @header_row = []
+        res = formatted.to_md
         "#{color_table(res)}\n\n"
         # res
       end
