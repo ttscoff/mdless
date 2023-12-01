@@ -72,7 +72,7 @@ module CLIMarkdown
 
       table.each do |row|
         @format_row.each_with_index do |_, i|
-          length = row[i].strip.length
+          length = row[i].uncolor.remove_pre_post.strip.length
           @widths[i] = length if length > @widths[i]
         end
       end

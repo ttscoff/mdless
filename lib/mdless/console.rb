@@ -263,13 +263,13 @@ module Redcarpet
       end
 
       def table(header, body)
-        @header_row = []
         formatted = CLIMarkdown::MDTableCleanup.new([
           "#{header}",
           table_header_row,
           "|\n",
           "#{body}\n\n"
         ].join(''))
+        @header_row = []
         res = formatted.to_md
         "#{color_table(res)}\n\n"
         # res
@@ -555,7 +555,8 @@ module Redcarpet
           [
             indent,
             color('list bullet'),
-            "* ",
+            MDLess.theme['list']['ul_char'],
+            ' ',
             color('list color'),
             indent_lines(content, indent).strip,
             xc

@@ -460,6 +460,20 @@ module CLIMarkdown
       input
     end
 
+    def clean_escapes(input)
+      out = input.gsub(/\e\[m/, '')
+      last_escape = ''
+      out.gsub!(/\e\[(?:(?:(?:[349]|10)[0-9]|[0-9])?;?)+m/) do |m|
+        if m == last_escape
+          ''
+        else
+          last_escape = m
+          m
+        end
+      end
+      out.gsub(/\e\[0m/, '')
+    end
+
     def update_inline_links(input)
       links = {}
       counter = 1
@@ -544,6 +558,7 @@ module CLIMarkdown
       end
 
       out = clean_markers(out)
+      out = clean_escapes(out)
       out = "#{out.gsub(/\n{2,}/m, "\n\n")}#{xc}"
 
       out.uncolor! unless MDLess.options[:color]
