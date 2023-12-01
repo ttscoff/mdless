@@ -118,16 +118,21 @@ module CLIMarkdown
     }
 
     def load_theme_file(theme_file)
-      new_theme = YAML.load(IO.read(theme_file))
+      raise "Theme #{theme_file} doesn't exist" unless File.exist?(theme_file)
+
       begin
+        theme_contents = IO.read(theme_file)
+        new_theme = YAML.load(theme_contents)
         theme = THEME_DEFAULTS.deep_merge(new_theme)
         # # write merged theme back in case there are new keys since
         # # last updated
         # File.open(theme_file,'w') {|f|
         #   f.puts theme.to_yaml
         # }
-      rescue StandardError
+      rescue StandardError => e
         @log.warn('Error merging user theme')
+        warn e
+        warn e.backtrace
         theme = THEME_DEFAULTS
         if File.basename(theme_file) =~ /mdless\.theme/
           FileUtils.rm(theme_file)

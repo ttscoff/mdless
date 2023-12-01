@@ -146,6 +146,7 @@ module CLIMarkdown
           theme = File.expand_path("~/.config/mdless/#{theme}.theme")
           File.open(theme, 'w') { |f| f.puts(YAML.dump(MDLess.theme)) } unless File.exist?(theme)
           `#{ENV['EDITOR']} '#{theme}'`
+          Process.exit 0
         end
 
         default(:inline_footnotes, false)
@@ -212,8 +213,13 @@ module CLIMarkdown
         end
 
         default(:update_config, false)
-        opts.on('--update_config', 'Update the configuration file with new keys and current command line options') do
+        opts.on('--update-config', '--update_config', 'Update the configuration file with new keys and current command line options') do
           MDLess.options[:update_config] = true
+        end
+
+        default(:update_theme, false)
+        opts.on('--update-theme', 'Update the current theme file with all available keys') do
+          MDLess.options[:update_theme] = true
         end
 
         default(:wiki_links, false)
@@ -229,6 +235,17 @@ module CLIMarkdown
         exit 1
       end
 
+      if MDLess.options[:update_theme]
+        FileUtils.mkdir_p(File.dirname(config))
+
+        theme = MDLess.options[:theme] =~ /default/ ? 'mdless' : MDLess.options[:theme]
+        theme = File.join(File.dirname(config), "#{theme}.theme")
+        contents = YAML.dump(MDLess.theme)
+
+        File.open(theme, 'w') { |f| f.puts contents }
+        Process.exit 0
+      end
+
       if !File.exist?(config) || MDLess.options[:update_config]
         FileUtils.mkdir_p(File.dirname(config))
         File.open(config, 'w') do |f|
@@ -236,6 +253,7 @@ module CLIMarkdown
           opts.delete(:list)
           opts.delete(:section)
           opts.delete(:update_config)
+          opts.delete(:update_theme)
           opts = opts.keys.map(&:to_s).sort.map { |k| [k.to_sym, opts[k.to_sym]] }.to_h
           f.puts YAML.dump(opts)
           warn "Config file saved to #{config}"

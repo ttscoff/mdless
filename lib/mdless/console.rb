@@ -555,7 +555,7 @@ module Redcarpet
           [
             indent,
             color('list bullet'),
-            MDLess.theme['list']['ul_char'],
+            MDLess.theme['list']['ul_char'].strip,
             ' ',
             color('list color'),
             indent_lines(content, indent).strip,
