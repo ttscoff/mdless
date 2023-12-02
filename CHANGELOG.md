@@ -1,3 +1,9 @@
+2.1.9
+: Code block prefix configurable, can be left empty to make more copyable code blocks
+: Remove empty lines from block quotes
+: Infinite loop when calculating ANSI emphasis
+: Don't accept colors or semicolons inside of @tag names
+
 2.1.8
 : --update-theme option to add any missing keys to your theme file
 : Strip ul_char of any spaces before inserting
