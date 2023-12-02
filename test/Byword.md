@@ -198,8 +198,7 @@ It will be displayed as 96x96 with a subtle shadow.
 ![Styled icon][img-icon_styled]
 
 [img-icon_original]: img/icon128.png "A"
-[img-icon_styled]: img/icon128.png "B" width="96px" height="96px"
-class="shadow"
+[img-icon_styled]: img/icon128.png "B" width="96px" height="96px" class="shadow"
 
 
 ### Meta information [section-mmd-meta]

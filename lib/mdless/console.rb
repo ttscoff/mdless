@@ -358,25 +358,6 @@ module Redcarpet
         "#{pre_element}#{color('highlight')}#{text}#{xc}#{post_element}"
       end
 
-      def color_image_tag(link, title, alt_text)
-        [
-          color('image bang'),
-          '!',
-          color('image brackets'),
-          '[',
-          color('image title'),
-          alt_text,
-          color('image brackets'),
-          '](',
-          color('image url'),
-          link,
-          title.nil? ? '' : %( "#{title}"),
-          color('image brackets'),
-          ')',
-          xc,
-        ].join
-      end
-
       def image(link, title, alt_text)
         "<<img>>#{link}||#{title}||#{alt_text}<</img>>"
       end
@@ -404,6 +385,37 @@ module Redcarpet
         ].join
       end
 
+      def color_image_tag(link, title, alt_text)
+        image = [
+          color('image brackets'),
+          '[',
+          color('image title'),
+          alt_text,
+          color('image brackets'),
+          '](',
+          color('image url'),
+          link,
+          title.nil? ? '' : %( "#{title}"),
+          color('image brackets'),
+          ')'
+        ].join
+
+        @@links << {
+          link: image,
+          url: link,
+          title: title,
+          content: alt_text,
+          image: true
+        }
+
+        [
+          color('image bang'),
+          '!',
+          image,
+          xc
+        ].join
+      end
+
       def color_link_reference(link, idx, content)
         [
           pre_element,
@@ -422,7 +434,7 @@ module Redcarpet
         ].join
       end
 
-      def color_reference_link(link, title, content)
+      def color_reference_link(link, title, content, image: false)
         [
           color('link brackets'),
           '[',
@@ -432,10 +444,28 @@ module Redcarpet
           ']:',
           color('text'),
           ' ',
-          color('link url'),
+          image ? color('image url') : color('link url'),
           link,
           title.nil? ? '' : %( "#{title}"),
           xc
+        ].join
+      end
+
+      def color_image_reference(idx, content)
+        [
+          pre_element,
+          color('image brackets'),
+          '[',
+          color('image title'),
+          content,
+          color('image brackets'),
+          '][',
+          color('link url'),
+          idx,
+          color('image brackets'),
+          ']',
+          xc,
+          post_element
         ].join
       end
 
@@ -785,7 +815,7 @@ module Redcarpet
       end
 
       def color_links(input)
-        input.gsub(/(?mi)(?<!\\e)\[(?<text>[^\[]+)\]\((?<url>\S+)(?: +"(?<title>.*?)")?\)/) do
+        input.gsub(/(?mi)(?<!\\e)\[(?<text>[^\[]+)\]\((?<url>\S+)(?: +"(?<title>.*?)")? *\)/) do
           m = Regexp.last_match
           color_link(m['url'].uncolor, m['title']&.uncolor, m['text'].uncolor)
         end
@@ -805,16 +835,18 @@ module Redcarpet
               url = link[:url].uncolor
               content = link[:content]
               title = link[:title]&.uncolor
-              graf.gsub!(/#{Regexp.escape(link[:link].gsub(/\n/, ' '))}/, color_link_reference(url, counter, content))
+              image = link.key?(:image) && link[:image] ? true : false
+              colored_link = image ? color_image_reference(counter, content) : color_link_reference(url, counter, content)
+              graf.gsub!(/#{Regexp.escape(link[:link].gsub(/\n/, ' '))}/, colored_link)
               if MDLess.options[:links] == :paragraph
                 if links_added
-                  graf += "\n#{color_reference_link(url, title, counter)}"
+                  graf += "\n#{color_reference_link(url, title, counter, image: image)}"
                 else
-                  graf = "#{graf}\n\n#{color_reference_link(url, title, counter)}"
+                  graf = "#{graf}\n\n#{color_reference_link(url, title, counter, image: image)}"
                   links_added = true
                 end
               else
-                @@footer_links << color_reference_link(url, title, counter)
+                @@footer_links << color_reference_link(url, title, counter, image: image)
               end
               counter += 1
             end
@@ -997,11 +1029,12 @@ module Redcarpet
         input = fix_equations(input)
         # misc html
         input.gsub!(%r{<br */?>}, "#{pre_element}\n#{post_element}")
+        # render images
+        input = render_images(input) if MDLess.options[:local_images]
         # format links
         input = reference_links(input) if MDLess.options[:links] == :reference || MDLess.options[:links] == :paragraph
         # lists
         input = fix_lists(input)
-        input = render_images(input) if MDLess.options[:local_images]
         input = highlight_tags(input) if MDLess.options[:at_tags] || MDLess.options[:taskpaper]
         fix_colors(input)
       end
