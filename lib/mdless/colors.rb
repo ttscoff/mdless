@@ -92,6 +92,7 @@ module CLIMarkdown
           bg = nil
           rgbb = c
         else
+          em = []
           c.split(/;/).each do |i|
             x = i.to_i
             if x <= 9
@@ -113,10 +114,13 @@ module CLIMarkdown
         end
       end
 
-      escape = "\e[#{em.join(';')}m"
+      escape = ''
+      escape += "\e[#{em.join(';')}m" unless em.empty?
       escape += "\e[#{rgbb}m" if rgbb
       escape += "\e[#{rgbf}m" if rgbf
-      escape + "\e[#{[fg, bg].delete_if(&:nil?).join(';')}m"
+      fg_bg = [fg, bg].delete_if(&:nil?).join(';')
+      escape += "\e[#{fg_bg}m" unless fg_bg.empty?
+      escape
     end
 
     def blackout(bgcolor)
@@ -133,25 +137,23 @@ module CLIMarkdown
       self.uncolor.size
     end
 
-    def wrap(width=78,foreground=:x)
-      if self.uncolor =~ /(^([%~] |\s*>)| +[=\-]{5,})/
-        return self
-      end
+    def wrap(width=78, foreground=:x)
+      return self if uncolor =~ /(^([%~] |\s*>)| +[=-]{5,})/
 
       visible_width = 0
       lines = []
       line = ''
       last_ansi = ''
 
-      line += self.match(/^\s*/)[0].gsub(/\t/,'    ')
-      input = self.dup # .gsub(/(\w-)(\w)/,'\1 \2')
+      line += match(/^\s*/)[0].gsub(/\t/, '    ')
+      input = dup # .gsub(/(\w-)(\w)/,'\1 \2')
       # input.gsub!(/\[.*?\]\(.*?\)/) do |link|
       #   link.gsub(/ /, "\u00A0")
       # end
       input.split(/\s+/).each do |word|
-        last_ansi = line.scan(/\e\[[\d;]+m/)[-1] || ''
+        last_ansi = line.last_color_code
         if visible_width + word.size_clean >= width
-          lines << line + xc(foreground)
+          lines << line + xc
           visible_width = word.size_clean
           line = last_ansi + word
         elsif line.empty?
@@ -162,7 +164,7 @@ module CLIMarkdown
           line << ' ' << last_ansi + word
         end
       end
-      lines << line + match(/\s*$/)[0] + xc(foreground) if line
+      lines << line + match(/\s*$/)[0] + xc if line
       lines.map!.with_index do |l, i|
         (i.positive? ? l[i - 1].last_color_code : '') + l
       end

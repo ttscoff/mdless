@@ -66,6 +66,7 @@ module CLIMarkdown
       },
       'code_block' => {
         'marker' => 'intense_black',
+        'character' => '>',
         'bg' => 'on_black',
         'color' => 'white on_black',
         'border' => 'blue',

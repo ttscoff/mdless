@@ -97,8 +97,8 @@ module Redcarpet
               hilite = xc + hilite.split(/\n/).map do |l|
                 [
                   color('code_block marker'),
-                  '> ',
-                  "#{color('code_block bg')}#{l.strip}#{xc}"
+                  MDLess.theme['code_block']['character'],
+                  "#{color('code_block bg')}#{l.rstrip}#{xc}"
                 ].join
               end.join("\n").blackout(MDLess.theme['code_block']['bg']) + "#{xc}\n"
             end
@@ -110,7 +110,7 @@ module Redcarpet
           hilite = code_block.split(/\n/).map do |line|
             [
               color('code_block marker'),
-              '> ',
+              MDLess.theme['code_block']['character'],
               color('code_block color'),
               line,
               xc
@@ -172,7 +172,7 @@ module Redcarpet
 
       def block_quote(quote)
         ret = "\n\n"
-        quote.wrap(MDLess.cols, color('blockquote color')).split(/\n/).each do |line|
+        quote.strip.wrap(MDLess.cols, color('blockquote color')).split(/\n/).each do |line|
           ret += [
             color('blockquote marker color'),
             MDLess.theme['blockquote']['marker']['character'],
@@ -941,7 +941,7 @@ module Redcarpet
       def highlight_tags(input)
         tag_color = color('at_tags tag')
         value_color = color('at_tags value')
-        input.gsub(/(?<pre>\s|m)(?<tag>@[^ \].?!,("']+)(?:(?<lparen>\()(?<value>.*?)(?<rparen>\)))?/) do
+        input.gsub(/(?<pre>\s|m)(?<tag>@[^ \]:;.?!,("'\n]+)(?:(?<lparen>\()(?<value>.*?)(?<rparen>\)))?/) do
           m = Regexp.last_match
           last_color = m.pre_match.last_color_code
           [
