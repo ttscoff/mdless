@@ -1,3 +1,8 @@
+2.1.10
+: Spinner while processing to indicate working
+: Image links can now be converted to reference format, with correct coloring
+: Render image links before reference link conversion
+
 2.1.9
 : Code block prefix configurable, can be left empty to make more copyable code blocks
 : Remove empty lines from block quotes
