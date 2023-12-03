@@ -150,9 +150,11 @@ module CLIMarkdown
       # input.gsub!(/\[.*?\]\(.*?\)/) do |link|
       #   link.gsub(/ /, "\u00A0")
       # end
-      input.split(/\s+/).each do |word|
+      input.split(/\s/).each do |word|
         last_ansi = line.last_color_code
-        if visible_width + word.size_clean >= width
+        if word =~ /[\s\t]/
+          line << word
+        elsif visible_width + word.size_clean >= width
           lines << line + xc
           visible_width = word.size_clean
           line = last_ansi + word
