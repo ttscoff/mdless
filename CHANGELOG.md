@@ -1,3 +1,8 @@
+2.1.11
+: Better regex for highlighting raw HTML
+: Indentation in highlighted code blocks
+: HTML Tag highlighting breaking pre/post color conversion
+
 2.1.10
 : Spinner while processing to indicate working
 : Image links can now be converted to reference format, with correct coloring

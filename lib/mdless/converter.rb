@@ -105,8 +105,8 @@ module CLIMarkdown
         end
 
         default(:at_tags, false)
-        opts.on('-@', '--at_tags', 'Highlight @tags and values in the document') do
-          MDLess.options[:at_tags] = true
+        opts.on('-@', '--[no-]at-tags', 'Highlight @tags and values in the document') do |opt|
+          MDLess.options[:at_tags] = opt
         end
 
         opts.on('-v', '--version', 'Display version number') do

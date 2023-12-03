@@ -66,13 +66,40 @@ module Redcarpet
       end
 
       def hilite_code(code_block, language)
+        longest_line = code_block.uncolor.split(/\n/).longest_element.length + 4
+        longest_line = longest_line > MDLess.cols ? MDLess.cols : longest_line
+
+        # if MDLess.options[:syntax_higlight]
+        #   formatter = Rouge::Formatters::Terminal256
+        #   lexer = if language
+        #             Object.const_get("Rouge::Lexers::#{language.capitalize}") rescue Rouge::Lexer.guess(source: code_block)
+        #           else
+        #             Rouge::Lexer.guess(source: code_block)
+        #           end
+        #   hilite = formatter.format(lexer.lex(code_block))
+        #   hilite = xc + hilite.split(/\n/).map do |l|
+        #     [
+        #       color('code_block marker'),
+        #       MDLess.theme['code_block']['character'],
+        #       "#{color('code_block bg')}#{l.rstrip}#{xc}"
+        #     ].join
+        #   end.join("\n").blackout(MDLess.theme['code_block']['bg']) + "#{xc}\n"
+        # else
+        #   hilite = code_block.split(/\n/).map do |line|
+        #     [
+        #       color('code_block marker'),
+        #       MDLess.theme['code_block']['character'],
+        #       color('code_block color'),
+        #       line,
+        #       xc
+        #     ].join
+        #   end.join("\n").blackout(MDLess.theme['code_block']['bg']) + "#{xc}\n"
+        # end
+
         if MDLess.options[:syntax_higlight] && !exec_available('pygmentize')
           MDLess.log.error('Syntax highlighting requested by pygmentize is not available')
           MDLess.options[:syntax_higlight] = false
         end
-
-        longest_line = code_block.uncolor.split(/\n/).longest_element.length + 4
-        longest_line = longest_line > MDLess.cols ? MDLess.cols : longest_line
 
         if MDLess.options[:syntax_higlight]
           pyg = TTY::Which.which('pygmentize')
@@ -93,15 +120,17 @@ module Redcarpet
             ].join(' ')
             hilite, s = Open3.capture2(cmd,
                                        stdin_data: code_block)
+
             if s.success?
               hilite = xc + hilite.split(/\n/).map do |l|
                 [
                   color('code_block marker'),
                   MDLess.theme['code_block']['character'],
-                  "#{color('code_block bg')}#{l.rstrip}#{xc}"
+                  "#{color('code_block bg')}#{l}#{xc}"
                 ].join
               end.join("\n").blackout(MDLess.theme['code_block']['bg']) + "#{xc}\n"
             end
+
           rescue StandardError => e
             MDLess.log.error(e)
             hilite = code_block
@@ -123,7 +152,6 @@ module Redcarpet
                      else
                        "--[ #{language} ]#{'-' * (longest_line - 6 - language.length)}"
                      end
-
         [
           xc,
           color('code_block border'),
@@ -234,10 +262,15 @@ module Redcarpet
       end
 
       def paragraph(text)
-        if MDLess.options[:preserve_linebreaks]
-          "#{xc}#{text.gsub(/ +/, ' ').strip}#{xc}#{x}\n\n"
+        out = if MDLess.options[:preserve_linebreaks]
+                "#{xc}#{text.gsub(/ +/, ' ').strip}#{xc}#{x}\n\n"
+              else
+                "#{xc}#{text.gsub(/ +/, ' ').gsub(/\n+(?![:-])/, ' ').strip}#{xc}#{x}\n\n"
+              end
+        if MDLess.options[:at_tags] || MDLess.options[:taskpaper]
+          highlight_tags(out)
         else
-          "#{xc}#{text.gsub(/ +/, ' ').gsub(/\n+(?![:-])/, ' ').strip}#{xc}#{x}\n\n"
+          out
         end
       end
 
@@ -481,7 +514,7 @@ module Redcarpet
       end
 
       def color_tags(html)
-        html.gsub(%r{(<\S+( [^>]+)?>)}, "#{color('html brackets')}\\1#{xc}")
+        html.gsub(%r{((?!<)</?\w+( [^>]+)?>)}, "#{color('html brackets')}\\1#{xc}")
       end
 
       def raw_html(raw_html)
@@ -580,26 +613,31 @@ module Redcarpet
       end
 
       def color_list_item(indent, content, type, counter)
-        case type
-        when :unordered
-          [
-            indent,
-            color('list bullet'),
-            MDLess.theme['list']['ul_char'].strip,
-            ' ',
-            color('list color'),
-            indent_lines(content, indent).strip,
-            xc
-          ].join
-        when :ordered
-          [
-            indent,
-            color('list number'),
-            "#{counter}. ",
-            color('list color'),
-            indent_lines(content, indent).strip,
-            xc
-          ].join
+        out = case type
+              when :unordered
+                [
+                  indent,
+                  color('list bullet'),
+                  MDLess.theme['list']['ul_char'].strip,
+                  ' ',
+                  color('list color'),
+                  indent_lines(content, indent).strip,
+                  xc
+                ].join
+              when :ordered
+                [
+                  indent,
+                  color('list number'),
+                  "#{counter}. ",
+                  color('list color'),
+                  indent_lines(content, indent).strip,
+                  xc
+                ].join
+              end
+        if MDLess.options[:at_tags] || MDLess.options[:taskpaper]
+          color_tags(out)
+        else
+          out
         end
       end
 
@@ -1035,7 +1073,6 @@ module Redcarpet
         input = reference_links(input) if MDLess.options[:links] == :reference || MDLess.options[:links] == :paragraph
         # lists
         input = fix_lists(input)
-        input = highlight_tags(input) if MDLess.options[:at_tags] || MDLess.options[:taskpaper]
         fix_colors(input)
       end
     end
