@@ -514,7 +514,7 @@ module Redcarpet
       end
 
       def color_tags(html)
-        html.gsub(%r{(<\S+( [^>]+)?>)}, "#{color('html brackets')}\\1#{xc}")
+        html.gsub(%r{((?!<)<\w+( [^>]+)?>)}, "#{color('html brackets')}\\1#{xc}")
       end
 
       def raw_html(raw_html)
