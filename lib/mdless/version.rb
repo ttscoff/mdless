@@ -1,5 +1,5 @@
 # frozen_string_literal: true
 
 module CLIMarkdown
-  VERSION = '2.1.23'
+  VERSION = '2.1.22'
 end
