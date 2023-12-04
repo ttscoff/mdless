@@ -1,3 +1,10 @@
+2.1.24
+: Save MultiMarkdown metadata into a hash
+: Allow [%metakey] replacements
+: Allow {{filename}} transcusions (MultiMarkdown), respects "transclude base:" metadata
+: Transclude documents with `{{filename}}`, nesting allowed, "transclude base:" metadata respected (even in YAML)
+: Metadata can be used in `[%key]` format to have it replaced in the output based on metadata values
+
 2.1.23
 : Fix release pipeline to get version number correct in git release
 : Changelog mismatch
