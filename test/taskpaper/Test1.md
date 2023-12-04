@@ -3,7 +3,7 @@ just: some
 meta: data
 ---
 
- Project:
+Project:
 	- Task1
 	- Task2 @na
 	- Task3 

@@ -74,7 +74,7 @@ class ::String
             line = "#{color('metadata marker')}#{'%' * longest}"
           else
             line.sub!(/^(.*?:)[ \t]+(\S)/, '\1 \2')
-            line = "#{color('metadata color')}#{line}<br>"
+            line = "#{color('metadata marker')}%#{color('metadata color')}#{line}#{xc}"
           end
 
           line += "\u00A0" * (longest - line.uncolor.strip.length) if (longest - line.uncolor.strip.length).positive?
