@@ -1,3 +1,6 @@
+2.1.17
+: YAML metadata and negative line lengths
+
 2.1.14
 : Spaces on a line separating metadata won't break display
 : Preserve line breaks in metadata
