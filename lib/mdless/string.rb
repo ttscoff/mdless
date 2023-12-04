@@ -77,8 +77,8 @@ class ::String
             line = "#{color('metadata color')}#{line}<br>"
           end
 
-          line += "\u00A0" * (longest - line.uncolor.strip.length) + xc
-          line
+          line += "\u00A0" * (longest - line.uncolor.strip.length) if (longest - line.uncolor.strip.length).positive?
+          line + xc
         end.join("\n") + "#{xc}\n"
       end
     end
@@ -93,8 +93,8 @@ class ::String
         longest = longest < @cols ? longest + 1 : @cols
         lines.map do |line|
           line.sub!(/^(.*?:)[ \t]+(\S)/, '\1 \2')
-          line = "#{color('metadata color')}#{line}<br>"
-          line += "\u00A0" * (longest - line.uncolor.strip.length)
+          line = "#{color('metadata color')}#{line}"
+          line += "\u00A0" * (longest - line.uncolor.strip.length) if (longest - line.uncolor.strip.length).positive?
           line + xc
         end.join("\n") + "#{"\u00A0" * longest}#{xc}\n"
       end
