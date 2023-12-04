@@ -227,7 +227,7 @@ $ gather https://brettterpstra.com/projects/gather-cli/ | mdless
 [fzf](https://github.com/junegunn/fzf) is a tool for selecting files and other menu options with typeahead fuzzy matching. You can set up `mdless` as a previewer when selecting Markdown or TaskPaper files.
 
 ```
-$ ls *.md | fzf --preview 'mdless --taskpaper auto --linebreaks {}'
+$ ls *.md | fzf --preview 'mdless {}'
 ```
 
 ### Fish
