@@ -139,6 +139,17 @@ class ::String
     MDLess.pygments_styles.include?(self)
   end
 
+  def remove_meta
+    first_line = split("\n").first
+    if first_line =~ /(?i-m)^---[ \t]*?$/
+      sub(/(?im)^---[ \t]*\n([\s\S\n]*?)\n[-.]{3}[ \t]*\n/, '')
+    elsif first_line =~ /(?i-m)^[\w ]+:\s+\S+/
+      sub(/(?im)^([\S ]+:[\s\S]*?)+(?=\n *\n)/, '')
+    else
+      self
+    end
+  end
+
   def valid_lexer?
     return false unless TTY::Which.exist?('pygmentize')
 

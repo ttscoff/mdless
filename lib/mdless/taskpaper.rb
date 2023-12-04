@@ -36,16 +36,6 @@ module CLIMarkdown
         end
       end
 
-      def remove_meta(input)
-        first_line = input.split("\n").first
-        if first_line =~ /(?i-m)^---[ \t]*?$/
-          input.sub!(/(?im)^---[ \t]*\n([\s\S\n]*?)\n[-.]{3}[ \t]*\n/, '')
-        elsif first_line =~ /(?i-m)^[\w ]+:\s+\S+/
-          input.sub!(/(?im)^([\S ]+:[\s\S]*?)+(?=\n\n)/, '')
-        end
-        input
-      end
-
       def is_taskpaper?(input)
         return true if MDLess.file =~ /\.taskpaper$/
 
@@ -61,7 +51,7 @@ module CLIMarkdown
         if tasks >= 6
           return true
         else
-          tst = remove_meta(input.dup)
+          tst = input.dup.remove_meta
           tst = tst.gsub(PROJECT_RX, '')
           tst = tst.gsub(TASK_RX, '')
           tst = tst.gsub(NOTE_RX, '')

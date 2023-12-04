@@ -1,3 +1,10 @@
+transclude base: /Users/ttscoff/Desktop
+title: Lists with transclude
+
+{{Marked2.6.311054-releasenotes.md}}
+
+# [%title]
+
 1. delete line feeds (\u2028)
 2. Trim content to first line (up to \r\n)
 3. read into array
