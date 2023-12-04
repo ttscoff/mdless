@@ -1,4 +1,5 @@
 2.1.12
+: Fix list indentation when nesting
 
 2.1.11
 : Better regex for highlighting raw HTML

@@ -602,7 +602,7 @@ module Redcarpet
       def indent_lines(input, spaces)
         return nil if input.nil?
 
-        indent = spaces.scan(/\t/).count
+        indent = spaces.scan(/ /).count
 
         lines = input.split(/\n/)
         line1 = lines.shift
@@ -1073,7 +1073,6 @@ module Redcarpet
         input = reference_links(input) if MDLess.options[:links] == :reference || MDLess.options[:links] == :paragraph
         # lists
         input = fix_lists(input)
-        puts input
         fix_colors(input)
       end
     end
