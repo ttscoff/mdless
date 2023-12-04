@@ -760,11 +760,10 @@ module Redcarpet
                 line = "#{color('metadata marker')}#{'%' * longest}"
               else
                 line.sub!(/^(.*?:)[ \t]+(\S)/, '\1 \2')
-                line = "#{color('metadata marker')}% #{color('metadata color')}#{line}\n"
+                line = "#{color('metadata marker')}% #{color('metadata color')}#{line}"
               end
-
-              line += "\u00A0" * (longest - line.uncolor.strip.length) + xc
-              line
+              line += "\u00A0" * (longest - line.uncolor.strip.length) if (longest - line.uncolor.strip.length).positive?
+              line + xc
             end.join("\n") + "#{xc}\n"
           end
         end
@@ -780,8 +779,8 @@ module Redcarpet
 
             lines.map do |line|
               line.sub!(/^(.*?:)[ \t]+(\S)/, '\1 \2')
-              line = "#{color('metadata marker')}%#{color('metadata color')}#{line}  "
-              line += "\u00A0" * (longest - line.uncolor.strip.length)
+              line = "#{color('metadata marker')}%#{color('metadata color')}#{line}"
+              line += "\u00A0" * (longest - line.uncolor.strip.length) if (longest - line.uncolor.strip.length).positive?
               line + xc
             end.join("\n") + "#{"\u00A0" * longest}#{xc}\n"
           end
