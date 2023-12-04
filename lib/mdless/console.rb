@@ -602,13 +602,13 @@ module Redcarpet
       def indent_lines(input, spaces)
         return nil if input.nil?
 
-        indent = spaces.scan(/ /).count
+        indent = spaces.scan(/\t/).count
 
         lines = input.split(/\n/)
         line1 = lines.shift
-        pre = '  ' * (indent + 1)
-        cols = MDLess.cols - pre.length
-        body = lines.map { |l| "#{pre}#{l}" }.join("\n")
+        pre = spaces + (" " * (indent + 1))
+
+        body = lines.map { |l| "#{pre}#{l.rstrip}" }.join("\n")
         "#{line1}\n#{body}"
       end
 
@@ -648,7 +648,7 @@ module Redcarpet
       end
 
       def fix_list_spacing(input)
-        input.gsub(/( *\n)+( *)<<listitem/, "\n\\2<<listitem").gsub(/\n{2,}/, "\n\n")
+        input.gsub(/( *\n)+( *)<<listitem/, "\n\\2<<listitem").gsub(/( *\n){2,}/, "\n\n")
       end
 
       def nest_lists(input, indent = 0)
@@ -695,7 +695,7 @@ module Redcarpet
           end
 
           content = m['content'] =~/<<listitem/ ? fix_items(m['content'], indent, levels) : m['content']
-          color_list_item(' ' * indent, uncolor_grafs(content), m['type'].to_sym, levels[indent])
+          color_list_item(" " * indent, uncolor_grafs(content), m['type'].to_sym, levels[indent])
         end
       end
 
@@ -1073,6 +1073,7 @@ module Redcarpet
         input = reference_links(input) if MDLess.options[:links] == :reference || MDLess.options[:links] == :paragraph
         # lists
         input = fix_lists(input)
+        puts input
         fix_colors(input)
       end
     end
