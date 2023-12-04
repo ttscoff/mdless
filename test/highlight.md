@@ -1,3 +1,6 @@
+---
+title: Highlighter test
+---
 ## Highlighter ==highlight== header
 
 This is a ==highlight inside== a paragraph.
