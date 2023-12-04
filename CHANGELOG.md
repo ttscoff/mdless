@@ -1,3 +1,8 @@
+2.1.14
+: Spaces on a line separating metadata won't break display
+: Preserve line breaks in metadata
+: Failure to display metadata fixed
+
 2.1.13
 : Remove debugging statement
 
