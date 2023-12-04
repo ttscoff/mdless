@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'optparse'
 require 'shellwords'
 require 'open3'
@@ -7,7 +9,7 @@ require 'tty-which'
 require 'tty-screen'
 require 'tty-spinner'
 require 'rouge'
-require 'mdless/version.rb'
+require 'mdless/version'
 require 'mdless/colors'
 require 'mdless/tables'
 require 'mdless/hash'
@@ -26,7 +28,7 @@ end
 module MDLess
   class << self
     include CLIMarkdown::Theme
-    attr_accessor :options, :cols, :file
+    attr_accessor :options, :cols, :file, :meta
 
     def log
       @log ||= Logger.new($stderr)

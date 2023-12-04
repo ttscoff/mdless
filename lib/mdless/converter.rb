@@ -184,6 +184,11 @@ module CLIMarkdown
           MDLess.options[:preserve_linebreaks] = opt
         end
 
+        default(:mmd_metadata, true)
+        opts.on('--[no-]metadata', 'Replace [%key] with values from metadata') do |opt|
+          MDLess.options[:mmd_metadata] = opt
+        end
+
         default(:syntax_higlight, false)
         opts.on('--[no-]syntax', 'Syntax highlight code blocks') do |opt|
           MDLess.options[:syntax_higlight] = opt
@@ -210,6 +215,11 @@ module CLIMarkdown
                                  else
                                    false
                                  end
+        end
+
+        default(:transclude, true)
+        opts.on('--[no-]transclude', 'Transclude documents with {{filename}} syntax') do |opt|
+          MDLess.options[:transclude] = opt
         end
 
         default(:update_config, false)

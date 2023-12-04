@@ -4,7 +4,7 @@ module Redcarpet
       include CLIMarkdown::Colors
       include CLIMarkdown::Theme
 
-      attr_accessor :headers, :meta
+      attr_accessor :headers
       attr_writer :file
 
       @@listitemid = 0
@@ -743,7 +743,7 @@ module Redcarpet
       def color_meta(text)
         input = text.dup
         input.clean_empty_lines!
-        @meta = {}
+        MDLess.meta = {}
         first_line = input.split("\n").first
         if first_line =~ /(?i-m)^---[ \t]*?$/
           MDLess.log.info('Found YAML')
@@ -752,7 +752,7 @@ module Redcarpet
           input.sub!(/(?i-m)^---[ \t]*\n(?<content>(?:[\s\S]*?))\n[-.]{3}[ \t]*\n/m) do
             m = Regexp.last_match
             MDLess.log.info('Processing YAML Header')
-            @meta = YAML.safe_load(m['content'])
+            MDLess.meta = YAML.safe_load(m['content']).map { |k, v| "#{k.downcase}" => v }
             lines = m[0].split(/\n/)
             longest = lines.longest_element.length
             longest = longest < MDLess.cols ? longest + 1 : MDLess.cols
@@ -783,11 +783,11 @@ module Redcarpet
               parts = line.match(/[ \t]*(.*?): +(.*?)$/)
               key = parts[1].gsub(/[^a-z0-9\-_]/i, '')
               value = parts[2].strip
-              @meta[key] = value
+              MDLess.meta[key] = value
               line = "#{color('metadata marker')}%#{color('metadata color')}#{line}"
               line += "\u00A0" * (longest - line.uncolor.strip.length) if (longest - line.uncolor.strip.length).positive?
               line + xc
-            end.join("\n") + "#{"\u00A0" * longest}#{xc}\n"
+            end.join("\n") + "#{xc}\n"
           end
         end
 
@@ -797,8 +797,8 @@ module Redcarpet
       def mmd_transclude(input)
         input.gsub(/^{{(.*?)}}/) do |m|
           filename = Regexp.last_match(1).strip
-          file = if @meta.key?('transcludebase')
-            File.join(File.expand_path(@meta['transcludebase']), filename)
+          file = if MDLess.meta.key?('transcludebase')
+            File.join(File.expand_path(MDLess.meta['transcludebase']), filename)
           else
             File.join(File.dirname(MDLess.file), filename)
           end
@@ -809,8 +809,8 @@ module Redcarpet
       def mmd_metadata_replace(input)
         input.gsub(/\[%(.*?)\]/) do |m|
           key = Regexp.last_match(1)
-          if @meta.key?(key)
-            @meta[key]
+          if MDLess.meta.key?(key)
+            MDLess.meta[key]
           else
             m
           end
@@ -819,8 +819,8 @@ module Redcarpet
 
       def preprocess(input)
         input = color_meta(input)
-        input = mmd_transclude(input)
-        input = mmd_metadata_replace(input)
+        input = mmd_transclude(input) if MDLess.options[:transclude]
+        input = mmd_metadata_replace(input) if MDLess.options[:mmd_metadata]
 
         replaced_input = input.clone
         ## Replace setex headers with ATX

@@ -56,6 +56,7 @@ class ::String
     @cols = cols
     input = dup
     input.clean_empty_lines!
+    MDLess.meta = {}
 
     in_yaml = false
     first_line = input.split("\n").first
@@ -63,10 +64,11 @@ class ::String
       MDLess.log.info('Found YAML')
       # YAML
       in_yaml = true
-      input.sub!(/(?i-m)^---[ \t]*\n([\s\S]*?)\n[-.]{3}[ \t]*\n/m) do
+      input.sub!(/(?i-m)^---[ \t]*\n(?<content>[\s\S]*?)\n[-.]{3}[ \t]*\n/m) do
         m = Regexp.last_match
         MDLess.log.info('Processing YAML Header')
-        lines = m[0].split(/\n/)
+        MDLess.meta = YAML.safe_load(m['content']).map { |k, v| "#{k.downcase}" => v }
+        lines = m['content'].split(/\n/)
         longest = lines.inject { |memo, word| memo.length > word.length ? memo : word }.length
         longest = longest < @cols ? longest + 1 : @cols
         lines.map do |line|
@@ -93,7 +95,11 @@ class ::String
         longest = longest < @cols ? longest + 1 : @cols
         lines.map do |line|
           line.sub!(/^(.*?:)[ \t]+(\S)/, '\1 \2')
-          line = "#{color('metadata color')}#{line}"
+          parts = line.match(/[ \t]*(.*?): +(.*?)$/)
+          key = parts[1].gsub(/[^a-z0-9\-_]/i, '')
+          value = parts[2].strip
+          MDLess.meta[key] = value
+          line = "#{color('metadata color')}#{line}#{xc}"
           line += "\u00A0" * (longest - line.uncolor.strip.length) if (longest - line.uncolor.strip.length).positive?
           line + xc
         end.join("\n") + "#{"\u00A0" * longest}#{xc}\n"
