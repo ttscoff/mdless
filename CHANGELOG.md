@@ -1,7 +1,10 @@
+2.1.23
+: Fix release pipeline to get version number correct in git release
+: Changelog mismatch
+
 2.1.22
 : TaskPaper file with metadata causing negative argument error
 : Remove `<br>` from metadata
-: Fix release pipeline to get version number correct in git release2.1.17
 : YAML metadata and negative line lengths
 
 2.1.14
