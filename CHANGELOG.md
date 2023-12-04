@@ -1,3 +1,5 @@
+2.1.12
+
 2.1.11
 : Better regex for highlighting raw HTML
 : Indentation in highlighted code blocks
