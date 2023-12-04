@@ -61,9 +61,10 @@ module CLIMarkdown
         if tasks >= 6
           return true
         else
-          tst = remove_meta(input)
+          tst = remove_meta(input.dup)
           tst = tst.gsub(PROJECT_RX, '')
           tst = tst.gsub(TASK_RX, '')
+          tst = tst.gsub(NOTE_RX, '')
           tst = tst.gsub(/^ *\n$/, '')
           return tst.strip.length == 0
         end

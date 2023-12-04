@@ -74,7 +74,7 @@ class ::String
             line = "#{color('metadata marker')}#{'%' * longest}"
           else
             line.sub!(/^(.*?:)[ \t]+(\S)/, '\1 \2')
-            line = "#{color('metadata color')}#{line}"
+            line = "#{color('metadata color')}#{line}<br>"
           end
 
           line += "\u00A0" * (longest - line.uncolor.strip.length) + xc
@@ -85,7 +85,7 @@ class ::String
 
     if !in_yaml && first_line =~ /(?i-m)^[\w ]+:\s+\S+/
       MDLess.log.info('Found MMD Headers')
-      input.sub!(/(?i-m)^([\S ]+:[\s\S]*?)+(?=\n\n)/) do |mmd|
+      input.sub!(/(?i-m)^([\S ]+:[\s\S]*?)+(?=\n *\n)/) do |mmd|
         lines = mmd.split(/\n/)
         return mmd if lines.count > 20
 
@@ -93,7 +93,7 @@ class ::String
         longest = longest < @cols ? longest + 1 : @cols
         lines.map do |line|
           line.sub!(/^(.*?:)[ \t]+(\S)/, '\1 \2')
-          line = "#{color('metadata color')}#{line}"
+          line = "#{color('metadata color')}#{line}<br>"
           line += "\u00A0" * (longest - line.uncolor.strip.length)
           line + xc
         end.join("\n") + "#{"\u00A0" * longest}#{xc}\n"

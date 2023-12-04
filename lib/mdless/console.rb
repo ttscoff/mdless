@@ -262,10 +262,15 @@ module Redcarpet
       end
 
       def paragraph(text)
+        text.scrub!
         out = if MDLess.options[:preserve_linebreaks]
                 "#{xc}#{text.gsub(/ +/, ' ').strip}#{xc}#{x}\n\n"
               else
-                "#{xc}#{text.gsub(/ +/, ' ').gsub(/\n+(?![:-])/, ' ').strip}#{xc}#{x}\n\n"
+                if text.uncolor =~ / {2,}$/ || text.uncolor =~ /^%/
+                  "#{xc}#{text.gsub(/ +/, ' ').strip}#{xc}#{x}\n"
+                else
+                  "#{xc}#{text.gsub(/ +/, ' ').gsub(/\n+(?![:-])/, ' ').strip}#{xc}#{x}\n\n"
+                end
               end
         if MDLess.options[:at_tags] || MDLess.options[:taskpaper]
           highlight_tags(out)
@@ -755,7 +760,7 @@ module Redcarpet
                 line = "#{color('metadata marker')}#{'%' * longest}"
               else
                 line.sub!(/^(.*?:)[ \t]+(\S)/, '\1 \2')
-                line = "#{color('metadata color')}#{line}"
+                line = "#{color('metadata marker')}% #{color('metadata color')}#{line}\n"
               end
 
               line += "\u00A0" * (longest - line.uncolor.strip.length) + xc
@@ -766,15 +771,16 @@ module Redcarpet
 
         if !in_yaml && first_line =~ /(?i-m)^[\w ]+:\s+\S+/
           MDLess.log.info('Found MMD Headers')
-          input.sub!(/(?i-m)^([\S ]+:[\s\S]*?)+(?=\n\n)/) do |mmd|
+          input.sub!(/(?i-m)^([\S ]+:[\s\S]*?)+(?=\n *\n)/) do |mmd|
             lines = mmd.split(/\n/)
             return mmd if lines.count > 20
 
             longest = lines.inject { |memo, word| memo.length > word.length ? memo : word }.length
             longest = longest < MDLess.cols ? longest + 1 : MDLess.cols
+
             lines.map do |line|
               line.sub!(/^(.*?:)[ \t]+(\S)/, '\1 \2')
-              line = "#{color('metadata color')}#{line}"
+              line = "#{color('metadata marker')}%#{color('metadata color')}#{line}  "
               line += "\u00A0" * (longest - line.uncolor.strip.length)
               line + xc
             end.join("\n") + "#{"\u00A0" * longest}#{xc}\n"
