@@ -264,6 +264,7 @@ module CLIMarkdown
           opts.delete(:section)
           opts.delete(:update_config)
           opts.delete(:update_theme)
+          opts.delete(:width)
           opts = opts.keys.map(&:to_s).sort.map { |k| [k.to_sym, opts[k.to_sym]] }.to_h
           f.puts YAML.dump(opts)
           warn "Config file saved to #{config}"

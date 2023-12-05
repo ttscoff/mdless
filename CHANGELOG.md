@@ -1,3 +1,5 @@
+2.1.26
+
 2.1.25
 : YAML loading issues caused by safe_load
 

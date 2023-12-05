@@ -780,10 +780,12 @@ module Redcarpet
 
             lines.map do |line|
               line.sub!(/^(.*?:)[ \t]+(\S)/, '\1 \2')
-              parts = line.match(/[ \t]*(.*?): +(.*?)$/)
-              key = parts[1].gsub(/[^a-z0-9\-_]/i, '')
-              value = parts[2].strip
-              MDLess.meta[key] = value
+              parts = line.match(/^[ \t]*(\S.*?):[ \t]+(\S.*?)$/)
+              if parts
+                key = parts[1].gsub(/[^a-z0-9\-_]/i, '')
+                value = parts[2].strip
+                MDLess.meta[key] = value
+              end
               line = "#{color('metadata marker')}%#{color('metadata color')}#{line}"
               line += "\u00A0" * (longest - line.uncolor.strip.length) if (longest - line.uncolor.strip.length).positive?
               line + xc

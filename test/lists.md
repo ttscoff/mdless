@@ -1,4 +1,4 @@
-transclude base: /Users/ttscoff/Desktop
+transclude base: test/transclude
 title: Lists with transclude
 
 {{Marked2.6.311054-releasenotes.md}}
