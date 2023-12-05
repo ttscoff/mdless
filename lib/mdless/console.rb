@@ -752,7 +752,7 @@ module Redcarpet
           input.sub!(/(?i-m)^---[ \t]*\n(?<content>(?:[\s\S]*?))\n[-.]{3}[ \t]*\n/m) do
             m = Regexp.last_match
             MDLess.log.info('Processing YAML Header')
-            MDLess.meta = YAML.safe_load(m['content']).map { |k, v| "#{k.downcase}" => v }
+            MDLess.meta = YAML.load(m['content']).map { |k, v| "#{k.downcase}" => v }
             lines = m[0].split(/\n/)
             longest = lines.longest_element.length
             longest = longest < MDLess.cols ? longest + 1 : MDLess.cols
