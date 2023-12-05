@@ -1,5 +1,9 @@
 2.1.26
 
+2.1.28
+: Default to 0 width, which makes the width the column width of the terminal
+: Don't save a --width setting to config, require that to be manually updated if desired
+
 2.1.27
 : Error handling when YAML can't be processed
 
