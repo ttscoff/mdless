@@ -1,3 +1,6 @@
+2.1.25
+: YAML loading issues caused by safe_load
+
 2.1.24
 : Save MultiMarkdown metadata into a hash
 : Allow [%metakey] replacements
