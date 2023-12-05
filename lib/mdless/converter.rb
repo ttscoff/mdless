@@ -114,11 +114,18 @@ module CLIMarkdown
           exit
         end
 
-        default(:width, TTY::Screen.cols)
-        opts.on('-w', '--width=COLUMNS', 'Column width to format for (default: terminal width)') do |columns|
-          MDLess.options[:width] = columns.to_i
+        default(:width, 0)
+        opts.on('-w', '--width=COLUMNS', 'Column width to format for (default: 0 -> terminal width)') do |columns|
+          columns = columns.to_i
           cols = TTY::Screen.cols
-          MDLess.options[:width] = cols if MDLess.options[:width] > cols
+          MDLess.cols = columns > 2 ? columns - 2 : cols
+
+          MDLess.options[:width] = columns > cols ? cols - 2 : columns - 2
+        end
+
+        MDLess.cols = MDLess.options[:width]
+        if MDLess.cols == 0
+          MDLess.cols = TTY::Screen.cols - 2
         end
 
         default(:autolink, true)
@@ -195,26 +202,26 @@ module CLIMarkdown
         end
 
         MDLess.options[:taskpaper] = if MDLess.options[:taskpaper]
-                                 case MDLess.options[:taskpaper].to_s
-                                 when /^[ty1]/
-                                   true
-                                 when /^a/
-                                   :auto
-                                 else
-                                   false
-                                 end
-                               else
-                                 false
-                               end
+                                       case MDLess.options[:taskpaper].to_s
+                                       when /^[ty1]/
+                                         true
+                                       when /^a/
+                                         :auto
+                                       else
+                                         false
+                                       end
+                                     else
+                                       false
+                                     end
         opts.on('--taskpaper=OPTION', 'Highlight TaskPaper format (true|false|auto)') do |tp|
           MDLess.options[:taskpaper] = case tp
-                                 when /^[ty1]/
-                                   true
-                                 when /^a/
-                                   :auto
-                                 else
-                                   false
-                                 end
+                                       when /^[ty1]/
+                                         true
+                                       when /^a/
+                                         :auto
+                                       else
+                                         false
+                                       end
         end
 
         default(:transclude, true)
@@ -223,7 +230,8 @@ module CLIMarkdown
         end
 
         default(:update_config, false)
-        opts.on('--update-config', '--update_config', 'Update the configuration file with new keys and current command line options') do
+        opts.on('--update-config', '--update_config',
+                'Update the configuration file with new keys and current command line options') do
           MDLess.options[:update_config] = true
         end
 
@@ -264,14 +272,12 @@ module CLIMarkdown
           opts.delete(:section)
           opts.delete(:update_config)
           opts.delete(:update_theme)
-          opts.delete(:width)
+          opts[:width] = 0
           opts = opts.keys.map(&:to_s).sort.map { |k| [k.to_sym, opts[k.to_sym]] }.to_h
           f.puts YAML.dump(opts)
           warn "Config file saved to #{config}"
         end
       end
-
-      MDLess.cols = MDLess.options[:width] - 2
 
       @output = ''
       @headers = []
