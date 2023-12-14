@@ -126,9 +126,7 @@ module CLIMarkdown
         end
 
         MDLess.cols = MDLess.options[:width]
-        if MDLess.cols == 0
-          MDLess.cols = TTY::Screen.cols - 2
-        end
+        MDLess.cols = TTY::Screen.cols - 2 if MDLess.cols.zero?
 
         default(:autolink, true)
         opts.on('--[no-]autolink', 'Convert bare URLs and emails to <links>') do |p|
@@ -147,8 +145,9 @@ module CLIMarkdown
           Process.exit 0
         end
 
-        opts.on('--edit-theme', "Open the default/specified theme in #{File.basename(ENV['EDITOR']) || 'default editor'}, "\
-                                 'populating a new theme if needed.') do
+        opts.on('--edit-theme', 'Open the default/specified theme in ' \
+                                "#{File.basename(ENV['EDITOR']) || 'default editor'}, "\
+                                'populating a new theme if needed. Use after --theme in the command.') do
           raise 'No $EDITOR defined' unless ENV['EDITOR']
 
           theme = MDLess.options[:theme] =~ /default/ ? 'mdless' : MDLess.options[:theme]
