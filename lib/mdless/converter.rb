@@ -45,7 +45,8 @@ module CLIMarkdown
         default(:local_images, false)
         default(:remote_images, false)
         opts.on('-i', '--images=TYPE',
-                'Include [local|remote (both)|none] images in output (requires chafa or imgcat, default none).') do |type|
+                'Include [local|remote (both)|none] images in output'\
+                ' (requires chafa or imgcat, default none).') do |type|
           if exec_available('imgcat') || exec_available('chafa')
             case type
             when /^(r|b|a)/i
@@ -62,7 +63,8 @@ module CLIMarkdown
           end
         end
 
-        opts.on('-I', '--all-images', 'Include local and remote images in output (requires imgcat or chafa)') do
+        opts.on('-I', '--all-images', 'Include local and remote images in output'\
+               ' (requires imgcat or chafa)') do
           if exec_available('imgcat') || exec_available('chafa') # && ENV['TERM_PROGRAM'] == 'iTerm.app'
             MDLess.options[:local_images] = true
             MDLess.options[:remote_images] = true
@@ -145,8 +147,8 @@ module CLIMarkdown
           Process.exit 0
         end
 
-        opts.on('--edit-theme', ["Open the default or specified theme file in #{ENV['EDITOR'] || 'default editor'}. ",
-                                 "If theme doesn't exist, a new theme file will be populated and opened."].join) do
+        opts.on('--edit-theme', "Open the default/specified theme in #{File.basename(ENV['EDITOR']) || 'default editor'}, "\
+                                 'populating a new theme if needed.') do
           raise 'No $EDITOR defined' unless ENV['EDITOR']
 
           theme = MDLess.options[:theme] =~ /default/ ? 'mdless' : MDLess.options[:theme]
@@ -157,7 +159,7 @@ module CLIMarkdown
         end
 
         default(:inline_footnotes, false)
-        opts.on('--[no-]inline_footnotes',
+        opts.on('--[no-]inline-footnotes',
                 'Display footnotes immediately after the paragraph that references them') do |p|
           MDLess.options[:inline_footnotes] = p
         end
@@ -174,8 +176,8 @@ module CLIMarkdown
 
         default(:links, :inline)
         opts.on('--links=FORMAT',
-                'Link style ([inline, reference, paragraph], default inline,
-                "paragraph" will position reference links after each paragraph)') do |fmt|
+                'Link style ([*inline, reference, paragraph],'\
+                ' "paragraph" will position reference links after each paragraph)') do |fmt|
           MDLess.options[:links] = case fmt
                              when /^:?r/i
                                :reference
