@@ -1,5 +1,10 @@
 2.1.26
 
+2.1.29
+: More code cleanup, help output improvements
+: Line breaks in help output
+: This release should fix an error on Ruby 2.7 in string.rb
+
 2.1.28
 : Default to 0 width, which makes the width the column width of the terminal
 : Don't save a --width setting to config, require that to be manually updated if desired
