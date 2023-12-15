@@ -67,7 +67,7 @@ class ::String
       input.sub!(/(?i-m)^---[ \t]*\n(?<content>[\s\S]*?)\n[-.]{3}[ \t]*\n/m) do
         m = Regexp.last_match
         MDLess.log.info('Processing YAML Header')
-        MDLess.meta = YAML.load(m['content']).map { |k, v| "#{k.downcase}" => v }
+        YAML.load(m['content']).map { |k, v| MDLess.meta[k.downcase] = v }
         lines = m['content'].split(/\n/)
         longest = lines.inject { |memo, word| memo.length > word.length ? memo : word }.length
         longest = longest < @cols ? longest + 1 : @cols
