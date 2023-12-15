@@ -1,5 +1,7 @@
 2.1.26
 
+2.1.32
+
 2.1.30
 : Error when $EDITOR is not defined
 
