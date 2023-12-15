@@ -1,4 +1,4 @@
-2.1.30
+2.1.32
 : Error when $EDITOR is not defined
 
 2.1.29
