@@ -133,7 +133,7 @@ module CLIMarkdown
           MDLess.options[:autolink] = p
         end
 
-        opts.on('--config', "Open the config file in #{ENV['EDITOR'] || 'default editor'}") do
+        opts.on('--config', "Open the config file in default editor") do
           raise 'No $EDITOR defined' unless ENV['EDITOR']
 
           `#{ENV['EDITOR']} '#{File.expand_path('~/.config/mdless/config.yml')}'`
@@ -145,8 +145,7 @@ module CLIMarkdown
           Process.exit 0
         end
 
-        opts.on('--edit-theme', 'Open the default/specified theme in ' \
-                                "#{File.basename(ENV['EDITOR']) || 'default editor'}, "\
+        opts.on('--edit-theme', 'Open the default/specified theme in default editor, '\
                                 'populating a new theme if needed. Use after --theme in the command.') do
           raise 'No $EDITOR defined' unless ENV['EDITOR']
 
