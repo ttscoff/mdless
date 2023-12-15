@@ -13,7 +13,7 @@ git flow release start $ver
 git flow release finish -m "v$ver" $ver
 FORCE_PUSH=true git push --all
 FORCE_PUSH=true git push --tags
-gh release create $ver -F current_changelog.md
+gh release create v$ver -F current_changelog.md
 git pull
 git push
 git checkout $(git config --get gitflow.branch.develop)
