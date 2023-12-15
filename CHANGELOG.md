@@ -1,5 +1,8 @@
 2.1.26
 
+2.1.30
+: Error when $EDITOR is not defined
+
 2.1.29
 : More code cleanup, help output improvements
 : Line breaks in help output
