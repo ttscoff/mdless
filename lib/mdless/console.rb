@@ -743,15 +743,25 @@ module Redcarpet
       def color_meta(text)
         input = text.dup
         input.clean_empty_lines!
-
+        MDLess.meta = {}
         first_line = input.split("\n").first
         if first_line =~ /(?i-m)^---[ \t]*?$/
           MDLess.log.info('Found YAML')
           # YAML
           in_yaml = true
-          input.sub!(/(?i-m)^---[ \t]*\n([\s\S]*?)\n[-.]{3}[ \t]*\n/m) do
+          input.sub!(/(?i-m)^---[ \t]*\n(?<content>(?:[\s\S]*?))\n[-.]{3}[ \t]*\n/m) do
             m = Regexp.last_match
-            MDLess.log.info('Processing YAML Header')
+            MDLess.log.info('Processing YAML header')
+            begin
+              MDLess.meta = YAML.load(m['content']).map { |k, v| "#{k.downcase}" => v }
+            rescue Psych::DisallowedClass => e
+              @log.error('Error reading YAML header')
+              @log.error(e)
+              MDLess.meta = {}
+            rescue StandardError => e
+              @log.error("StandardError: #{e}")
+            end
+
             lines = m[0].split(/\n/)
             longest = lines.longest_element.length
             longest = longest < MDLess.cols ? longest + 1 : MDLess.cols
@@ -779,18 +789,49 @@ module Redcarpet
 
             lines.map do |line|
               line.sub!(/^(.*?:)[ \t]+(\S)/, '\1 \2')
+              parts = line.match(/^[ \t]*(\S.*?):[ \t]+(\S.*?)$/)
+              if parts
+                key = parts[1].gsub(/[^a-z0-9\-_]/i, '')
+                value = parts[2].strip
+                MDLess.meta[key] = value
+              end
               line = "#{color('metadata marker')}%#{color('metadata color')}#{line}"
               line += "\u00A0" * (longest - line.uncolor.strip.length) if (longest - line.uncolor.strip.length).positive?
               line + xc
-            end.join("\n") + "#{"\u00A0" * longest}#{xc}\n"
+            end.join("\n") + "#{xc}\n"
           end
         end
 
         input
       end
 
+      def mmd_transclude(input)
+        input.gsub(/^{{(.*?)}}/) do |m|
+          filename = Regexp.last_match(1).strip
+          file = if MDLess.meta.key?('transcludebase')
+            File.join(File.expand_path(MDLess.meta['transcludebase']), filename)
+          else
+            File.join(File.dirname(MDLess.file), filename)
+          end
+          File.exist?(file) ? "\n\n#{mmd_transclude(IO.read(file).remove_meta)}\n\n" : m
+        end
+      end
+
+      def mmd_metadata_replace(input)
+        input.gsub(/\[%(.*?)\]/) do |m|
+          key = Regexp.last_match(1)
+          if MDLess.meta.key?(key)
+            MDLess.meta[key]
+          else
+            m
+          end
+        end
+      end
+
       def preprocess(input)
         input = color_meta(input)
+        input = mmd_transclude(input) if MDLess.options[:transclude]
+        input = mmd_metadata_replace(input) if MDLess.options[:mmd_metadata]
 
         replaced_input = input.clone
         ## Replace setex headers with ATX

@@ -1,5 +1,37 @@
-2.1.17
-2.1.15
+2.1.30
+: Error when $EDITOR is not defined
+
+2.1.29
+: More code cleanup, help output improvements
+: Line breaks in help output
+: This release should fix an error on Ruby 2.7 in string.rb
+
+2.1.28
+: Default to 0 width, which makes the width the column width of the terminal
+: Don't save a --width setting to config, require that to be manually updated if desired
+
+2.1.27
+: Error handling when YAML can't be processed
+
+2.1.25
+: YAML loading issues caused by safe_load
+
+2.1.24
+: Save MultiMarkdown metadata into a hash
+: Allow [%metakey] replacements
+: Allow {{filename}} transcusions (MultiMarkdown), respects "transclude base:" metadata
+: Transclude documents with `{{filename}}`, nesting allowed, "transclude base:" metadata respected (even in YAML)
+: Metadata can be used in `[%key]` format to have it replaced in the output based on metadata values
+
+2.1.23
+: Fix release pipeline to get version number correct in git release
+: Changelog mismatch
+
+2.1.22
+: TaskPaper file with metadata causing negative argument error
+: Remove `<br>` from metadata
+: YAML metadata and negative line lengths
+>>>>>>> release/2.1.30
 
 2.1.14
 : Spaces on a line separating metadata won't break display

@@ -1,7 +1,7 @@
 #!/usr/local/bin/fish
 
 set -l ver (rake bump[inc])
-changelog -f markdown > current_changelog.md
+changelog -f git > current_changelog.md
 changelog -u
 git commit -a -F current_changelog.md
 git push

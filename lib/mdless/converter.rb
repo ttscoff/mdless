@@ -45,7 +45,8 @@ module CLIMarkdown
         default(:local_images, false)
         default(:remote_images, false)
         opts.on('-i', '--images=TYPE',
-                'Include [local|remote (both)|none] images in output (requires chafa or imgcat, default none).') do |type|
+                'Include [local|remote (both)|none] images in output'\
+                ' (requires chafa or imgcat, default none).') do |type|
           if exec_available('imgcat') || exec_available('chafa')
             case type
             when /^(r|b|a)/i
@@ -62,7 +63,8 @@ module CLIMarkdown
           end
         end
 
-        opts.on('-I', '--all-images', 'Include local and remote images in output (requires imgcat or chafa)') do
+        opts.on('-I', '--all-images', 'Include local and remote images in output'\
+               ' (requires imgcat or chafa)') do
           if exec_available('imgcat') || exec_available('chafa') # && ENV['TERM_PROGRAM'] == 'iTerm.app'
             MDLess.options[:local_images] = true
             MDLess.options[:remote_images] = true
@@ -114,19 +116,24 @@ module CLIMarkdown
           exit
         end
 
-        default(:width, TTY::Screen.cols)
-        opts.on('-w', '--width=COLUMNS', 'Column width to format for (default: terminal width)') do |columns|
-          MDLess.options[:width] = columns.to_i
+        default(:width, 0)
+        opts.on('-w', '--width=COLUMNS', 'Column width to format for (default: 0 -> terminal width)') do |columns|
+          columns = columns.to_i
           cols = TTY::Screen.cols
-          MDLess.options[:width] = cols if MDLess.options[:width] > cols
+          MDLess.cols = columns > 2 ? columns - 2 : cols
+
+          MDLess.options[:width] = columns > cols ? cols - 2 : columns - 2
         end
+
+        MDLess.cols = MDLess.options[:width]
+        MDLess.cols = TTY::Screen.cols - 2 if MDLess.cols.zero?
 
         default(:autolink, true)
         opts.on('--[no-]autolink', 'Convert bare URLs and emails to <links>') do |p|
           MDLess.options[:autolink] = p
         end
 
-        opts.on('--config', "Open the config file in #{ENV['EDITOR'] || 'default editor'}") do
+        opts.on('--config', "Open the config file in default editor") do
           raise 'No $EDITOR defined' unless ENV['EDITOR']
 
           `#{ENV['EDITOR']} '#{File.expand_path('~/.config/mdless/config.yml')}'`
@@ -138,8 +145,8 @@ module CLIMarkdown
           Process.exit 0
         end
 
-        opts.on('--edit-theme', ["Open the default or specified theme file in #{ENV['EDITOR'] || 'default editor'}. ",
-                                 "If theme doesn't exist, a new theme file will be populated and opened."].join) do
+        opts.on('--edit-theme', 'Open the default/specified theme in default editor, '\
+                                'populating a new theme if needed. Use after --theme in the command.') do
           raise 'No $EDITOR defined' unless ENV['EDITOR']
 
           theme = MDLess.options[:theme] =~ /default/ ? 'mdless' : MDLess.options[:theme]
@@ -150,7 +157,7 @@ module CLIMarkdown
         end
 
         default(:inline_footnotes, false)
-        opts.on('--[no-]inline_footnotes',
+        opts.on('--[no-]inline-footnotes',
                 'Display footnotes immediately after the paragraph that references them') do |p|
           MDLess.options[:inline_footnotes] = p
         end
@@ -167,8 +174,8 @@ module CLIMarkdown
 
         default(:links, :inline)
         opts.on('--links=FORMAT',
-                'Link style ([inline, reference, paragraph], default inline,
-                "paragraph" will position reference links after each paragraph)') do |fmt|
+                'Link style ([*inline, reference, paragraph],'\
+                ' "paragraph" will position reference links after each paragraph)') do |fmt|
           MDLess.options[:links] = case fmt
                              when /^:?r/i
                                :reference
@@ -184,36 +191,47 @@ module CLIMarkdown
           MDLess.options[:preserve_linebreaks] = opt
         end
 
+        default(:mmd_metadata, true)
+        opts.on('--[no-]metadata', 'Replace [%key] with values from metadata') do |opt|
+          MDLess.options[:mmd_metadata] = opt
+        end
+
         default(:syntax_higlight, false)
         opts.on('--[no-]syntax', 'Syntax highlight code blocks') do |opt|
           MDLess.options[:syntax_higlight] = opt
         end
 
         MDLess.options[:taskpaper] = if MDLess.options[:taskpaper]
-                                 case MDLess.options[:taskpaper].to_s
-                                 when /^[ty1]/
-                                   true
-                                 when /^a/
-                                   :auto
-                                 else
-                                   false
-                                 end
-                               else
-                                 false
-                               end
+                                       case MDLess.options[:taskpaper].to_s
+                                       when /^[ty1]/
+                                         true
+                                       when /^a/
+                                         :auto
+                                       else
+                                         false
+                                       end
+                                     else
+                                       false
+                                     end
         opts.on('--taskpaper=OPTION', 'Highlight TaskPaper format (true|false|auto)') do |tp|
           MDLess.options[:taskpaper] = case tp
-                                 when /^[ty1]/
-                                   true
-                                 when /^a/
-                                   :auto
-                                 else
-                                   false
-                                 end
+                                       when /^[ty1]/
+                                         true
+                                       when /^a/
+                                         :auto
+                                       else
+                                         false
+                                       end
+        end
+
+        default(:transclude, true)
+        opts.on('--[no-]transclude', 'Transclude documents with {{filename}} syntax') do |opt|
+          MDLess.options[:transclude] = opt
         end
 
         default(:update_config, false)
-        opts.on('--update-config', '--update_config', 'Update the configuration file with new keys and current command line options') do
+        opts.on('--update-config', '--update_config',
+                'Update the configuration file with new keys and current command line options') do
           MDLess.options[:update_config] = true
         end
 
@@ -254,13 +272,12 @@ module CLIMarkdown
           opts.delete(:section)
           opts.delete(:update_config)
           opts.delete(:update_theme)
+          opts[:width] = 0
           opts = opts.keys.map(&:to_s).sort.map { |k| [k.to_sym, opts[k.to_sym]] }.to_h
           f.puts YAML.dump(opts)
           warn "Config file saved to #{config}"
         end
       end
-
-      MDLess.cols = MDLess.options[:width] - 2
 
       @output = ''
       @headers = []
