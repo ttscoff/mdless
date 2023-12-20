@@ -828,10 +828,15 @@ module Redcarpet
         end
       end
 
+      def fix_image_attributes(input)
+        input.gsub(/^( {0,3}\[.*?\]: *\S+) +([^"].*?)$/, '\1')
+      end
+
       def preprocess(input)
         input = color_meta(input)
         input = mmd_transclude(input) if MDLess.options[:transclude]
         input = mmd_metadata_replace(input) if MDLess.options[:mmd_metadata]
+        input = fix_image_attributes(input)
 
         replaced_input = input.clone
         ## Replace setex headers with ATX
