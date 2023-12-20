@@ -806,6 +806,8 @@ module Redcarpet
       end
 
       def mmd_transclude(input)
+        return input unless MDLess.file || MDLess.meta.key?('transcludebase')
+
         input.gsub(/^{{(.*?)}}/) do |m|
           filename = Regexp.last_match(1).strip
           file = if MDLess.meta.key?('transcludebase')
