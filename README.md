@@ -264,4 +264,11 @@ end
 
 Note that if you do this, and you need uncolored output to pipe somewhere, you'll need to use `command cat FILE` to revert to the built-in `cat`. Otherwise your text will be full of the escape codes that `mdless` uses to colorize the output.
 
+## Similar Projects
+
+There are a few great options for Markdown viewing in the Terminal. If `mdless` doesn't do it for you, check out:
+
+- [Glow](https://github.com/charmbracelet/glow)
+- [Frogmouth](https://github.com/Textualize/frogmouth)
+
 <!--END README-->
