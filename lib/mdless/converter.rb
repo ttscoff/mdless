@@ -280,7 +280,6 @@ module CLIMarkdown
       end
 
       @output = ''
-      @headers = []
       @setheaders = []
 
       input = ''
@@ -304,13 +303,14 @@ module CLIMarkdown
                                          tables: true,
                                          underline: false)
 
-      spinner = TTY::Spinner.new("[:spinner] Processing ...", format: :dots_3, clear: true)
-
       if !args.empty?
         files = args.delete_if { |f| !File.exist?(f) }
+        @multifile = files.count > 1
         files.each do |file|
+          spinner = TTY::Spinner.new("[:spinner] Processing #{File.basename(file)}...", format: :dots_3, clear: true)
           spinner.run do |spinner|
             MDLess.log.info(%(Processing "#{file}"))
+            @output << "#{c(%i[b green])}[#{c(%i[b white])}#{file}#{c(%i[b green])}]#{xc}\n\n" if @multifile
             MDLess.file = file
 
             begin
@@ -322,7 +322,7 @@ module CLIMarkdown
 
             input.scrub!
             input.gsub!(/\r?\n/, "\n")
-
+            @headers = headers(input)
             if MDLess.options[:taskpaper] == :auto
               MDLess.options[:taskpaper] = if CLIMarkdown::TaskPaper.is_taskpaper?(input)
                                              MDLess.log.info('TaskPaper detected')
@@ -333,26 +333,26 @@ module CLIMarkdown
             end
 
             if MDLess.options[:list]
-              if MDLess.options[:taskpaper]
-                puts CLIMarkdown::TaskPaper.list_projects(input)
-              else
-                puts list_headers(input)
-              end
-              Process.exit 0
+              @output << if MDLess.options[:taskpaper]
+                           CLIMarkdown::TaskPaper.list_projects(input)
+                         else
+                           list_headers(input)
+                         end
+            elsif MDLess.options[:taskpaper]
+              input = input.color_meta(MDLess.cols)
+              input = CLIMarkdown::TaskPaper.highlight(input)
+              @output << input.highlight_tags
             else
-              if MDLess.options[:taskpaper]
-                input = input.color_meta(MDLess.cols)
-                input = CLIMarkdown::TaskPaper.highlight(input)
-                @output = input.highlight_tags
-              else
-                @output = markdown.render(input)
-              end
+              @output << markdown.render(input)
             end
+            @output << "\n\n"
           end
         end
+
         printout
       elsif !$stdin.isatty
         MDLess.log.info(%(Processing STDIN))
+        spinner = TTY::Spinner.new("[:spinner] Processing ...", format: :dots_3, clear: true)
         spinner.run do |spinner|
           MDLess.file = nil
           input = $stdin.read.scrub
@@ -366,6 +366,7 @@ module CLIMarkdown
                                            false
                                          end
           end
+          @headers = headers(input)
 
           if MDLess.options[:list]
             if MDLess.options[:taskpaper]
@@ -417,34 +418,32 @@ module CLIMarkdown
       end
     end
 
-    def get_headers(string)
-      unless @headers && !@headers.empty?
-        @headers = []
-        input = string.sub(/(?i-m)^---[ \t]*\n([\s\S]*?)\n[-.]{3}[ \t]*\n/m, '')
-        headers = input.scan(/^((?!#!)(\#{1,6})\s*([^#]+?)(?: #+)?\s*|(\S.+)\n([=-]+))$/i)
+    def headers(string)
+      hs = []
+      input = string.remove_meta
+      doc_headers = input.scan(/^((?!#!)(\#{1,6})\s*([^#]+?)(?: #+)?\s*|(\S.+)\n([=-]+))$/i)
 
-        headers.each do |h|
-          hlevel = 6
-          title = nil
-          if h[4] =~ /=+/
-            hlevel = 1
-            title = h[3]
-          elsif h[4] =~ /-+/
-            hlevel = 2
-            title = h[3]
-          else
-            hlevel = h[1].length
-            title = h[2]
-          end
-          @headers << [
-            '#' * hlevel,
-            title,
-            h[0]
-          ]
+      doc_headers.each do |h|
+        hlevel = 6
+        title = nil
+        if h[4] =~ /=+/
+          hlevel = 1
+          title = h[3]
+        elsif h[4] =~ /-+/
+          hlevel = 2
+          title = h[3]
+        else
+          hlevel = h[1].length
+          title = h[2]
         end
+        hs << [
+          '#' * hlevel,
+          title,
+          h[0]
+        ]
       end
 
-      @headers
+      hs
     end
 
     def list_headers(input)
@@ -455,7 +454,6 @@ module CLIMarkdown
         new_level.positive? ? '#' * new_level : ''
       end
 
-      @headers = get_headers(input)
       last_level = 0
       headers_out = []
       len = (@headers.count + 1).to_s.length
@@ -479,16 +477,16 @@ module CLIMarkdown
                  else
                    '  '
                  end
-        headers_out.push format("%<d>#{len}d: %<s>s",
+        headers_out.push format("%<c>s%<d>#{len}d: %<s>s",
+                                c: c(%i[magenta]),
                                 d: idx + 1,
                                 s: "#{c(%i[x black])}#{'.' * level}#{c(%i[x yellow])}#{subdoc}#{title.strip}#{xc}")
       end
 
-      headers_out.join("\n")
+      headers_out.join("\n#{xc}")
     end
 
     def highest_header(input)
-      @headers = get_headers(input)
       top = 6
       @headers.each { |h| top = h[0].length if h[0].length < top }
       top
@@ -564,7 +562,7 @@ module CLIMarkdown
         IO.select [input]
 
         pager = which_pager
-        MDLess.log.info("Using #{pager} as pager")
+        MDLess.log.info("Using `#{pager.join(' ')}` as pager")
         begin
           exec(pager.join(' '))
         rescue SystemCallError => e
@@ -614,7 +612,7 @@ module CLIMarkdown
 
     def which_pager
       # pagers = [ENV['PAGER'], ENV['GIT_PAGER']]
-      pagers = [ENV['PAGER']]
+      pagers = ENV['PAGER'] ? [ENV['PAGER']] : []
 
       # if exec_available('git')
       #   git_pager = `git config --get-all core.pager || true`.split.first
@@ -623,29 +621,28 @@ module CLIMarkdown
 
       pagers.concat(['less', 'more', 'cat', 'pager'])
 
+      pagers.delete_if { |pg| !TTY::Which.exist?(pg) }
+
       pagers.select! do |f|
-        if f
-          if f.strip =~ /[ |]/
-            f
-          elsif f == 'most'
-            MDLess.log.warn('most not allowed as pager')
-            false
-          else
-            system "which #{f}", out: File::NULL, err: File::NULL
-          end
-        else
+        pg = f.split(/[ ]/)[0]
+        return false unless pg
+
+        if pg == 'most'
+          MDLess.log.warn('most not allowed as pager')
           false
+        else
+          TTY::Which.which(pg)
         end
       end
 
       pg = pagers.first
       args = case pg
              # when 'delta'
-             #   ' --pager="less -Xr"'
+             #   ' --pager="less -FXr"'
              when 'less'
-               ' -Xr'
+               '-FXr'
              # when 'bat'
-             #   ' -p --pager="less -Xr"'
+             #   ' -p --pager="less -FXr"'
              else
                ''
              end
@@ -654,10 +651,10 @@ module CLIMarkdown
     end
 
     def exec_available(cli)
-      if File.exist?(File.expand_path(cli))
-        File.executable?(File.expand_path(cli))
+      if TTY::Which.exist?(cli)
+        TTY::Which.which(cli)
       else
-        system "which #{cli}", out: File::NULL, err: File::NULL
+        false
       end
     end
   end
