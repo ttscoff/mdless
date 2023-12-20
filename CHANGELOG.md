@@ -2,6 +2,9 @@
 
 2.1.32
 
+2.1.35
+: Ruby 2.7 error (again)
+
 2.1.30
 : Error when $EDITOR is not defined
 
