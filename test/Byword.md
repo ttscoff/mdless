@@ -111,8 +111,10 @@ In the vast majority of times, you will be using Markdown for its *raison d'Ãª
 
 [img-export]: img/export.png "Export options"
 
-* Copy the HTML output directly to your clipboard -- so you can conveniently paste it into your favorite HTML editor[^fn-export];
+* Copy the HTML output directly to[^test] your clipboard -- so you can conveniently paste it into your favorite HTML editor[^fn-export];
 * Export to a file.
+
+[^test]: This is a little test.
 
 [^fn-export]: When copying to clipboard, **Byword** will only place the equivalent of the `body` tag contents. On the other hand, when exporting to a file, a complete HTML file will be generated.
 

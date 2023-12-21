@@ -832,7 +832,7 @@ module Redcarpet
       end
 
       def fix_image_attributes(input)
-        input.gsub(/^( {0,3}\[.*?\]: *\S+) +([^"].*?)$/, '\1')
+        input.gsub(/^( {0,3}\[[^^].*?\]: *\S+) +([^"].*?)$/, '\1')
       end
 
       def preprocess(input)
