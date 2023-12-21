@@ -611,7 +611,7 @@ module Redcarpet
 
         lines = input.split(/\n/)
         line1 = lines.shift
-        pre = spaces + (" " * (indent + 1))
+        pre = spaces + "  "
 
         body = lines.map { |l| "#{pre}#{l.rstrip}" }.join("\n")
         "#{line1}\n#{body}"
@@ -659,12 +659,13 @@ module Redcarpet
       def nest_lists(input, indent = 0)
         input.gsub!(%r{<<list(?<id>\d+)-(?<type>.*?)>>(?<content>.*?)<</list\k<id>>>}m) do
           m = Regexp.last_match
-          lines = m['content'].split(/\n/)
+          lines = m['content'].strip.split(/\n/)
+
           list = nest_lists(lines.map do |l|
             outdent = l.scan(%r{<</list\d+>>}).count
             indent += l.scan(/<<list\d+-.*?>>/).count
             indent -= outdent
-            "#{' ' * indent}#{l}"
+            " #{l}"
           end.join("\n"), indent)
           next if list.nil?
 
@@ -686,7 +687,7 @@ module Redcarpet
       def fix_items(content, last_indent = 0, levels = [0])
         content.gsub(%r{^(?<indent> *)<<listitem(?<id>\d+)-(?<type>(?:un)?ordered)>>(?<content>.*?)<</listitem\k<id>>>}m) do
           m = Regexp.last_match
-          indent = m['indent'].length
+          indent = 0
           if indent == last_indent
             levels[indent] ||= 0
             levels[indent] += 1
