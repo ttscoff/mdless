@@ -582,7 +582,7 @@ module Redcarpet
           notes = line.to_enum(:scan, /\[\^(?<ref>\d+)\]/).map { Regexp.last_match }
           if notes.count.positive?
             footnotes = notes.map { |n| color_footnote_def(n['ref'].to_i) }.join("\n")
-            "#{line}\n\n#{footnotes}\n\n"
+            "#{line}\n\n#{footnotes}\n\n\n"
           else
             line
           end
@@ -604,14 +604,12 @@ module Redcarpet
         end
       end
 
-      def indent_lines(input, spaces)
+      def indent_lines(input)
         return nil if input.nil?
-
-        indent = spaces.scan(/ /).count
 
         lines = input.split(/\n/)
         line1 = lines.shift
-        pre = spaces + "  "
+        pre = ' '
 
         body = lines.map { |l| "#{pre}#{l.rstrip}" }.join("\n")
         "#{line1}\n#{body}"
@@ -621,21 +619,21 @@ module Redcarpet
         out = case type
               when :unordered
                 [
-                  indent,
+                  ' ' * indent,
                   color('list bullet'),
                   MDLess.theme['list']['ul_char'].strip,
                   ' ',
                   color('list color'),
-                  indent_lines(content, indent).strip,
+                  indent_lines(content).strip,
                   xc
                 ].join
               when :ordered
                 [
-                  indent,
+                  ' ' * indent,
                   color('list number'),
                   "#{counter}. ",
                   color('list color'),
-                  indent_lines(content, indent).strip,
+                  indent_lines(content).strip,
                   xc
                 ].join
               end
@@ -687,21 +685,24 @@ module Redcarpet
       def fix_items(content, last_indent = 0, levels = [0])
         content.gsub(%r{^(?<indent> *)<<listitem(?<id>\d+)-(?<type>(?:un)?ordered)>>(?<content>.*?)<</listitem\k<id>>>}m) do
           m = Regexp.last_match
-          indent = 0
-          if indent == last_indent
-            levels[indent] ||= 0
-            levels[indent] += 1
-          elsif indent < last_indent
-            levels[last_indent] = 0
-            levels[indent] += 1
-            last_indent = indent
-          else
-            levels[indent] = 1
-            last_indent = indent
+
+          indent = m['indent'].length
+          if m['type'].to_sym == :ordered
+            if indent == last_indent
+              levels[indent] ||= 0
+              levels[indent] += 1
+            elsif indent < last_indent
+              levels[last_indent] = 0
+              levels[indent] += 1
+              last_indent = indent
+            else
+              levels[indent] = 1
+              last_indent = indent
+            end
           end
 
           content = m['content'] =~/<<listitem/ ? fix_items(m['content'], indent, levels) : m['content']
-          color_list_item(" " * indent, uncolor_grafs(content), m['type'].to_sym, levels[indent])
+          color_list_item(indent, uncolor_grafs(content), m['type'].to_sym, levels[indent])
         end
       end
 
@@ -832,7 +833,7 @@ module Redcarpet
       end
 
       def fix_image_attributes(input)
-        input.gsub(/^( {0,3}\[[^^].*?\]: *\S+) +([^"].*?)$/, '\1')
+        input.gsub(/^( {0,3}\[[^^*>].*?\]: *\S+) +([^"].*?)$/, '\1')
       end
 
       def preprocess(input)

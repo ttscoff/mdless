@@ -584,13 +584,17 @@ module CLIMarkdown
     end
 
     def printout
-      if MDLess.options[:taskpaper]
-        out = @output
-      else
-        out = @output.rstrip.split(/\n/).map do |p|
-          p.wrap(MDLess.cols, color('text'))
-        end.join("\n")
-      end
+      out = @output
+
+      # out = if MDLess.options[:taskpaper]
+      #         @output
+      #       else
+      #         # TODO: Figure out a word wrap that accounts for indentation
+      #         @output
+      #         # out = @output.rstrip.split(/\n/).map do |p|
+      #         #   p.wrap(MDLess.cols, color('text'))
+      #         # end.join("\n")
+      #       end
 
       unless out.size&.positive?
         MDLess.log.warn 'No results'
