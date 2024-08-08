@@ -1001,7 +1001,7 @@ module Redcarpet
                 tmp_img = File.basename(img_path)
                 img = `chafa #{term} "#{tmp_img}"`
                 pre = alt_text ? "    #{c(%i[d blue])}[#{alt_text.strip}]\n" : ''
-                post = title ? "\n    #{c(%i[b blue])}-- #{tail} --" : ''
+                post = title ? "\n    #{c(%i[b blue])}-- #{title} --" : ''
                 result = pre + img + post
                 Dir.chdir('..')
                 FileUtils.rm_r '.mdless_tmp', force: true
