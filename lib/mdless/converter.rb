@@ -518,7 +518,6 @@ module CLIMarkdown
       links = {}
       counter = 1
       input.gsub!(/(?<=\])\((.*?)\)(#{CLIMarkdown::MDTableCleanup::PAD_CHAR}*)/) do
-        pp "***#{CLIMarkdown::MDTableCleanup::PAD_CHAR}***"
         links[counter] = Regexp.last_match(1).uncolor
         space = Regexp.last_match(2)
         "[#{counter}]#{space}"
