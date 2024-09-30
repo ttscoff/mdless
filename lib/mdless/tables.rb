@@ -14,7 +14,7 @@ module CLIMarkdown
       rows = @string.split(/\r?\n/)
       rows.each do |row|
         row.strip!
-        row.sub!(/^\s*\|?/,'').sub!(/\|?\s*$/,'')
+        row.sub!(/^\s*\|?/, "").sub!(/\|?\s*$/, "")
         row_array = row.split(/\|/)
         row_array.map! { |cell| cell.strip }
         if row =~ /^[\|:\- ]+$/
@@ -28,13 +28,13 @@ module CLIMarkdown
       fmt.each_with_index do |cell, i|
         cell.strip!
         f = case cell
-        when /^:.*?:$/
-          :center
-        when /[^:]+:$/
-          :right
-        else
-          :just
-        end
+          when /^:.*?:$/
+            :center
+          when /[^:]+:$/
+            :right
+          else
+            :just
+          end
         @format_row.push(f)
       end
 
@@ -81,20 +81,21 @@ module CLIMarkdown
     end
 
     def pad(string, alignment, length)
+      naked = string.uncolor.remove_pre_post.strip
       case alignment
       when :center
-        string.strip.center(length, PAD_CHAR)
+        naked.strip.center(length, PAD_CHAR).sub(/#{Regexp.escape(naked)}/, string)
       when :right
-        string.strip.rjust(length, PAD_CHAR)
+        naked.strip.rjust(length, PAD_CHAR).sub(/#{Regexp.escape(naked)}/, string)
       when :left
-        string.strip.ljust(length, PAD_CHAR)
+        naked.strip.ljust(length, PAD_CHAR).sub(/#{Regexp.escape(naked)}/, string)
       else
-        string.strip.ljust(length, PAD_CHAR)
+        naked.strip.ljust(length, PAD_CHAR).sub(/#{Regexp.escape(naked)}/, string)
       end
     end
 
     def separator(length, alignment)
-      out = ''.ljust(length, '-')
+      out = "".ljust(length, "-")
       case alignment
       when :left
         ":#{out}-"
@@ -112,7 +113,7 @@ module CLIMarkdown
       @format_row.each_with_index do |column, i|
         output.push separator(column_width(i), column)
       end
-      "|#{output.join('|')}|"
+      "|#{output.join("|")}|"
     end
 
     def table_border
@@ -120,14 +121,14 @@ module CLIMarkdown
       @format_row.each_with_index do |column, i|
         output.push separator(column_width(i), column)
       end
-      "+#{output.join('+').gsub(/:/,'-')}+"
+      "+#{output.join("+").gsub(/:/, "-")}+"
     end
 
     def to_md
       output = []
       t = table.clone
       t.each do |row|
-        new_row = row.map.with_index { |cell, i| pad(cell, @format_row[i], column_width(i)) }.join(' | ')
+        new_row = row.map.with_index { |cell, i| pad(cell, @format_row[i], column_width(i)) }.join(" | ")
         output.push("| #{new_row} |")
       end
       output.insert(1, header_separator_row)
