@@ -1,3 +1,6 @@
+2.1.46
+: Fix for table cells containing links
+
 2.1.35
 : Ruby 2.7 error (again)
 
