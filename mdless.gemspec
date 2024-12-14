@@ -1,5 +1,5 @@
 # Ensure we require the local version and not one we might have installed already
-require File.join([File.dirname(__FILE__), 'lib', 'mdless', 'version.rb'])
+require './lib/mdless/version.rb'
 spec = Gem::Specification.new do |s|
   s.name = 'mdless'
   s.version = CLIMarkdown::VERSION
