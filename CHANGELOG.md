@@ -1,3 +1,6 @@
+2.1.50
+: YAML load errors in Ruby 3.3
+
 2.1.49
 : YAML load errors in Ruby 3.32.1.46
 : Fix for table cells containing links
