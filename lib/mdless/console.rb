@@ -754,7 +754,7 @@ module Redcarpet
             m = Regexp.last_match
             MDLess.log.info("Processing YAML header")
             begin
-              MDLess.meta = YAML.load(m["content"]).each_with_object({}) { |(k, v), h| h[k.downcase] = v }
+              MDLess.meta = YAML.unsafe_load(m["content"]).each_with_object({}) { |(k, v), h| h[k.downcase] = v }
             rescue Psych::DisallowedClass => e
               @log.error("Error reading YAML header")
               @log.error(e)

@@ -1,5 +1,5 @@
 # Ensure we require the local version and not one we might have installed already
-require File.join([File.dirname(__FILE__),'lib','mdless','version.rb'])
+require File.join([File.dirname(__FILE__), 'lib', 'mdless', 'version.rb'])
 spec = Gem::Specification.new do |s|
   s.name = 'mdless'
   s.version = CLIMarkdown::VERSION
@@ -19,10 +19,11 @@ spec = Gem::Specification.new do |s|
   s.bindir = 'bin'
   s.executables << 'mdless'
   s.add_dependency 'redcarpet', '~> 3.6'
-  s.add_dependency 'tty-which', '~> 0.5'
+  s.add_dependency 'rouge', '~> 4.2'
   s.add_dependency 'tty-screen', '~> 0.8'
   s.add_dependency 'tty-spinner', '~> 0.8'
-  s.add_dependency 'rouge', '~> 4.2'
+  s.add_dependency 'tty-which', '~> 0.5'
   s.add_development_dependency 'rake', '~> 13'
-  s.add_development_dependency 'rdoc', '>= 6.3.1'
+  s.add_development_dependency 'rdoc', '>= 6.6.2'
+  s.add_development_dependency 'rubocop', '~> 0.49'
 end
