@@ -24,7 +24,7 @@ module Redcarpet
       end
 
       def xc
-        x + color('text')
+        x + color("text")
       end
 
       def x
