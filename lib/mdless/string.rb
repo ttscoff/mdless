@@ -18,14 +18,14 @@ class ::String
     if MDLess.theme.key?(keys[0])
       val = MDLess.theme[keys.shift]
     else
-      MDLess.log.error("Invalid theme key: #{key}") unless keys[0] =~ /^text/
+      MDLess.log.error("Invalid theme key!: #{key}") unless keys[0] =~ /^text/
       return c([:reset])
     end
     keys.each do |k|
       if val.key?(k)
         val = val[k]
       else
-        MDLess.log.error("Invalid theme key: #{k}")
+        MDLess.log.error("Invalid theme key@: #{k}")
         return c([:reset])
       end
     end

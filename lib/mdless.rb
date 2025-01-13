@@ -22,7 +22,7 @@ require_relative 'mdless/tables'
 require_relative 'mdless/taskpaper'
 require_relative 'mdless/version'
 require_relative 'mdless/console'
-
+require_relative 'mdless/emoji'
 module CLIMarkdown
   EXECUTABLE_NAME = 'mdless'
 end

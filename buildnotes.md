@@ -27,3 +27,6 @@ Terminal Markdown
 @run(./pushgem.fish)
 @include(Update Blog Project)
 
+## Strike
+
+Testing ~~STRIKE~~

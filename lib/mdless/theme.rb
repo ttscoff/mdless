@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 module CLIMarkdown
   module Theme
     THEME_DEFAULTS = {
@@ -105,6 +106,7 @@ module CLIMarkdown
         'equation' => 'b blue'
       },
       'super' => 'b green',
+      'deletion' => 'strikethrough red',
       'text' => 'white',
       'at_tags' => {
         'tag' => 'magenta',
@@ -116,7 +118,7 @@ module CLIMarkdown
         'task' => 'white',
         'note' => 'd white'
       }
-    }
+    }.freeze
 
     def load_theme_file(theme_file)
       raise "Theme #{theme_file} doesn't exist" unless File.exist?(theme_file)
