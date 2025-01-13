@@ -24,7 +24,7 @@ module Redcarpet
       end
 
       def xc
-        x + color("text")
+        x + color('text')
       end
 
       def x
@@ -899,7 +899,7 @@ module Redcarpet
         end
 
         # emojis
-        input.gsub!(/(?<=\s|\A):(?<emoji>[\w-]+):/) do
+        input.gsub!(/(?<=\s|\A):(?<emoji>\S+):/) do
           m = Regexp.last_match
           emoji = CLIMarkdown::Emoji.convert_emoji(m['emoji'])
           "#{emoji}#{xc}"
