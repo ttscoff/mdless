@@ -149,7 +149,8 @@ module Redcarpet
         top_border = if language.nil? || language.empty?
                        '-' * longest_line
                      else
-                       "--[ #{language} ]#{'-' * (longest_line - 6 - language.length)}"
+                       len = (longest_line - 6 - language.length) > 0 ? longest_line - 6 - language.length : 0
+                       "--[ #{language} ]#{"-" * len}"
                      end
         [
           xc,
