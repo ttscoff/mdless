@@ -1,3 +1,6 @@
+2.1.58
+: Longest_element in mismatched code fences
+
 2.1.50
 : YAML load errors in Ruby 3.3
 
