@@ -6,7 +6,9 @@
 
 I often use iTerm2 in visor mode, so `qlmanage -p` is annoying. I still wanted a way to view Markdown files quickly and without cruft.
 
-<!--GITHUB-->![mdless screenshot](screenshots/mdless.png)<!--END GITHUB-->
+<!--GITHUB-->
+![mdless screenshot](screenshots/mdless.png)
+<!--END GITHUB-->
 <!--JEKYLL{% gif /uploads/2015/08/mdless.gif %}-->
 
 ## Features
