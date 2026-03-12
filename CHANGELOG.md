@@ -247,3 +247,5 @@
 
 2.1.63
 : Missing logger in Ruby 4.0.1, added to gemspec
+
+2.1.64
