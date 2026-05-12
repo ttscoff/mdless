@@ -59,15 +59,10 @@ module Redcarpet
       end
 
       def code_bg(input, width)
-        # NOTE: trailing reset is `xc` (\e[0;37m), not bare `x` (\e[0m).
-        # clean_escapes in converter.rb strips every bare \e[0m from the final
-        # output, so a bare-reset trailer would leak the code-block bg into the
-        # rest of the line (terminals with bce extend bg to the right edge).
-        # \e[0;37m embeds the same `0` reset parameter alongside a fg set, so
-        # it survives clean_escapes and still clears the bg before the newline.
+        pad_char = MDLess.options[:nbsp_padding] ? "\u00A0" : ' '
         input.split(/\n/).map do |line|
-          tail = line.uncolor.length < width ? "\u00A0" * (width - line.uncolor.length) : ''
-          "#{x}#{line}#{tail}#{xc}"
+          tail = line.uncolor.length < width ? pad_char * (width - line.uncolor.length) : ''
+          "#{x}#{line}#{tail}#{x}"
         end.join("\n")
       end
 
@@ -761,6 +756,7 @@ module Redcarpet
         input = text.dup
         input.clean_empty_lines!
         MDLess.meta = {}
+        pad_char = MDLess.options[:nbsp_padding] ? "\u00A0" : ' '
         first_line = input.split("\n").first
         if first_line =~ /(?i-m)^---[ \t]*?$/
           MDLess.log.info('Found YAML')
@@ -790,7 +786,7 @@ module Redcarpet
                 line = "#{color('metadata marker')}% #{color('metadata color')}#{line}"
               end
               if (longest - line.uncolor.strip.length).positive?
-                line += "\u00A0" * (longest - line.uncolor.strip.length)
+                line += pad_char * (longest - line.uncolor.strip.length)
               end
               line + xc
             end.join("\n") + "#{xc}\n"
@@ -816,7 +812,7 @@ module Redcarpet
               end
               line = "#{color('metadata marker')}%#{color('metadata color')}#{line}"
               if (longest - line.uncolor.strip.length).positive?
-                line += "\u00A0" * (longest - line.uncolor.strip.length)
+                line += pad_char * (longest - line.uncolor.strip.length)
               end
               line + xc
             end.join("\n") + "#{xc}\n"

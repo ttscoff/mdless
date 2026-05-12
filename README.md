@@ -82,6 +82,8 @@ The pager used is determined by system configuration in this order of preference
         --links=FORMAT               Link style ([inline, reference, paragraph], default inline,
                 "paragraph" will position reference links after each paragraph)
         --[no-]linebreaks            Preserve line breaks
+        --[no-]nbsp-padding          Pad code blocks and metadata headers with non-breaking spaces
+                                     (default on; disable for clipboard-safe yank+paste in tmux et al)
         --[no-]syntax                Syntax highlight code blocks
         --taskpaper=OPTION           Highlight TaskPaper format (true|false|auto)
         --update_config              Update the configuration file with new keys and current command line options
@@ -101,6 +103,7 @@ The first time mdless is run, a config file will be written to `~/.config/mdless
 :lax_spacing: true
 :links: :paragraph
 :local_images: true
+:nbsp_padding: true
 :pager: true
 :preserve_linebreaks: false
 :remote_images: false
@@ -119,6 +122,7 @@ The first time mdless is run, a config file will be written to `~/.config/mdless
 - `:lax_spacing` determines whether a blank line is required around HTML elements.
 - `:links` can be `inline`, `reference`, or `paragraph`. Paragraph puts reference links directly after the graf that refers to them.
 - `:local_images` determines whether local images are processed using `chafa` or `imgcat` (whichever is available). `:remote_images` does the same for images referenced with web urls. If `:remote_images` is true, then `:local_images` is automatically enabled.
+- `:nbsp_padding` controls the character used to right-pad fenced code blocks and metadata header lines out to a uniform block width. When `true` (the default, preserving historical behavior), padding is rendered with non-breaking spaces (U+00A0) so it survives `String#strip` and similar transforms. Set to `false` to use regular ASCII spaces instead, which makes terminal selections (e.g. tmux `shift+v`) yank a shell-safe string — non-breaking spaces are not treated as whitespace by most shells and otherwise get glued to the last argument of a pasted command.
 - `:pager` turns on or off pagination using `less` or closest available substitute.
 - `:preserve_linebreaks` determines whether hard breaks within paragraphs are preserved. When converting to HTML, most Markdown processors will cause consecutive lines to be merged together, which is the default behavior for `mdless`. Turning this option on will cause lines to remain hard wrapped.
 - `:syntax_highlight` will turn on/off syntax highlighting of code blocks (requires Pygments)

@@ -57,6 +57,7 @@ class ::String
     input = dup
     input.clean_empty_lines!
     MDLess.meta = {}
+    pad_char = MDLess.options[:nbsp_padding] ? "\u00A0" : ' '
 
     in_yaml = false
     first_line = input.split("\n").first
@@ -79,7 +80,7 @@ class ::String
             line = "#{color('metadata marker')}%#{color('metadata color')}#{line}#{xc}"
           end
 
-          line += "\u00A0" * (longest - line.uncolor.strip.length) if (longest - line.uncolor.strip.length).positive?
+          line += pad_char * (longest - line.uncolor.strip.length) if (longest - line.uncolor.strip.length).positive?
           line + xc
         end.join("\n") + "#{xc}\n"
       end
@@ -100,9 +101,9 @@ class ::String
           value = parts[2].strip
           MDLess.meta[key] = value
           line = "#{color('metadata color')}#{line}#{xc}"
-          line += "\u00A0" * (longest - line.uncolor.strip.length) if (longest - line.uncolor.strip.length).positive?
+          line += pad_char * (longest - line.uncolor.strip.length) if (longest - line.uncolor.strip.length).positive?
           line + xc
-        end.join("\n") + "#{"\u00A0" * longest}#{xc}\n"
+        end.join("\n") + "#{pad_char * longest}#{xc}\n"
       end
     end
 
