@@ -5,3 +5,4 @@ mdless.sublime-*
 Gemfile.lock
 vendor
 .tool-versions
+.devbox

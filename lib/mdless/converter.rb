@@ -196,6 +196,13 @@ module CLIMarkdown
           MDLess.options[:mmd_metadata] = opt
         end
 
+        default(:nbsp_padding, true)
+        opts.on("--[no-]nbsp-padding",
+                "Pad code blocks and metadata headers with non-breaking spaces" \
+                " (default true; disable for clipboard-safe yank+paste in terminal multiplexers)") do |opt|
+          MDLess.options[:nbsp_padding] = opt
+        end
+
         default(:syntax_higlight, false)
         opts.on("--[no-]syntax", "Syntax highlight code blocks") do |opt|
           MDLess.options[:syntax_higlight] = opt

@@ -59,8 +59,9 @@ module Redcarpet
       end
 
       def code_bg(input, width)
+        pad_char = MDLess.options[:nbsp_padding] ? "\u00A0" : ' '
         input.split(/\n/).map do |line|
-          tail = line.uncolor.length < width ? "\u00A0" * (width - line.uncolor.length) : ''
+          tail = line.uncolor.length < width ? pad_char * (width - line.uncolor.length) : ''
           "#{x}#{line}#{tail}#{x}"
         end.join("\n")
       end
@@ -744,6 +745,7 @@ module Redcarpet
         input = text.dup
         input.clean_empty_lines!
         MDLess.meta = {}
+        pad_char = MDLess.options[:nbsp_padding] ? "\u00A0" : ' '
         first_line = input.split("\n").first
         if first_line =~ /(?i-m)^---[ \t]*?$/
           MDLess.log.info('Found YAML')
@@ -773,7 +775,7 @@ module Redcarpet
                 line = "#{color('metadata marker')}% #{color('metadata color')}#{line}"
               end
               if (longest - line.uncolor.strip.length).positive?
-                line += "\u00A0" * (longest - line.uncolor.strip.length)
+                line += pad_char * (longest - line.uncolor.strip.length)
               end
               line + xc
             end.join("\n") + "#{xc}\n"
@@ -799,7 +801,7 @@ module Redcarpet
               end
               line = "#{color('metadata marker')}%#{color('metadata color')}#{line}"
               if (longest - line.uncolor.strip.length).positive?
-                line += "\u00A0" * (longest - line.uncolor.strip.length)
+                line += pad_char * (longest - line.uncolor.strip.length)
               end
               line + xc
             end.join("\n") + "#{xc}\n"
