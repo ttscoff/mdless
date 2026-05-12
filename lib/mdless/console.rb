@@ -123,19 +123,26 @@ module Redcarpet
                                        stdin_data: code_block)
 
             if s.success?
+              # NOTE: do NOT append xc/\n after blackout. blackout's `$` regex
+              # injects the bg-color escape at the end of every line; anything
+              # appended after that becomes part of the last line when code_bg
+              # later splits on \n, and a trailing xc there resets the bg so
+              # the last line's right-padding renders without the block bg.
+              # code_bg now emits its own per-line xc trailer instead.
               hilite = xc + hilite.split(/\n/).map do |l|
                 [
                   color('code_block marker'),
                   MDLess.theme['code_block']['character'],
                   "#{color('code_block bg')}#{l}#{xc}"
                 ].join
-              end.join("\n").blackout(MDLess.theme['code_block']['bg']) + "#{xc}\n"
+              end.join("\n").blackout(MDLess.theme['code_block']['bg'])
             end
           rescue StandardError => e
             MDLess.log.error(e)
             hilite = code_block
           end
         else
+          # See note above re: dropping the trailing xc/\n.
           hilite = code_block.split(/\n/).map do |line|
             [
               color('code_block marker'),
@@ -144,7 +151,7 @@ module Redcarpet
               line,
               xc
             ].join
-          end.join("\n").blackout(MDLess.theme['code_block']['bg']) + "#{xc}\n"
+          end.join("\n").blackout(MDLess.theme['code_block']['bg'])
         end
 
         top_border = if language.nil? || language.empty?
@@ -196,7 +203,11 @@ module Redcarpet
       end
 
       def block_code(code, language)
-        "\n\n#{hilite_code(code, language)}#{xc}\n\n"
+        # Wrap in <<codeblock>>...<</codeblock>> markers so postprocess can
+        # skip the backslash-escape strip inside code-block content (per the
+        # CommonMark spec, backslash-escapes do not apply inside code blocks).
+        # The markers are removed in postprocess after the strip pass.
+        "\n\n<<codeblock>>#{hilite_code(code, language)}#{xc}<</codeblock>>\n\n"
       end
 
       def block_quote(quote)
@@ -1146,8 +1157,19 @@ module Redcarpet
           end.join("\n")
           input = "#{input}\n\n#{footnotes}"
         end
-        # escaped characters
-        input.gsub!(/\\(\S)/, '\1')
+        # Escaped characters: strip backslash-escapes per CommonMark spec
+        # (https://spec.commonmark.org/0.31.2/#backslash-escapes), but only
+        # for the ASCII punctuation set the spec actually recognizes, and
+        # only on non-code-block content. block_code wraps its output in
+        # <<codeblock>>...<</codeblock>> markers so we can isolate those
+        # regions here. The previous `\\(\S)` form ate every backslash-
+        # followed-by-non-space, including `\n \t \s \S \d \w \1 \2 ...`
+        # inside code blocks, which shifted padding-aligned right edges
+        # left by N chars per stripped backslash.
+        input = input.split(%r{(<<codeblock>>.*?<</codeblock>>)}m).map.with_index do |seg, i|
+          i.odd? ? seg : seg.gsub(/\\([!"\#$%&'()*+,\-.\/:;<=>?@\[\\\]^_`{|}~])/, '\1')
+        end.join
+        input.gsub!(%r{<</?codeblock>>}, '')
         # equations
         input = fix_equations(input)
         # misc html
