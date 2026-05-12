@@ -59,9 +59,15 @@ module Redcarpet
       end
 
       def code_bg(input, width)
+        # NOTE: trailing reset is `xc` (\e[0;37m), not bare `x` (\e[0m).
+        # clean_escapes in converter.rb strips every bare \e[0m from the final
+        # output, so a bare-reset trailer would leak the code-block bg into the
+        # rest of the line (terminals with bce extend bg to the right edge).
+        # \e[0;37m embeds the same `0` reset parameter alongside a fg set, so
+        # it survives clean_escapes and still clears the bg before the newline.
         input.split(/\n/).map do |line|
           tail = line.uncolor.length < width ? "\u00A0" * (width - line.uncolor.length) : ''
-          "#{x}#{line}#{tail}#{x}"
+          "#{x}#{line}#{tail}#{xc}"
         end.join("\n")
       end
 
@@ -122,19 +128,26 @@ module Redcarpet
                                        stdin_data: code_block)
 
             if s.success?
+              # NOTE: do NOT append xc/\n after blackout. blackout's `$` regex
+              # injects the bg-color escape at the end of every line; anything
+              # appended after that becomes part of the last line when code_bg
+              # later splits on \n, and a trailing xc there resets the bg so
+              # the last line's right-padding renders without the block bg.
+              # code_bg now emits its own per-line xc trailer instead.
               hilite = xc + hilite.split(/\n/).map do |l|
                 [
                   color('code_block marker'),
                   MDLess.theme['code_block']['character'],
                   "#{color('code_block bg')}#{l}#{xc}"
                 ].join
-              end.join("\n").blackout(MDLess.theme['code_block']['bg']) + "#{xc}\n"
+              end.join("\n").blackout(MDLess.theme['code_block']['bg'])
             end
           rescue StandardError => e
             MDLess.log.error(e)
             hilite = code_block
           end
         else
+          # See note above re: dropping the trailing xc/\n.
           hilite = code_block.split(/\n/).map do |line|
             [
               color('code_block marker'),
@@ -143,7 +156,7 @@ module Redcarpet
               line,
               xc
             ].join
-          end.join("\n").blackout(MDLess.theme['code_block']['bg']) + "#{xc}\n"
+          end.join("\n").blackout(MDLess.theme['code_block']['bg'])
         end
 
         top_border = if language.nil? || language.empty?
