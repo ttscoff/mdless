@@ -59,10 +59,16 @@ module Redcarpet
       end
 
       def code_bg(input, width)
+        # NOTE: trailing reset is `xc` (\e[0;37m), not bare `x` (\e[0m).
+        # clean_escapes in converter.rb strips every bare \e[0m from the final
+        # output, so a bare-reset trailer would leak the code-block bg into the
+        # rest of the line (terminals with bce extend bg to the right edge).
+        # \e[0;37m embeds the same `0` reset parameter alongside a fg set, so
+        # it survives clean_escapes and still clears the bg before the newline.
         pad_char = MDLess.options[:nbsp_padding] ? "\u00A0" : ' '
         input.split(/\n/).map do |line|
           tail = line.uncolor.length < width ? pad_char * (width - line.uncolor.length) : ''
-          "#{x}#{line}#{tail}#{x}"
+          "#{x}#{line}#{tail}#{xc}"
         end.join("\n")
       end
 
