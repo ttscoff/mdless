@@ -624,8 +624,8 @@ module CLIMarkdown
       out.uncolor! unless MDLess.options[:color]
 
       if MDLess.options[:pager]
+        at_exit { reset_terminal } if MDLess.options[:color]
         page(out)
-        reset_terminal
       else
         $stdout.print out.rstrip
       end
