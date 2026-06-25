@@ -556,6 +556,14 @@ module CLIMarkdown
       end.join("\n")
     end
 
+    def reset_terminal
+      return unless MDLess.options[:color]
+
+      # less -r leaves SGR attributes active on the terminal when the last
+      # visible line is colored; reset the real stdout after the pager exits.
+      $stdout.print "\e[0m"
+    end
+
     def page(text, &callback)
       read_io, write_io = IO.pipe
 
@@ -617,6 +625,7 @@ module CLIMarkdown
 
       if MDLess.options[:pager]
         page(out)
+        reset_terminal
       else
         $stdout.print out.rstrip
       end
