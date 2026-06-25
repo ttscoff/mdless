@@ -275,6 +275,8 @@ Note that if you do this, and you need uncolored output to pipe somewhere, you'l
 There are a few great options for Markdown viewing in the Terminal. If `mdless` doesn't do it for you, check out:
 
 - [Glow](https://github.com/charmbracelet/glow)
+- [mdcat](https://github.com/BIRSAx2/mdcat)
+- [Apex](https://github.com/ApexMarkdown/apex/wiki/Rendering-Markdown-In-Terminal)
 - [Frogmouth](https://github.com/Textualize/frogmouth)
 
 <!--END README-->
