@@ -1,3 +1,5 @@
+2.1.66
+
 2.1.65
 : add nbsp_padding flag to toggle Non breaking space characters as right-padding
 : for code blocks.
