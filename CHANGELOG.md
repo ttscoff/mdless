@@ -1,3 +1,6 @@
+2.1.68
+: Use at_exit so color reset still runs when the pager path exits early,
+
 2.1.66
 : Reset terminal colors after pager exits
 
