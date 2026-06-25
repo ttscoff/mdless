@@ -6,3 +6,4 @@ Gemfile.lock
 vendor
 .tool-versions
 .devbox
+current_changelog.md
