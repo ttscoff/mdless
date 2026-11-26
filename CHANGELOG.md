@@ -1,3 +1,6 @@
+2.1.70
+: **PAGER arguments:** `PAGER="less -R"` is now honored instead of being silently ignored, so it can open output in a separate buffer.
+
 2.1.68
 : Use at_exit so color reset still runs when the pager path exits early,
 

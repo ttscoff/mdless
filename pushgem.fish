@@ -1,4 +1,4 @@
-#!/usr/local/bin/fish
+#!/opt/homebrew/bin/fish
 
 set -l ver (rake bump[inc])
 changelog -f git >current_changelog.md
