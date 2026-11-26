@@ -58,6 +58,20 @@ module Redcarpet
         end
       end
 
+      # Pick the chafa output format for the current terminal.
+      # Kitty doesn't set TERM_PROGRAM, so check TERM and KITTY_PID first.
+      def chafa_format
+        term = ENV['TERM'].to_s
+        program = "#{ENV['TERM_PROGRAM']} #{ENV['TERMINAL_PROGRAM']}"
+        if ENV['KITTY_PID'] || term.include?('kitty') || program.match?(/kitty/i)
+          '-f kitty'
+        elsif program.match?(/iterm/i)
+          '-f iterm'
+        else
+          '-f sixels'
+        end
+      end
+
       def code_bg(input, width)
         # NOTE: trailing reset is `xc` (\e[0;37m), not bare `x` (\e[0m).
         # clean_escapes in converter.rb strips every bare \e[0m from the final
@@ -1038,9 +1052,7 @@ module Redcarpet
                 end
               elsif exec_available('chafa')
                 MDLess.log.info('Using chafa for image rendering')
-                term = '-f sixels'
-                term = ENV['TERMINAL_PROGRAM'] =~ /iterm/i ? '-f iterm' : term
-                term = ENV['TERMINAL_PROGRAM'] =~ /kitty/i ? '-f kitty' : term
+                term = chafa_format
                 FileUtils.rm_r '.mdless_tmp', force: true if File.directory?('.mdless_tmp')
                 Dir.mkdir('.mdless_tmp')
                 Dir.chdir('.mdless_tmp')
@@ -1068,10 +1080,7 @@ module Redcarpet
                 if exec_available('imgcat')
                   img = `imgcat "#{img_path}"`
                 elsif exec_available('chafa')
-                  term = '-f sixels'
-                  term = ENV['TERMINAL_PROGRAM'] =~ /iterm/i ? '-f iterm' : term
-                  term = ENV['TERMINAL_PROGRAM'] =~ /kitty/i ? '-f kitty' : term
-                  img = `chafa #{term} "#{img_path}"`
+                  img = `chafa #{chafa_format} "#{img_path}"`
                 end
                 result = pre + img + post
               end
