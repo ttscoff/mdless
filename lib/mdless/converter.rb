@@ -642,7 +642,9 @@ module CLIMarkdown
 
       pagers.concat(["less", "more", "cat", "pager"])
 
-      pagers.delete_if { |pg| !TTY::Which.exist?(pg) }
+      # Check only the executable name so PAGER values with arguments
+      # (e.g. "less -R") are kept rather than discarded
+      pagers.delete_if { |pg| !TTY::Which.exist?(pg.split(/\s+/).first.to_s) }
 
       pagers.select! do |f|
         pg = f.split(/[ ]/)[0]
