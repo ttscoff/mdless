@@ -7,3 +7,5 @@ vendor
 .tool-versions
 .devbox
 current_changelog.md
+.DS_Store
+.r_completions~
