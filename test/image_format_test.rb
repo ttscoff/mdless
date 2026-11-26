@@ -27,7 +27,7 @@ class ImageFormatTest < Test::Unit::TestCase
     assert_equal '-f kitty', format_for('KITTY_PID' => '1234', 'TERM' => 'xterm-256color')
   end
 
-  def test_kitty_detected_even_with_term_program_unset
+  def test_kitty_detected_even_with_unrelated_term_program
     assert_equal '-f kitty', format_for('TERM' => 'xterm-kitty', 'TERM_PROGRAM' => 'Apple_Terminal')
   end
 
